@@ -13,6 +13,7 @@ export interface PolicyState {
   now: number;
   approved?: boolean;
   ext?: ExternalState;
+  priceAnomaly?: boolean; // from Channel3: customer found it cheaper elsewhere
 }
 
 const r = (status: Decision['status'], ruleId: string, reason: string): Decision => ({ status, ruleId, reason });
@@ -50,6 +51,8 @@ export function decide(a: { amountCents: number; currency?: string | undefined }
   const needsAge = m.returnWindowDays != null && capturedAt == null;
   if (needsDispute || needsAge)
     return r('pending_approval', 'R-STATE-UNAVAILABLE', 'Rein could not read the payment\'s live PayPal state (dispute or purchase date), so a human must decide.');
+  if (s.priceAnomaly)
+    return r('pending_approval', 'R-PRICE-ANOMALY', 'Channel3 data shows the customer may have found this item cheaper elsewhere. Price match team must decide.');
   if (s.windowSum + a.amountCents > m.dailyCapCents)
     return r('pending_approval', 'R-DAILY-CAP', `This would take today's refunds past ${usd(m.dailyCapCents)}.`);
   if (a.amountCents > m.perActionCapCents)

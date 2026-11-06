@@ -6,6 +6,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { runRefund, type GateDeps, type GateOutcome } from './gate.ts';
 import { toCents } from './paypal.ts';
+import { checkPrice } from './channel3.ts';
 
 const reply = (obj: object, isError = false) => ({ content: [{ type: 'text' as const, text: JSON.stringify(obj) }], isError });
 
@@ -69,5 +70,24 @@ export function createProxy(d: GateDeps, o: ProxyOptions = {}): McpServer {
       return reply({ status: 'unavailable', reason: d.paypal.scrub(e?.message ?? 'lookup failed') }, true);
     }
   });
+
+  server.tool('price_adjust', 'Check if an item is cheaper elsewhere (Channel3 market data). If yes and customer reports it, escalate for price match consideration. Read-only: never refunds.',
+    { capture_id: z.string().min(3).max(64), item_id: z.string().min(1).max(64) },
+    async ({ capture_id, item_id }) => {
+      const order = d.db.one<{ order_id: string }>('SELECT order_id FROM orders WHERE capture_id=?', capture_id);
+      if (!order) return reply({ status: 'unknown_order', reason: 'No order data for that payment.' }, true);
+      const item = d.db.one<{ unit_cents: number }>('SELECT unit_cents FROM order_items WHERE order_id=? AND item_id=?', order.order_id, item_id);
+      if (!item) return reply({ status: 'unknown_item', reason: 'That item is not in the order.' }, true);
+      const result = await checkPrice(capture_id, item_id, item.unit_cents);
+      return reply({
+        item_id: result.itemId,
+        our_price: (result.ourPriceCents / 100).toFixed(2),
+        market_price: result.marketPriceCents !== null ? (result.marketPriceCents / 100).toFixed(2) : null,
+        price_anomaly: result.anomaly,
+        source: result.source,
+        ...(result.anomaly ? { note: 'Customer may have found it cheaper elsewhere. Escalate to refund/price-match team if reported.' } : {}),
+      });
+    });
+
   return server;
 }

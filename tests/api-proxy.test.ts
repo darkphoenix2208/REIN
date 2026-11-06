@@ -59,7 +59,7 @@ describe('MCP proxy (in-memory transport)', () => {
   test('only item-scoped tools exist by default; amount tool is opt-in', async () => {
     const { db } = await tempDb();
     const c1 = await connect({ db, mandate, paypal: null });
-    assert.deepEqual((await c1.listTools()).tools.map((t) => t.name).sort(), ['get_order', 'get_refund', 'refund_items']);
+    assert.deepEqual((await c1.listTools()).tools.map((t) => t.name).sort(), ['get_order', 'get_refund', 'price_adjust', 'refund_items']);
     const c2 = await connect({ db, mandate, paypal: null }, { exposeAmountTool: true });
     assert.ok((await c2.listTools()).tools.some((t) => t.name === 'create_refund'));
   });

@@ -50,7 +50,7 @@ describe('proxy over real MCP stdio', () => {
     const t = new StdioClientTransport({ command: process.execPath, args: ['--experimental-strip-types', '--disable-warning=ExperimentalWarning', 'server/proxy-main.ts'], env: { ...process.env as Record<string, string>, REIN_DB: path, REIN_MANDATE: 'mandate.json', PAYPAL_CLIENT_ID: '', PAYPAL_CLIENT_SECRET: '' }, stderr: 'pipe' });
     let err = ''; t.stderr?.on('data', (d: Buffer) => (err += d));
     const c = new Client({ name: 't', version: '1' }); await c.connect(t);
-    assert.deepEqual((await c.listTools()).tools.map((x) => x.name).sort(), ['get_order', 'get_refund', 'refund_items']);
+    assert.deepEqual((await c.listTools()).tools.map((x) => x.name).sort(), ['get_order', 'get_refund', 'price_adjust', 'refund_items']);
     const r: any = await c.callTool({ name: 'refund_items', arguments: { capture_id: 'CAP1', items: [{ item_id: 'mug', qty: 1 }] } });
     const body = JSON.parse(r.content[0].text); assert.equal(body.status, 'executed'); assert.equal(body.mode, 'sim'); assert.match(body.refund_id, /^SIM-/);
     const big: any = await c.callTool({ name: 'refund_items', arguments: { capture_id: 'CAP1', items: ['cushion', 'lamp', 'towels', 'vase'].map((i) => ({ item_id: i, qty: 1 })) } });
