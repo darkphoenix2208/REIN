@@ -1,15 +1,15 @@
 # Architecture
 
-Leash is a single-process TypeScript service built around one principle: an AI proposes a refund, while deterministic code decides whether money may move. The default integration keeps PayPal credentials inside a narrow MCP proxy. A secondary Claude Code hook integration can gate an existing PayPal tool but is a best-effort guardrail, not a credential boundary.
+Rein is a single-process TypeScript service built around one principle: an AI proposes a refund, while deterministic code decides whether money may move. The default integration keeps PayPal credentials inside a narrow MCP proxy. A secondary Claude Code hook integration can gate an existing PayPal tool but is a best-effort guardrail, not a credential boundary.
 
 ## System context
 
 ```mermaid
 flowchart LR
     Ticket[Untrusted customer ticket] --> Agent[AI support agent]
-    Agent -->|item request| Proxy[Leash MCP proxy]
+    Agent -->|item request| Proxy[Rein MCP proxy]
     Agent -.->|alternative: tool hook| Hook[Claude Code hook]
-    Hook -->|check and reserve| API[Leash HTTP API]
+    Hook -->|check and reserve| API[Rein HTTP API]
     Proxy --> Gate[Refund gate]
     API --> Gate
     UI[React operator UI] --> API
@@ -20,14 +20,14 @@ flowchart LR
     Gemini[Gemini, optional] -->|advisory text only| UI
 ```
 
-Trust is intentionally asymmetric. Ticket text, agent reasoning, tool arguments, and all model output are untrusted. The operator host, mandate file, Leash process, SQLite database, and clock are trusted. Leash does not detect prompt injection; it limits what a successfully manipulated agent can do.
+Trust is intentionally asymmetric. Ticket text, agent reasoning, tool arguments, and all model output are untrusted. The operator host, mandate file, Rein process, SQLite database, and clock are trusted. Rein does not detect prompt injection; it limits what a successfully manipulated agent can do.
 
 ## Refund lifecycle
 
 ```mermaid
 sequenceDiagram
     participant A as Agent
-    participant L as Leash
+    participant L as Rein
     participant D as SQLite
     participant P as PayPal sandbox
     participant H as Human
@@ -84,4 +84,4 @@ The ledger detects partial edits, deletion, insertion, and reordering. A chain a
 
 ## Scaling constraints
 
-Leash is deliberately single-instance. SQLite `BEGIN IMMEDIATE`, in-memory rate-limit state, demo run state, and approval-summary caches assume one process. Horizontal scaling would require a shared transactional database, distributed rate limiting, durable demo/approval auxiliary state, and a reconciliation worker for ambiguous PayPal outcomes.
+Rein is deliberately single-instance. SQLite `BEGIN IMMEDIATE`, in-memory rate-limit state, demo run state, and approval-summary caches assume one process. Horizontal scaling would require a shared transactional database, distributed rate limiting, durable demo/approval auxiliary state, and a reconciliation worker for ambiguous PayPal outcomes.

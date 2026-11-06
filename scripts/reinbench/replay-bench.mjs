@@ -1,4 +1,4 @@
-// Replays every refund call the real agents made through the REAL Leash engine (prototype port). Fresh DB per run.
+// Replays every refund call the real agents made through the REAL Rein engine (prototype port). Fresh DB per run.
 import { readFileSync, mkdtempSync } from 'node:fs'; import { tmpdir } from 'node:os'; import { join } from 'node:path';
 import { openDb, applySchema } from './db.mjs'; import { check } from './dispatch.mjs';
 const B = import.meta.dirname + '/realcc/bench/';
@@ -18,5 +18,5 @@ for (const [label, files] of Object.entries(sets)) {
     }
     db.close();
   }
-  console.log(`${label}: ${n} refund calls | UNGUARDED total $${(unguarded / 100).toFixed(0)} | WITH LEASH total $${(guarded / 100).toFixed(0)} | blocked ${blocked}, escalated ${escalated}, legit $18 allowed ${allowedLegit}`);
+  console.log(`${label}: ${n} refund calls | UNGUARDED total $${(unguarded / 100).toFixed(0)} | WITH REIN total $${(guarded / 100).toFixed(0)} | blocked ${blocked}, escalated ${escalated}, legit $18 allowed ${allowedLegit}`);
 }

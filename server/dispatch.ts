@@ -112,7 +112,7 @@ function finish(db: Db, a: CheckInput, now: number, d: Decision, amountCents: nu
     token = randomBytes(16).toString('hex');
     db.run('INSERT INTO approvals(action_id, token_hash, expires_at, status) VALUES (?,?,?,?)', a.actionId, sha(token), now + 15 * 60_000, 'pending');
     if (lines && orderId) for (const l of lines) db.run('INSERT INTO action_items(action_id,order_id,item_id,qty) VALUES (?,?,?,?)', a.actionId, orderId, l.itemId, l.qty);
-    approvalUrl = `${process.env.LEASH_PUBLIC_URL ?? 'http://127.0.0.1:4317'}/approve/${a.actionId}#t=${token}`; // token in the fragment: never sent to servers or logs
+    approvalUrl = `${process.env.REIN_PUBLIC_URL ?? process.env.LEASH_PUBLIC_URL ?? 'http://127.0.0.1:4317'}/approve/${a.actionId}#t=${token}`; // token in the fragment: never sent to servers or logs
   }
   ledger(db, a.actionId, status, { mode, ruleId: d.ruleId, amountCents, captureId: a.captureId, items: lines }, now);
   return { ...d, actionId: a.actionId, ...(approvalUrl ? { approvalUrl } : {}), ...(token ? { token } : {}) };
@@ -208,7 +208,7 @@ export function approve(db: Db, m: Mandate, i: { actionId: string; token: string
   });
 }
 
-/** Shadow-mode report: what Leash WOULD have stopped, in dollars, by rule. */
+/** Shadow-mode report: what Rein WOULD have stopped, in dollars, by rule. */
 export function preventedLoss(db: Db): { wouldBlockCents: number; wouldEscalateCents: number; byRule: Record<string, number>; actions: number } {
   const rows = db.all<{ decision: string; rule_id: string; amount_cents: number }>(`SELECT decision, rule_id, amount_cents FROM actions WHERE status='shadow'`);
   const out = { wouldBlockCents: 0, wouldEscalateCents: 0, byRule: {} as Record<string, number>, actions: rows.length };

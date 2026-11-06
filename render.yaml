@@ -1,7 +1,7 @@
 # Optional hosting. Free tier notes: cold starts after idle, and the disk is ephemeral, so the ledger resets on redeploy. Single instance only (SQLite).
 services:
   - type: web
-    name: leash
+    name: rein
     runtime: node
     plan: free
     # NODE_ENV=production makes npm skip devDependencies, and the UI build needs vite: install them explicitly
@@ -13,11 +13,11 @@ services:
         value: "24"
       - key: NODE_ENV
         value: production
-      - key: LEASH_TRUST_PROXY
+      - key: REIN_TRUST_PROXY
         value: "1"
-      - key: LEASH_DB
-        value: /tmp/leash.db
-      - key: LEASH_PUBLIC_URL
+      - key: REIN_DB
+        value: /tmp/rein.db
+      - key: REIN_PUBLIC_URL
         sync: false
       - key: GEMINI_API_KEY
         sync: false

@@ -20,7 +20,7 @@ export function parseMandate(raw: unknown): Mandate {
   for (const k of Object.keys(o)) if (!KNOWN.has(k)) throw new MandateError(`Unknown mandate field "${k}" (the schema is a fixed whitelist).`);
   for (const k of REQUIRED_INT) {
     const v = o[k];
-    if (v === null || v === undefined) throw new MandateError(`Mandate field ${k} is unset. Leash does not guess limits: answer it before activating the mandate.`);
+    if (v === null || v === undefined) throw new MandateError(`Mandate field ${k} is unset. Rein does not guess limits: answer it before activating the mandate.`);
     if (!Number.isInteger(v) || (v as number) <= 0) throw new MandateError(`Mandate field ${k} must be a positive integer number of cents.`);
   }
   const m = o as any;
@@ -47,7 +47,7 @@ export function loadMandate(path: string): Mandate {
   try {
     text = readFileSync(path, 'utf8');
   } catch (e: any) {
-    throw new MandateError(`Cannot read mandate file ${path} (${e?.code ?? e?.message}). Set LEASH_MANDATE to its path.`);
+    throw new MandateError(`Cannot read mandate file ${path} (${e?.code ?? e?.message}). Set REIN_MANDATE to its path.`);
   }
   try {
     return parseMandate(JSON.parse(text));

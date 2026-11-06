@@ -1,4 +1,4 @@
-// Drives the real Leash UI end to end and records it: desktop take (1920x1080) + phone take of the approval page.
+// Drives the real Rein UI end to end and records it: desktop take (1920x1080) + phone take of the approval page.
 // usage: node record-app.mjs <baseUrl> <outDir>
 import { chromium } from 'playwright-core';
 import { CHROME, CURSOR_JS, Recorder, glide, sleep, smoothScroll } from './lib.mjs';
@@ -102,7 +102,7 @@ await glide(d, d.getByRole('button', { name: 'apparel' }));
 await sleep(2200);
 rec.mark('author: Compile draft');
 await glide(d, d.getByRole('button', { name: 'Compile draft' }));
-await d.getByText('What Leash would enforce').waitFor({ timeout: 90000 });
+await d.getByText('What Rein would enforce').waitFor({ timeout: 90000 });
 rec.mark('author: draft compiled (playback + NOT enforced)');
 await sleep(1500);
 await smoothScroll(d, 520, 1400);

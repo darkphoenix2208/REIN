@@ -1,4 +1,4 @@
-# Leash design system and UI tokens
+# Rein design system and UI tokens
 
 Source: /plan-design-review. Surface mode: OPERATE (app UI), with one authored Persuade moment on /demo. No mockups exist yet (designer needed an OpenAI key); these tokens are the contract until /design-consultation or /design-review refines them against rendered pixels.
 
@@ -40,4 +40,4 @@ One authored moment: after "Run both lanes", the unguarded outcome appears first
 Top bar, ticket selector (segmented control), lane (column), outcome row, status chip, ledger grid (AG Grid themed to these tokens), approval panel, banner (reset/error), button (primary/secondary/destructive-outline), labeled textarea. Nothing else without a new decision.
 
 ## Brand and trademark
-Wordmark "Leash" is text only. No PayPal logo, no PayPal brand colors; "PayPal sandbox" appears as plain text. The video must not include third-party trademarks, so live-fire proof is shown inside Leash's own ledger (refund id and status from the API response as monospace text) and never as dashboard footage. Re-check against the official Rules page before shooting.
+Wordmark "Rein" is text only. No PayPal logo, no PayPal brand colors; "PayPal sandbox" appears as plain text. The video must not include third-party trademarks, so live-fire proof is shown inside Rein's own ledger (refund id and status from the API response as monospace text) and never as dashboard footage. Re-check against the official Rules page before shooting.

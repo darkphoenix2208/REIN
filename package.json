@@ -1,5 +1,5 @@
 {
-  "name": "leash",
+  "name": "rein",
   "version": "0.1.0",
   "private": true,
   "description": "Author, authorize, verify: a payment-specific mandate gate for AI agents that move money through PayPal (sandbox).",
@@ -10,7 +10,7 @@
   },
   "scripts": {
     "test": "node --experimental-strip-types --disable-warning=ExperimentalWarning --test --test-reporter=spec --test-timeout=60000 \"tests/**/*.test.ts\"",
-    "test:node-sqlite": "cross-env LEASH_DB_DRIVER=node:sqlite node --experimental-strip-types --disable-warning=ExperimentalWarning --test --test-reporter=spec --test-timeout=60000 \"tests/**/*.test.ts\"",
+    "test:node-sqlite": "cross-env REIN_DB_DRIVER=node:sqlite node --experimental-strip-types --disable-warning=ExperimentalWarning --test --test-reporter=spec --test-timeout=60000 \"tests/**/*.test.ts\"",
     "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tests/tsconfig.json && tsc --noEmit -p web/tsconfig.json",
     "web:build": "vite build --config web/vite.config.ts",
     "web:typecheck": "tsc --noEmit -p web/tsconfig.json",

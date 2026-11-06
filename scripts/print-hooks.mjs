@@ -8,10 +8,10 @@ const hook = (command) => ({ type: 'command', command, timeout: 5 });
 console.log(JSON.stringify({
   hooks: {
     PreToolUse: [
-      { matcher: paypal, hooks: [hook(cmd('leash-hook.mjs', 'pre'))] },
+      { matcher: paypal, hooks: [hook(cmd('rein-hook.mjs', 'pre'))] },
       { matcher: 'Bash|PowerShell|Write|Edit|MultiEdit|NotebookEdit|Read', hooks: [hook(cmd('guard.mjs'))] },
     ],
-    PostToolUse: [{ matcher: paypal, hooks: [hook(cmd('leash-hook.mjs', 'post'))] }],
-    PostToolUseFailure: [{ matcher: paypal, hooks: [hook(cmd('leash-hook.mjs', 'failure'))] }],
+    PostToolUse: [{ matcher: paypal, hooks: [hook(cmd('rein-hook.mjs', 'post'))] }],
+    PostToolUseFailure: [{ matcher: paypal, hooks: [hook(cmd('rein-hook.mjs', 'failure'))] }],
   },
 }, null, 2));

@@ -4,7 +4,7 @@
 !.env.example
 *.pem
 .seed/
-leash-seal.json
+rein-seal.json
 
 # local databases and build output
 *.db
@@ -33,9 +33,9 @@ paypal video transcript.txt
 .demo-agent/
 
 # generated benchmark outputs (harnesses and input fixtures remain tracked)
-/scripts/leashbench/bench/
-/scripts/leashbench/results-*.json
-/scripts/leashbench/user-policies-results.json
+/scripts/reinbench/bench/
+/scripts/reinbench/results-*.json
+/scripts/reinbench/user-policies-results.json
 
 # raw demo-video screen recordings (large, not source)
 /recording/

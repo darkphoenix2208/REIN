@@ -13,7 +13,7 @@ const db = await openDb('.gate2.db'); applySchema(db);
 db.run(`INSERT INTO payments(txn_id,captured_cents,currency,source,captured_at) VALUES (?,3500,'USD','gate2',?)`, CAP, Date.now() - 86400000);
 db.run(`INSERT INTO orders(order_id,capture_id) VALUES (?,?)`, ORDER, CAP);
 db.run(`INSERT INTO order_items(order_id,item_id,name,unit_cents,qty) VALUES (?,'a','Item A',1800,1),(?,'b','Item B',1700,1)`, ORDER, ORDER);
-const r = await runRefund({ db, mandate, paypal: pp }, { sessionId: 'gate2', tool: 'refund_items', captureId: CAP, amountCents: null, items: [{ itemId: 'a', qty: 1 }] }, 'Leash gate 2');
+const r = await runRefund({ db, mandate, paypal: pp }, { sessionId: 'gate2', tool: 'refund_items', captureId: CAP, amountCents: null, items: [{ itemId: 'a', qty: 1 }] }, 'Rein gate 2');
 console.log('gate:', JSON.stringify(r));
 if (r.status === 'executed') { const g = await pp.getRefund(r.refundId); console.log('independent GET:', g.id, g.status, g.amount?.value, g.amount?.currency_code); }
 const r2 = await runRefund({ db, mandate, paypal: pp }, { sessionId: 'gate2', tool: 'refund_items', captureId: CAP, amountCents: null, items: [{ itemId: 'b', qty: 1 }] });

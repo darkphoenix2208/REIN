@@ -1,16 +1,16 @@
-# Leash demo video
+# Rein demo video
 
-Motion graphics in [Remotion](https://www.remotion.dev) around real screen recordings of Leash. 1920×1080, 30 fps, 2:03.
-Output: `out/leash-demo.mp4`, `out/thumbnail.png` (1280×720), `out/leash-demo.gif` (13 s, for the README).
+Motion graphics in [Remotion](https://www.remotion.dev) around real screen recordings of Rein. 1920×1080, 30 fps, 2:03.
+Output: `out/rein-demo.mp4`, `out/thumbnail.png` (1280×720), `out/rein-demo.gif` (13 s, for the README).
 
 ## Rebuild
 
 ```bash
 # 0. the app, three servers (keys only where a scene needs them; .env is never printed)
 npm ci && npm run web:build                                     # repo root
-PAYPAL_CLIENT_ID= PAYPAL_CLIENT_SECRET= GEMINI_API_KEY= PORT=4400 LEASH_DB=/tmp/recA.db \
+PAYPAL_CLIENT_ID= PAYPAL_CLIENT_SECRET= GEMINI_API_KEY= PORT=4400 REIN_DB=/tmp/recA.db \
   node --env-file=.env --disable-warning=ExperimentalWarning server/index.ts   # SIMULATED: demo, ledger, mandate, author
-PORT=4401 LEASH_DB=/tmp/recB.db \
+PORT=4401 REIN_DB=/tmp/recB.db \
   node --env-file=.env --disable-warning=ExperimentalWarning server/index.ts   # LIVE-FIRE: only for /proof (read-only GETs)
 
 # 1. record (headless Chrome screencast, 1920×1080, visible cursor) → /recording (gitignored)
@@ -22,7 +22,7 @@ node video/record/record-term.mjs  recording http://127.0.0.1:4400   # terminal.
 cd video && npm install
 bash cut_clips.sh                                   # → public/clips + public/thumb
 npx remotion studio src/index.ts                    # preview + scrub
-npm run render                                      # → out/leash-silent.mp4
+npm run render                                      # → out/rein-silent.mp4
 npm run thumbnail                                   # → out/thumbnail.png
 
 # 3. audio
@@ -32,7 +32,7 @@ python -m venv .venv && .venv/Scripts/pip install google-genai python-dotenv
 .venv/Scripts/python make_vo.py 11 12               # regenerate only lines 11 and 12
 .venv/Scripts/python make_vo.py --check             # transcribe existing lines with Gemini and report
 .venv/Scripts/python check_vo_local.py              # same check offline with Whisper (pip install faster-whisper)
-.venv/Scripts/python mix_audio.py                   # ducked mix, -15 LUFS → out/leash-demo.mp4
+.venv/Scripts/python mix_audio.py                   # ducked mix, -15 LUFS → out/rein-demo.mp4
 ```
 
 Set `FFMPEG`/`FFPROBE` (and `CHROME` for the recorders) if they are not on PATH.
@@ -44,7 +44,7 @@ script takes one request per line, so a full run needs the quota for 16 lines (o
 - Every screen is an unedited recording, only sped up; the speed is on screen in each frame (`REAL UI · unedited · 1.4×`).
 - Motion-graphics scenes carry a `MOTION GRAPHIC` label.
 - The demo lanes are SIMULATED (fake captures, the final PayPal call is stubbed); every demo scene says so under the frame.
-  The "without Leash" lane replays the agent's request; the recording server had no PayPal keys, so its badge reads SIMULATED.
+  The "without Rein" lane replays the agent's request; the recording server had no PayPal keys, so its badge reads SIMULATED.
 - `/proof` was recorded on a separate server with sandbox keys: the "PayPal now" column was fetched live from PayPal while recording.
 - The Author scene shows the recorded sample compile (keyless server), and says so.
 - The phone scene is a phone-width browser (390×844), and says so.

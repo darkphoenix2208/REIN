@@ -34,11 +34,11 @@ export function Author() {
       {err && <div className="banner error" role="alert">{err}</div>}
       {draft && <div className="card">
         <p className="muted">{draft.source === 'recorded' ? 'Recorded compile' : `Compiled ${draft.runs} times`}{draft.disagreements.length ? `. The runs disagreed on: ${draft.disagreements.join(', ')} (left empty).` : '. The runs agreed on every field they filled.'}</p>
-        <h2>What Leash would enforce</h2>
+        <h2>What Rein would enforce</h2>
         <ul className="plain">{draft.playback.map((l, i) => <li key={i} className={l.startsWith('NOT SET') ? 'muted' : ''}>{l.startsWith('NOT SET') ? <strong>{l}</strong> : l}</li>)}</ul>
         <h2>NOT enforced (the schema cannot express these)</h2>
         <ul className="plain">{draft.unsupported.length ? draft.unsupported.slice(0, 8).map((u, i) => <li key={i}>{u}</li>) : <li>None reported.</li>}</ul>
-        <p className={draft.activatable ? '' : 'banner error'}>{draft.activatable ? 'All four spending limits are set. Activation is a deliberate step: npm run compile-policy -- --activate.' : 'Cannot be activated: at least one spending limit is empty. Leash does not guess limits. Answer the NOT SET lines first.'}</p>
+        <p className={draft.activatable ? '' : 'banner error'}>{draft.activatable ? 'All four spending limits are set. Activation is a deliberate step: npm run compile-policy -- --activate.' : 'Cannot be activated: at least one spending limit is empty. Rein does not guess limits. Answer the NOT SET lines first.'}</p>
       </div>}
     </>
   );

@@ -28,7 +28,7 @@ function App() {
   return (
     <>
       <header className="topbar">
-        <a className="brand" href="/demo" onClick={go('/demo')}>Leash</a>
+        <a className="brand" href="/demo" onClick={go('/demo')}>Rein</a>
         <nav aria-label="Main">
           <a href="/demo" aria-current={cur('/demo')} onClick={go('/demo')}>Demo</a>
           <a href="/ledger" aria-current={cur('/ledger')} onClick={go('/ledger')}>Ledger</a>

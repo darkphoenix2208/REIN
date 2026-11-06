@@ -8,7 +8,7 @@ export const DAY = 86_400_000;
 export const MANDATE_JSON = { schema_version: 1, perActionCapCents: 5000, hardMaxCents: 10000, dailyCapCents: 20000, hardDailyCapCents: 40000, expiresAt: '2099-01-01T00:00:00Z', returnWindowDays: 30, blockIfOpenDispute: true };
 
 export async function tempDb(): Promise<{ db: Db; path: string }> {
-  const path = join(mkdtempSync(join(tmpdir(), 'leash-')), 't.db');
+  const path = join(mkdtempSync(join(tmpdir(), 'rein-')), 't.db');
   const db = await openDb(path);
   applySchema(db);
   return { db, path };

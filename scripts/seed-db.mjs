@@ -1,7 +1,7 @@
-// Loads the already-created sandbox captures (.seed/captures.json) into the Leash DB. Makes NO PayPal calls and never re-seeds PayPal.
+// Loads the already-created sandbox captures (.seed/captures.json) into the Rein DB. Makes NO PayPal calls and never re-seeds PayPal.
 // The $200 demo order gets its five line items; other captures have no item data (item-scoped refunds on them are escalated).
 import { readFileSync } from 'node:fs';
-const path = process.env.LEASH_DB ?? 'leash.db';
+const path = process.env.REIN_DB ?? 'rein.db';
 const caps = JSON.parse(readFileSync('.seed/captures.json', 'utf8'));
 const { applySchema } = await import('../server/schema.ts');
 const { openDb } = await import('../server/db.ts');

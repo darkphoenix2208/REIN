@@ -13,7 +13,7 @@ export const C = {
   text: "#f4f3f8",
   muted: "#8e8ba3",
   dim: "#5d5a73",
-  violet: "#8b7bff", // Leash violet: the one accent
+  violet: "#8b7bff", // Rein violet: the one accent
   violetSoft: "#b4a9ff",
   violetDeep: "#3b2f9e",
   // the app's own outcome colours, used only for outcomes

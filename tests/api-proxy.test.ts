@@ -14,7 +14,7 @@ const listen = (app: any) => new Promise<{ base: string; close: () => void }>((r
 const post = (base: string, path: string, body: unknown, token?: string) => fetch(base + path, { method: 'POST', headers: { 'content-type': 'application/json', ...(token ? { authorization: `Bearer ${token}` } : {}) }, body: JSON.stringify(body) });
 
 describe('HTTP API', () => {
-  test('hook endpoints: 401 without bearer, 200 with; 503 in production when LEASH_TOKEN unset', async () => {
+  test('hook endpoints: 401 without bearer, 200 with; 503 in production when REIN_TOKEN unset', async () => {
     const { db } = await tempDb(); seedOrder(db, 'CAP1');
     const body = { actionId: 'a1', sessionId: 's', tool: 'refund_items', captureId: 'CAP1', amountCents: null, items: [{ itemId: 'mug', qty: 1 }] };
     const a = await listen(createApp({ db, mandate, paypal: null }, { token: 'T0K' }));

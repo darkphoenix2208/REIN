@@ -1,6 +1,6 @@
 # Rein - PayPal AI Hackathon Status
 
-**Project Name**: Rein (was "Leash")
+**Project Name**: Rein (was "Rein")
 **Tagline**: "Give your AI agent a refund budget, not your PayPal keys."
 **Submission Deadline**: Nov 12, 2026, 12:00 PM PT (Nov 13, 1:30 AM IST)
 **Target Submit**: Nov 11, 2026
@@ -48,11 +48,11 @@ PAYPAL_CLIENT_ID=your_sandbox_client_id_here
 PAYPAL_CLIENT_SECRET=your_sandbox_client_secret_here
 PAYPAL_BASE_URL=https://api-m.sandbox.paypal.com
 
-# Leash/Rein Configuration
-LEASH_TOKEN=generate_random_token_here  # Use: openssl rand -hex 32
-LEASH_DB=leash.db
-LEASH_PUBLIC_URL=http://127.0.0.1:4317
-LEASH_MANDATE=mandate.json
+# Rein/Rein Configuration
+REIN_TOKEN=generate_random_token_here  # Use: openssl rand -hex 32
+REIN_DB=rein.db
+REIN_PUBLIC_URL=http://127.0.0.1:4317
+REIN_MANDATE=mandate.json
 
 # Optional: AI Features
 GEMINI_API_KEY=your_gemini_key_here  # For policy compiler & AI summary (optional)
@@ -84,30 +84,30 @@ Open http://127.0.0.1:4317/demo
 
 ## 🚧 NOT COMPLETED (Due to Time Constraints)
 
-### Phase 2: Complete Rename (Leash → Rein)
+### Phase 2: Complete Rename (Rein → Rein)
 **Status**: PARTIAL - Critical rename not done
-**Impact**: HIGH - Product name still "Leash" throughout codebase
+**Impact**: HIGH - Product name still "Rein" throughout codebase
 **Time Needed**: ~45 min to complete
 **What's Missing**:
 - Package.json name/description
 - All documentation (README, docs/*)
 - UI copy in web/src/*.tsx
-- MCP server name: leash-paypal → rein-paypal
-- Hook files: leash-hook.mjs → rein-hook.mjs
-- DB filename: leash.db → rein.db
-- Env vars: LEASH_* → REIN_* with fallbacks
+- MCP server name: rein-paypal → rein-paypal
+- Hook files: rein-hook.mjs → rein-hook.mjs
+- DB filename: rein.db → rein.db
+- Env vars: REIN_* → REIN_* with fallbacks
 - Error messages, log prefixes
-- HTTP headers (X-Leash-* → X-Rein-*)
+- HTTP headers (X-Rein-* → X-Rein-*)
 
 **Manual Fix Steps**:
 ```bash
 # Run this find-replace carefully:
-find . -type f \( -name "*.ts" -o -name "*.tsx" -o -name "*.mjs" -o -name "*.json" -o -name "*.md" -o -name "*.yaml" \) ! -path "./node_modules/*" ! -path "./.git/*" -exec sed -i 's/Leash/Rein/g' {} +
-find . -type f \( -name "*.ts" -o -name "*.tsx" -o -name "*.mjs" -o -name "*.json" -o -name "*.md" -o -name "*.yaml" \) ! -path "./node_modules/*" ! -path "./.git/*" -exec sed -i 's/leash/rein/g' {} +
-find . -type f \( -name "*.ts" -o -name "*.tsx" -o -name "*.mjs" -o -name "*.json" -o -name "*.md" -o -name "*.yaml" \) ! -path "./node_modules/*" ! -path "./.git/*" -exec sed -i 's/LEASH/REIN/g' {} +
+find . -type f \( -name "*.ts" -o -name "*.tsx" -o -name "*.mjs" -o -name "*.json" -o -name "*.md" -o -name "*.yaml" \) ! -path "./node_modules/*" ! -path "./.git/*" -exec sed -i 's/Rein/Rein/g' {} +
+find . -type f \( -name "*.ts" -o -name "*.tsx" -o -name "*.mjs" -o -name "*.json" -o -name "*.md" -o -name "*.yaml" \) ! -path "./node_modules/*" ! -path "./.git/*" -exec sed -i 's/rein/rein/g' {} +
+find . -type f \( -name "*.ts" -o -name "*.tsx" -o -name "*.mjs" -o -name "*.json" -o -name "*.md" -o -name "*.yaml" \) ! -path "./node_modules/*" ! -path "./.git/*" -exec sed -i 's/REIN/REIN/g' {} +
 
 # Then manually verify and fix:
-# - CHANGELOG.md (keep historical "Leash" mentions)
+# - CHANGELOG.md (keep historical "Rein" mentions)
 # - LICENSE and contributor credits (unchanged)
 # - Any false positives
 ```
@@ -199,8 +199,8 @@ find . -type f \( -name "*.ts" -o -name "*.tsx" -o -name "*.mjs" -o -name "*.jso
 
 ### CRITICAL (Do First - 30 min)
 
-1. **Rename Leash → Rein** (use sed commands above or manually)
-   - Verify with: `git grep -i leash` (should be zero hits except CHANGELOG)
+1. **Rename Rein → Rein** (use sed commands above or manually)
+   - Verify with: `git grep -i rein` (should be zero hits except CHANGELOG)
    
 2. **Update README.md** for judges:
    - Clear one-line pitch at top
@@ -277,7 +277,7 @@ find . -type f \( -name "*.ts" -o -name "*.tsx" -o -name "*.mjs" -o -name "*.jso
 
 ### What Doesn't Work ❌
 
-1. ❌ Project still named "Leash" everywhere
+1. ❌ Project still named "Rein" everywhere
 2. ❌ No hosted demo URL
 3. ❌ Order line items are hardcoded (not from PayPal Orders API)
 4. ❌ No webhook receiver
@@ -295,7 +295,7 @@ find . -type f \( -name "*.ts" -o -name "*.tsx" -o -name "*.mjs" -o -name "*.jso
 ### Run Demo (Simulated Mode - No Keys)
 
 ```bash
-cd /d/Leash-main/Leash-main
+cd /d/Rein-main/Rein-main
 npm ci
 npm run demo
 ```
@@ -403,7 +403,7 @@ Add to above:
 3. **Windows line endings**: Git warnings about CRLF (cosmetic only)
 4. **Hardcoded items**: Order line items not from PayPal API yet
 5. **No webhooks**: Reconciler not implemented
-6. **Name**: Still "Leash" - needs global rename
+6. **Name**: Still "Rein" - needs global rename
 
 ---
 

@@ -1,4 +1,4 @@
-// Browser end-to-end: real server process, real Chromium. Skipped (not failed) when no Chromium is found: set LEASH_CHROMIUM to a chrome executable, or run `npx playwright install chromium`.
+// Browser end-to-end: real server process, real Chromium. Skipped (not failed) when no Chromium is found: set REIN_CHROMIUM to a chrome executable, or run `npx playwright install chromium`.
 import { test, describe, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawn, type ChildProcess } from 'node:child_process';
@@ -8,7 +8,7 @@ import { join } from 'node:path';
 import { chromium, type Browser } from 'playwright-core';
 
 function findChromium(): string | null {
-  if (process.env.LEASH_CHROMIUM && existsSync(process.env.LEASH_CHROMIUM)) return process.env.LEASH_CHROMIUM;
+  if (process.env.REIN_CHROMIUM && existsSync(process.env.REIN_CHROMIUM)) return process.env.REIN_CHROMIUM;
   const roots = [join(homedir(), 'AppData', 'Local', 'ms-playwright'), join(homedir(), '.cache', 'ms-playwright'), join(homedir(), 'Library', 'Caches', 'ms-playwright')];
   for (const r of roots) {
     if (!existsSync(r)) continue;
@@ -25,11 +25,11 @@ function findChromium(): string | null {
 const exe = findChromium();
 const PORT = 4521, BASE = `http://127.0.0.1:${PORT}`, DB = '.e2e.db';
 
-describe('browser e2e', { skip: exe ? false : 'no Chromium found (set LEASH_CHROMIUM)' }, () => {
+describe('browser e2e', { skip: exe ? false : 'no Chromium found (set REIN_CHROMIUM)' }, () => {
   let srv: ChildProcess, browser: Browser;
   before(async () => {
     for (const f of [DB, DB + '-wal', DB + '-shm']) rmSync(f, { force: true });
-    srv = spawn(process.execPath, ['--disable-warning=ExperimentalWarning', 'server/index.ts'], { env: { ...process.env, LEASH_DB: DB, PORT: String(PORT), PAYPAL_CLIENT_ID: '', PAYPAL_CLIENT_SECRET: '', GEMINI_API_KEY: '' }, stdio: 'ignore' });
+    srv = spawn(process.execPath, ['--disable-warning=ExperimentalWarning', 'server/index.ts'], { env: { ...process.env, REIN_DB: DB, PORT: String(PORT), PAYPAL_CLIENT_ID: '', PAYPAL_CLIENT_SECRET: '', GEMINI_API_KEY: '' }, stdio: 'ignore' });
     for (let i = 0; i < 50; i++) { try { if ((await fetch(BASE + '/health')).ok) break; } catch { /* not up yet */ } await new Promise((r) => setTimeout(r, 200)); }
     browser = await chromium.launch({ executablePath: exe!, args: ['--no-sandbox'] });
   });
@@ -43,9 +43,9 @@ describe('browser e2e', { skip: exe ? false : 'no Chromium found (set LEASH_CHRO
     await page.getByRole('button', { name: 'Run both lanes' }).click();
     await page.locator('.outcome-word', { hasText: 'REFUNDED $200.00' }).waitFor();
     await page.locator('.outcome-word', { hasText: 'NOT REFUNDED' }).waitFor();
-    assert.match(await page.locator('section[aria-label="With Leash"]').innerText(), /R-HARD-MAX/);
-    assert.match(await page.locator('section[aria-label="With Leash"]').innerText(), /Exposure today: \$0\.00 of \$400\.00/);
-    assert.match(await page.locator('section[aria-label="Without Leash"]').innerText(), /Exposure: unlimited/);
+    assert.match(await page.locator('section[aria-label="With Rein"]').innerText(), /R-HARD-MAX/);
+    assert.match(await page.locator('section[aria-label="With Rein"]').innerText(), /Exposure today: \$0\.00 of \$400\.00/);
+    assert.match(await page.locator('section[aria-label="Without Rein"]').innerText(), /Exposure: unlimited/);
     assert.deepEqual(errors, []);
   });
 
@@ -54,7 +54,7 @@ describe('browser e2e', { skip: exe ? false : 'no Chromium found (set LEASH_CHRO
     await page.goto(BASE + '/demo');
     await page.getByRole('button', { name: /^3\./ }).click();
     await page.getByRole('button', { name: 'Run both lanes' }).click();
-    await page.locator('section[aria-label="With Leash"] .outcome-word', { hasText: 'WAITING FOR APPROVAL' }).waitFor();
+    await page.locator('section[aria-label="With Rein"] .outcome-word', { hasText: 'WAITING FOR APPROVAL' }).waitFor();
     const href = await page.getByRole('link', { name: 'Open approval page' }).getAttribute('href');
     assert.match(href!, /^\/approve\/act_.+#t=[0-9a-f]{32}$/);
     const ap = await ctx.newPage(); await ap.goto(BASE + href!);
@@ -64,7 +64,7 @@ describe('browser e2e', { skip: exe ? false : 'no Chromium found (set LEASH_CHRO
     await ap.getByRole('button', { name: 'Approve' }).click();
     await ap.getByText(/Approved\. Nothing has been refunded yet/).waitFor();
     await page.getByRole('button', { name: 'Agent retries after approval' }).click();
-    await page.locator('section[aria-label="With Leash"] .outcome-word', { hasText: 'REFUNDED $75.00' }).waitFor();
+    await page.locator('section[aria-label="With Rein"] .outcome-word', { hasText: 'REFUNDED $75.00' }).waitFor();
     assert.equal(await page.getByRole('button', { name: 'Agent retries after approval' }).count(), 0, 'no retry button once executed');
     const rows = await (await fetch(BASE + '/v1/ledger')).json() as any;
     assert.equal(rows.rows.filter((r: any) => r.event === 'executed' && r.amount_cents === 7500).length, 1, 'refunded exactly once');

@@ -1,5 +1,5 @@
-// Leash credential-holding MCP proxy. It is the ONLY holder of the PayPal token; the agent sees only these tools.
-// Primary interface is ITEM-SCOPED: the agent names line items and Leash computes the amount from trusted order data.
+// Rein credential-holding MCP proxy. It is the ONLY holder of the PayPal token; the agent sees only these tools.
+// Primary interface is ITEM-SCOPED: the agent names line items and Rein computes the amount from trusted order data.
 // Unmapped PayPal tools (invoices, disputes, subscriptions...) simply do not exist here: fail closed by omission.
 import { randomUUID } from 'node:crypto';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
@@ -12,7 +12,7 @@ const reply = (obj: object, isError = false) => ({ content: [{ type: 'text' as c
 // StdioServerTransport never sets extra.sessionId (confirmed against @modelcontextprotocol/sdk server/stdio.js): a stdio proxy
 // is a single process per agent connection, so a stable per-PROCESS id (not a shared literal) is the right fallback. This keeps
 // approval grants (keyed by args_hash + session_id) from being consumable across two different proxy processes that happen to
-// share one leash.db and coincidentally request the same capture/amount/items.
+// share one rein.db and coincidentally request the same capture/amount/items.
 const FALLBACK_SESSION_ID = `proxy-${randomUUID()}`;
 // Recovery guidance: a block must not cost the customer a correct refund. It names no limit and offers no workaround past the gate:
 // the retry is still checked, so it can only ever refund items the order data says are refundable and the mandate allows.
@@ -35,7 +35,7 @@ export interface ProxyOptions {
 }
 
 export function createProxy(d: GateDeps, o: ProxyOptions = {}): McpServer {
-  const server = new McpServer({ name: 'leash-paypal', version: '0.1.0' });
+  const server = new McpServer({ name: 'rein-paypal', version: '0.1.0' });
   const sessionOf = (extra: any) => String(extra?.sessionId ?? FALLBACK_SESSION_ID);
 
   server.tool('get_order', 'Get the refundable line items of the order paid by a PayPal capture (trusted merchant data). Always call this before refund_items.',
@@ -47,7 +47,7 @@ export function createProxy(d: GateDeps, o: ProxyOptions = {}): McpServer {
       return reply({ capture_id, items: items.map((i) => ({ item_id: i.item_id, name: i.name, unit_price: (i.unit_cents / 100).toFixed(2), qty: i.qty, still_refundable_qty: i.qty - i.refunded_qty - i.reserved_qty, refundable: !!i.refundable, ...(i.flag ? { restriction: i.flag } : {}) })) });
     });
 
-  server.tool('refund_items', 'Refund specific line items of an order. You choose WHICH items, never the amount: Leash computes the amount from the order data. Refunding every item needs human approval.',
+  server.tool('refund_items', 'Refund specific line items of an order. You choose WHICH items, never the amount: Rein computes the amount from the order data. Refunding every item needs human approval.',
     { capture_id: z.string().min(3).max(64), items: z.array(z.object({ item_id: z.string().min(1).max(64), qty: z.number().int().min(1).max(1000).default(1) })).min(1).max(50), note_to_payer: z.string().max(255).optional() },
     async ({ capture_id, items, note_to_payer }, extra) =>
       present(await runRefund(d, { sessionId: sessionOf(extra), tool: 'refund_items', captureId: capture_id, amountCents: null, items: items.map((i) => ({ itemId: i.item_id, qty: i.qty })) }, note_to_payer)));

@@ -66,15 +66,15 @@ The pasted text was garbled, had no attribution to a PayPal staff member, and ci
 
 Status: consistent with, but NOT stronger than, what the source audit already established (open-source code has no gate; official doc says the full catalog is on both local and remote servers). Wording rule: say "no confirmation or amount limits in PayPal's open-source toolkit code, and PayPal's documentation leaves human approval to the client" only where the doc says so; do not claim a PayPal staff confirmation. A real staff answer in Discord (quote + name/role) would upgrade this; ask for a link to the message if one exists.
 
-## F. LIVE-FIRE RESULTS against the real PayPal sandbox (2026-10-07, US business account, app leash-us)
+## F. LIVE-FIRE RESULTS against the real PayPal sandbox (2026-10-07, US business account, app rein-us)
 
 | Check | Result |
 |---|---|
 | OAuth with the new app credentials | HTTP 200, 9-hour token (32400 s), payments/refund, payments/payment, invoicing, disputes scopes present |
 | Card seeding (documented test Visa) | 20 of 20 captured payments created (USD 35 to 200). The previous India business account could not do this (`PAYEE_NOT_ENABLED_FOR_CARD_PROCESSING`) |
-| Leash proxy (real MCP over stdio) -> real sandbox, $18 refund on a $60 capture | **executed**, PayPal refund COMPLETED, confirmed by an independent GET of the refund straight from PayPal (18.00 USD); ledger and balances updated (reserved 0, refunded 1800) |
-| Leash proxy, $900 on a $60 capture | blocked R-OVER-CAPTURE, PayPal never called (capture untouched) |
-| Leash proxy, $75 on a $120 capture | pending_approval R-ACTION-CAP, PayPal never called |
+| Rein proxy (real MCP over stdio) -> real sandbox, $18 refund on a $60 capture | **executed**, PayPal refund COMPLETED, confirmed by an independent GET of the refund straight from PayPal (18.00 USD); ledger and balances updated (reserved 0, refunded 1800) |
+| Rein proxy, $900 on a $60 capture | blocked R-OVER-CAPTURE, PayPal never called (capture untouched) |
+| Rein proxy, $75 on a $120 capture | pending_approval R-ACTION-CAP, PayPal never called |
 | Token leak check | The agent-visible output never contained the token (the script throws if it does) |
 | **Finding: PayPal rejects a refund above the capture itself** (`REFUND_AMOUNT_EXCEEDED`, HTTP 422, tested directly) | The demo attack must be one PayPal would accept: injected "refund the full $200 order" vs a legit $18. Guarded: blocked by R-HARD-MAX ($100). A $900-on-$60 refund proves nothing to a PayPal engineer. Demo script, Devpost text and seed labels corrected |
 

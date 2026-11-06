@@ -22,7 +22,7 @@ const runId = Date.now();
 const orders = [];
 for (let i = 0; i < N; i++) {
   const [value, label] = PLAN[i % PLAN.length];
-  const r = await fetch(`${BASE}/v2/checkout/orders`, { method: 'POST', headers: { ...H, 'PayPal-Request-Id': `leash-wseed-${runId}-${i}`, Prefer: 'return=representation' },
+  const r = await fetch(`${BASE}/v2/checkout/orders`, { method: 'POST', headers: { ...H, 'PayPal-Request-Id': `rein-wseed-${runId}-${i}`, Prefer: 'return=representation' },
     body: JSON.stringify({ intent: 'CAPTURE', purchase_units: [{ reference_id: `seed-${i}`, amount: { currency_code: 'USD', value } }],
       payment_source: { paypal: { experience_context: { return_url: 'http://localhost:9/return', cancel_url: 'http://localhost:9/cancel', user_action: 'PAY_NOW' } } } }) });
   const j = await r.json(); const link = j.links?.find((l) => /payer-action|approve/.test(l.rel))?.href;
@@ -38,7 +38,7 @@ while (pending.size && Date.now() < deadline) {
   for (const o of orders.filter((x) => pending.has(x.id))) {
     const g = await (await fetch(`${BASE}/v2/checkout/orders/${o.id}`, { headers: H })).json();
     if (g.status === 'APPROVED') {
-      const c = await fetch(`${BASE}/v2/checkout/orders/${o.id}/capture`, { method: 'POST', headers: { ...H, 'PayPal-Request-Id': `leash-cap-${o.id}`, Prefer: 'return=representation' }, body: '{}' });
+      const c = await fetch(`${BASE}/v2/checkout/orders/${o.id}/capture`, { method: 'POST', headers: { ...H, 'PayPal-Request-Id': `rein-cap-${o.id}`, Prefer: 'return=representation' }, body: '{}' });
       const cj = await c.json(); const cap = cj?.purchase_units?.[0]?.payments?.captures?.[0];
       if (c.ok && cap?.id) { out.push({ txn_id: cap.id, order_id: o.id, captured_cents: toCents(cap.amount.value), currency: cap.amount.currency_code, label: o.label, created: new Date().toISOString() }); console.log(`captured ${cap.id}  ${cap.amount.currency_code} ${cap.amount.value}  ${o.label}`); pending.delete(o.id); }
       else { console.error(`capture failed for ${o.id}: HTTP ${c.status} ${JSON.stringify(cj.details ?? cj.message)}`); pending.delete(o.id); }

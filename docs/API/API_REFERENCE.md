@@ -1,6 +1,6 @@
 # API documentation
 
-Leash exposes an Express JSON API under `/v1`, a health endpoint at `/health`, and a separate stdio MCP server. Unless noted otherwise, request and response bodies are JSON. The server limits JSON bodies to 16 KiB and rate-limits API traffic per client IP.
+Rein exposes an Express JSON API under `/v1`, a health endpoint at `/health`, and a separate stdio MCP server. Unless noted otherwise, request and response bodies are JSON. The server limits JSON bodies to 16 KiB and rate-limits API traffic per client IP.
 
 ## Conventions
 
@@ -14,12 +14,12 @@ Leash exposes an Express JSON API under `/v1`, a health endpoint at `/health`, a
 
 | Endpoint group | Default access | Production behavior |
 |---|---|---|
-| `/v1/check`, `/v1/result` | Bearer token when `LEASH_TOKEN` is set | Disabled with 503 when `LEASH_TOKEN` is absent |
-| `/v1/refund` | Open only when PayPal is simulated | Live sandbox refunds require `LEASH_TOKEN`; absent token returns 503 |
-| `/v1/ledger`, `/v1/exposure` | Public for demo transparency | Set `LEASH_LOCK_OPERATOR_ENDPOINTS=1` to require the bearer token |
+| `/v1/check`, `/v1/result` | Bearer token when `REIN_TOKEN` is set | Disabled with 503 when `REIN_TOKEN` is absent |
+| `/v1/refund` | Open only when PayPal is simulated | Live sandbox refunds require `REIN_TOKEN`; absent token returns 503 |
+| `/v1/ledger`, `/v1/exposure` | Public for demo transparency | Set `REIN_LOCK_OPERATOR_ENDPOINTS=1` to require the bearer token |
 | Approval, mandate, author, proof, demo, health | Public | Same |
 
-Send authenticated requests with `Authorization: Bearer <LEASH_TOKEN>`. Token comparison is timing-safe.
+Send authenticated requests with `Authorization: Bearer <REIN_TOKEN>`. Token comparison is timing-safe.
 
 ## Gate and execution endpoints
 
@@ -63,7 +63,7 @@ Runs the full check-reserve-execute-result pipeline. This is the HTTP counterpar
 }
 ```
 
-The weaker amount-scoped form omits `items` and supplies `"amount":"18.00"`. In live mode, the PayPal request uses the Leash action ID as `PayPal-Request-Id` for idempotency.
+The weaker amount-scoped form omits `items` and supplies `"amount":"18.00"`. In live mode, the PayPal request uses the Rein action ID as `PayPal-Request-Id` for idempotency.
 
 ### `POST /v1/approve`
 
@@ -106,8 +106,8 @@ Run `server/proxy-main.ts` over stdio. The proxy owns PayPal credentials and exp
 | Tool | Behavior |
 |---|---|
 | `get_order(capture_id)` | Returns trusted refundable line items and quantities |
-| `refund_items(capture_id, items, note_to_payer?)` | Agent chooses items; Leash computes and gates the amount |
+| `refund_items(capture_id, items, note_to_payer?)` | Agent chooses items; Rein computes and gates the amount |
 | `get_refund(refund_id)` | Read-only PayPal refund lookup |
-| `create_refund(...)` | Optional weaker amount tool; exposed only with `LEASH_EXPOSE_AMOUNT_TOOL=1` |
+| `create_refund(...)` | Optional weaker amount tool; exposed only with `REIN_EXPOSE_AMOUNT_TOOL=1` |
 
 Unmapped PayPal operations do not exist, which makes the proxy fail closed by omission. See the [backend guide](../Backend/BACKEND_GUIDE.md) for execution semantics and the [operations guide](../Operations/OPERATIONS_GUIDE.md) for hook and proxy setup.

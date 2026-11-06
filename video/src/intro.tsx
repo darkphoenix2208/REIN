@@ -1,6 +1,6 @@
 import React from "react";
 import { AbsoluteFill, interpolate, random, spring, useCurrentFrame, useVideoConfig } from "remotion";
-import { AnimLabel, Bg, Code, ease, Kicker, LeashMark, P, Pop, Slam, Words } from "./ui";
+import { AnimLabel, Bg, Code, ease, Kicker, ReinMark, P, Pop, Slam, Words } from "./ui";
 import { C, display, mono, s } from "./theme";
 
 const clamp = { extrapolateLeft: "clamp", extrapolateRight: "clamp" } as const;
@@ -91,7 +91,7 @@ export const ColdOpen: React.FC = () => {
   );
 };
 
-/** 6–10.5 s: a slack leash pulls taut into the mark. */
+/** 6–10.5 s: a slack rein pulls taut into the mark. */
 export const Logo: React.FC = () => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
@@ -120,10 +120,10 @@ export const Logo: React.FC = () => {
         <polyline points={pts.join(" ")} fill="none" stroke={C.violet} strokeWidth={9} strokeLinecap="round" strokeLinejoin="round" opacity={fadeLine} style={{ filter: "drop-shadow(0 0 18px rgba(139,123,255,0.7))" }} />
       </svg>
       <div style={{ position: "absolute", left: MX, top: MY, transform: `scale(${mark})`, transformOrigin: "0% 50%" }}>
-        <LeashMark size={SZ} />
+        <ReinMark size={SZ} />
       </div>
       <div style={{ position: "absolute", left: MX + SZ + 30, top: MY - 30, display: "flex" }}>
-        {"Leash".split("").map((ch, i) => {
+        {"Rein".split("").map((ch, i) => {
           const p = spring({ frame: frame - s(1.05) - i * 2, fps, config: { damping: 13 } });
           return (
             <span

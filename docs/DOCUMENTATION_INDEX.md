@@ -1,4 +1,4 @@
-# Leash documentation index
+# Rein documentation index
 
 The documentation is organized by responsibility. Start with the seven implementation sections, then use Product for submission and planning material and Research for supporting evidence.
 
@@ -30,7 +30,7 @@ The documentation is organized by responsibility. Start with the seven implement
 
 - [PayPal MCP audit](Backend/PAYPAL_MCP_AUDIT.md) records the tool and payload inspection behind the hook allowlist.
 - [Verification record](Operations/VERIFICATION_RECORD.md) records the live sandbox and integration checks.
-- Reproducible benchmark harnesses live in `scripts/leashbench/`; generated results are intentionally not committed.
+- Reproducible benchmark harnesses live in `scripts/reinbench/`; generated results are intentionally not committed.
 
 These research records are retained for reproducibility and provenance; they are not the primary operating documentation.
 

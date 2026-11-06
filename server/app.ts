@@ -1,7 +1,7 @@
 // HTTP API (Express). One service: /v1/* here, the built SPA is served by index.ts in Phase 3. Fail closed everywhere.
 import express, { type NextFunction, type Request, type Response } from 'express';
 import { timingSafeEqual } from 'node:crypto';
-import { isBusy, LeashBusyError } from './db.ts';
+import { isBusy, ReinBusyError } from './db.ts';
 import { approve, check, preventedLoss, result, sweep } from './dispatch.ts';
 import { describeMandate } from './config.ts';
 import { verifyChain } from './ledger.ts';
@@ -20,14 +20,14 @@ const eq = (a: string, b: string): boolean => {
 };
 
 export interface AppOptions {
-  token?: string | undefined; // LEASH_TOKEN; REQUIRED in production for the hook endpoints
+  token?: string | undefined; // REIN_TOKEN; REQUIRED in production for the hook endpoints
   production?: boolean;
-  trustProxy?: number | boolean; // number of proxy hops in front (LEASH_TRUST_PROXY); default none
+  trustProxy?: number | boolean; // number of proxy hops in front (REIN_TRUST_PROXY); default none
   rateLimitPerMin?: number;
   demoRunsPerMin?: number;
   fetchImpl?: typeof fetch; // tests
   askImpl?: (prompt: string) => Promise<string>; // tests
-  lockOperatorEndpoints?: boolean; // LEASH_LOCK_OPERATOR_ENDPOINTS=1: require the bearer token on /ledger and /exposure too.
+  lockOperatorEndpoints?: boolean; // REIN_LOCK_OPERATOR_ENDPOINTS=1: require the bearer token on /ledger and /exposure too.
   // Off by default so the public demo's own transparency feature (anyone can watch the hash chain) keeps working unauthenticated.
   // /approval/:id and POST /approve stay public regardless: that flow is designed for a human clicking an emailed link with no login,
   // and its secret is the per-action token, not a service-wide bearer.
@@ -46,25 +46,25 @@ export function createApp(d: GateDeps, o: AppOptions = {}): express.Express {
   // /v1/refund moves real (sandbox) money when PayPal credentials are present: same bearer token, and disabled (503) if none is configured
   api.use('/refund', (req: Request, res: Response, next: NextFunction) => {
     if (!d.paypal) return next();
-    if (!o.token) return void res.status(503).json({ error: 'live refunds disabled: LEASH_TOKEN not set' });
+    if (!o.token) return void res.status(503).json({ error: 'live refunds disabled: REIN_TOKEN not set' });
     eq(req.get('authorization') ?? '', `Bearer ${o.token}`) ? next() : void res.status(401).json({ error: 'unauthorized' });
   });
   // hook endpoints: bearer token; FAIL CLOSED (503) if unset in production
   api.use(['/check', '/result'], (req: Request, res: Response, next: NextFunction) => {
-    if (!o.token) return o.production ? void res.status(503).json({ error: 'hook endpoints disabled: LEASH_TOKEN not set' }) : next();
+    if (!o.token) return o.production ? void res.status(503).json({ error: 'hook endpoints disabled: REIN_TOKEN not set' }) : next();
     eq(req.get('authorization') ?? '', `Bearer ${o.token}`) ? next() : void res.status(401).json({ error: 'unauthorized' });
   });
   // operator-facing read endpoints (full ledger, spend exposure): public by default for the demo's own transparency feature;
-  // an operator running this beyond the demo can require the same bearer token here (LEASH_LOCK_OPERATOR_ENDPOINTS=1).
+  // an operator running this beyond the demo can require the same bearer token here (REIN_LOCK_OPERATOR_ENDPOINTS=1).
   api.use(['/ledger', '/exposure'], (req: Request, res: Response, next: NextFunction) => {
     if (!o.lockOperatorEndpoints) return next();
-    if (!o.token) return void res.status(503).json({ error: 'operator endpoints locked: LEASH_TOKEN not set' });
+    if (!o.token) return void res.status(503).json({ error: 'operator endpoints locked: REIN_TOKEN not set' });
     eq(req.get('authorization') ?? '', `Bearer ${o.token}`) ? next() : void res.status(401).json({ error: 'unauthorized' });
   });
 
   const cents = (v: unknown): number | null | typeof NaN => (v === null || v === undefined ? null : Number.isInteger(v) && (v as number) >= 0 ? (v as number) : NaN);
 
-  // Hook path: the agent's own PayPal tool is gated; Leash decides and reserves, the hook allows or blocks.
+  // Hook path: the agent's own PayPal tool is gated; Rein decides and reserves, the hook allows or blocks.
   api.post('/check', async (req, res) => {
     const b = req.body ?? {};
     const c = cents(b.amountCents);
@@ -112,7 +112,7 @@ export function createApp(d: GateDeps, o: AppOptions = {}): express.Express {
   const SAMPLES = ['coffee', 'apparel', 'handmade'];
   const playback = (f: Record<string, number | boolean | null>): string[] => {
     const usd = (c: unknown) => `$${(Number(c) / 100).toFixed(2)}`;
-    const line = (k: string, text: (v: any) => string, name: string) => (f[k] == null ? `NOT SET: ${name}. Leash will not guess; answer this before activating.` : text(f[k]));
+    const line = (k: string, text: (v: any) => string, name: string) => (f[k] == null ? `NOT SET: ${name}. Rein will not guess; answer this before activating.` : text(f[k]));
     return [
       line('perActionCapCents', (v) => `The agent may refund up to ${usd(v)} on its own.`, 'agent limit per refund'),
       line('hardMaxCents', (v) => `Nothing above ${usd(v)} is ever refunded, even with approval.`, 'absolute maximum refund'),
@@ -161,7 +161,7 @@ export function createApp(d: GateDeps, o: AppOptions = {}): express.Express {
   app.get('/health', (_req, res) => void res.json({ ok: true, mode: d.paypal ? 'live' : 'sim' }));
 
   app.use((e: any, _req: Request, res: Response, _next: NextFunction) => {
-    if (e instanceof LeashBusyError || isBusy(e)) return void res.status(503).set('Retry-After', '1').json({ error: 'busy', fix: 'Retry in a moment.' });
+    if (e instanceof ReinBusyError || isBusy(e)) return void res.status(503).set('Retry-After', '1').json({ error: 'busy', fix: 'Retry in a moment.' });
     if (e?.type === 'entity.too.large' || e?.status === 400) return void res.status(400).json({ error: 'bad_request' });
     console.error('unhandled', e?.code ?? e?.name, e?.message);
     res.status(500).json({ error: 'internal' });

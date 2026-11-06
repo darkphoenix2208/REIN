@@ -14,10 +14,10 @@ export interface Db {
   close(): void;
 }
 
-export class LeashBusyError extends Error {
+export class ReinBusyError extends Error {
   constructor() {
-    super('Leash database is busy, retry');
-    this.name = 'LeashBusyError';
+    super('Rein database is busy, retry');
+    this.name = 'ReinBusyError';
   }
 }
 
@@ -30,7 +30,7 @@ export interface OpenOptions {
 }
 
 export async function openDb(path: string, o: OpenOptions = {}): Promise<Db> {
-  const want = o.driver ?? (process.env.LEASH_DB_DRIVER as Driver | undefined);
+  const want = o.driver ?? ((process.env.REIN_DB_DRIVER ?? process.env.LEASH_DB_DRIVER) as Driver | undefined);
   let raw: any;
   let driver: Driver = 'node:sqlite';
   if (want !== 'node:sqlite') {
@@ -83,7 +83,7 @@ export function tx<T>(db: Db, fn: () => T): T {
   try {
     db.exec('BEGIN IMMEDIATE'); // busy_timeout is spent inside this call
   } catch (e) {
-    throw isBusy(e) ? new LeashBusyError() : e;
+    throw isBusy(e) ? new ReinBusyError() : e;
   }
   open.add(db);
   try {

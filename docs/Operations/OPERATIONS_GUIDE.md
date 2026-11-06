@@ -1,6 +1,6 @@
 # Operations
 
-This runbook covers routine startup, verification, agent integration, audit checks, and recovery. Leash is sandbox-only and single-instance.
+This runbook covers routine startup, verification, agent integration, audit checks, and recovery. Rein is sandbox-only and single-instance.
 
 ## Daily startup
 
@@ -24,8 +24,8 @@ Use hooks when an existing PayPal MCP tool must be gated. Generate the configura
 | `unknown_outcome` | No trustworthy execution result arrived | Reconcile against PayPal before changing balances; it intentionally remains counted |
 | `R-STATE-UNAVAILABLE` | Required capture or dispute state could not be read | Review manually; check PayPal availability and credentials |
 | Chain verification failure | Ledger row content or linkage changed | Stop relying on the log, preserve files, compare against a published head or seal |
-| 401 on gate endpoints | Missing or incorrect bearer token | Align service and hook `LEASH_TOKEN` values |
-| 503 “hook endpoints disabled” | Production has no `LEASH_TOKEN` | Configure the token before enabling agents |
+| 401 on gate endpoints | Missing or incorrect bearer token | Align service and hook `REIN_TOKEN` values |
+| 503 “hook endpoints disabled” | Production has no `REIN_TOKEN` | Configure the token before enabling agents |
 | Repeated 429 | Per-IP rate limit reached | Slow the client; validate trusted proxy configuration |
 
 ## Reservation reconciliation
@@ -40,7 +40,7 @@ The server sweeps once per minute. A reservation with no result for 120 seconds 
 npm run ledger-head -- --verify <rows> <head>
 ```
 
-Later appends remain valid; changing history at or before the published position fails verification. The lower-level `seal.ts` supports an HMAC-protected file checkpoint for workflows that keep `LEASH_LEDGER_KEY` outside the database host.
+Later appends remain valid; changing history at or before the published position fails verification. The lower-level `seal.ts` supports an HMAC-protected file checkpoint for workflows that keep `REIN_LEDGER_KEY` outside the database host.
 
 ## Policy changes
 
@@ -67,10 +67,10 @@ The suite covers pure policy ordering, item resolution, concurrent caps, approva
 
 ## Reset and recovery
 
-`npm run reset` deletes `LEASH_DB` plus its WAL and SHM files. Stop the server first. This is destructive and intended only for disposable local demo data.
+`npm run reset` deletes `REIN_DB` plus its WAL and SHM files. Stop the server first. This is destructive and intended only for disposable local demo data.
 
-For an operational database, take a SQLite-consistent backup before changes. Preserve the database, WAL/SHM files, active mandate, externally published heads, and seal file during incident analysis. Never restore a database under a running Leash process.
+For an operational database, take a SQLite-consistent backup before changes. Preserve the database, WAL/SHM files, active mandate, externally published heads, and seal file during incident analysis. Never restore a database under a running Rein process.
 
 ## Video and benchmark tooling
 
-The `video/` project is a separate Remotion build with recording, cutting, voice-over, audio-mixing, and rendering scripts; follow [its README](../../video/README.md). `scripts/leashbench/` contains research harnesses and synthetic adversarial tickets. These are evidence and media tooling, not production runtime dependencies.
+The `video/` project is a separate Remotion build with recording, cutting, voice-over, audio-mixing, and rendering scripts; follow [its README](../../video/README.md). `scripts/reinbench/` contains research harnesses and synthetic adversarial tickets. These are evidence and media tooling, not production runtime dependencies.

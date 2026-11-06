@@ -1,4 +1,4 @@
-# Leash → Rein: Hackathon Upgrade Plan
+# Rein → Rein: Hackathon Upgrade Plan
 
 **Project**: Rein - "Give your AI agent a refund budget, not your PayPal keys."
 **Deadline**: Submit by Nov 11, 2026 (deadline Nov 12, 12:00 PM PT / 1:30 AM IST Nov 13)
@@ -72,37 +72,37 @@
 
 ---
 
-## PHASE 2: Rename Leash → Rein (Day 1-2 - Nov 7-8)
+## PHASE 2: Rename Rein → Rein (Day 1-2 - Nov 7-8)
 
 ### 2.1 Core Renames
 - [ ] package.json: name, description
-- [ ] README.md: all references Leash → Rein
+- [ ] README.md: all references Rein → Rein
 - [ ] All docs/*.md files
 - [ ] UI copy in web/src/*.tsx
-- [ ] MCP server name: leash-paypal → rein-paypal
-- [ ] Hook files: leash-hook.mjs → rein-hook.mjs
+- [ ] MCP server name: rein-paypal → rein-paypal
+- [ ] Hook files: rein-hook.mjs → rein-hook.mjs
 - [ ] CLI scripts: references in scripts/*.mjs
-- [ ] Database filename: leash.db → rein.db
+- [ ] Database filename: rein.db → rein.db
 - [ ] Ledger/seal text
 - [ ] Error messages, log prefixes
-- [ ] HTTP headers (X-Leash-* → X-Rein-*)
+- [ ] HTTP headers (X-Rein-* → X-Rein-*)
 - [ ] Video project text in video/
 
 ### 2.2 Environment Variables Migration
 - [ ] Introduce REIN_* vars: REIN_TOKEN, REIN_DB, REIN_PUBLIC_URL, REIN_MANDATE, REIN_MODE, etc.
-- [ ] Keep LEASH_* as deprecated fallbacks (with console warning)
+- [ ] Keep REIN_* as deprecated fallbacks (with console warning)
 - [ ] Update .env.example
 - [ ] Update tests to use REIN_*
 - [ ] Update render.yaml
 - [ ] Document deprecation in CHANGELOG.md
 
 ### 2.3 Verification
-- [ ] Run `git grep -i leash` → should find ONLY: deprecation shims, CHANGELOG note, LICENSE credits
+- [ ] Run `git grep -i rein` → should find ONLY: deprecation shims, CHANGELOG note, LICENSE credits
 - [ ] Fix repo tree in README (currently says "paypal-hackathon-devpost")
 - [ ] Verify MIT license intact
 - [ ] Verify contributor credits unchanged
 
-**Commit**: `refactor: rename Leash → Rein with deprecated LEASH_* fallbacks`
+**Commit**: `refactor: rename Rein → Rein with deprecated REIN_* fallbacks`
 
 ---
 
@@ -344,7 +344,7 @@
 - [ ] Architecture diagram
 - [ ] "What is real vs simulated" table
 - [ ] Sponsor tools table: "How each tool was actually used"
-- [ ] LeashBench/Attack Lab results with caveats
+- [ ] ReinBench/Attack Lab results with caveats
 - [ ] Live demo URL (from Render deploy)
 - [ ] Video link (YouTube)
 - [ ] Criteria map (tech, design, impact, idea quality)
@@ -391,7 +391,7 @@
 - [ ] Run e2e tests (if Chromium available)
 - [ ] Run `npm run doctor`
 - [ ] Secret scan over full git history
-- [ ] Rename grep: `git grep -i leash` (should be zero hits except shims)
+- [ ] Rename grep: `git grep -i rein` (should be zero hits except shims)
 - [ ] Clean-clone quickstart test
 
 ### 10.2 Submission Checklist

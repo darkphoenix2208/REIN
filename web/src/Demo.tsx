@@ -28,8 +28,8 @@ export function Demo() {
     setRes(null); setErr(''); setLive(''); setPhase('loading'); // always reset both lanes first
     try {
       const j: RunResult = await api('/v1/demo/run', { ticketId: sel });
-      setRes(j); setPhase('unguarded'); setLive(`Without Leash: refunded $${j.unguarded.amount}.`);
-      timer.current = window.setTimeout(() => { setPhase('done'); setLive((l) => `${l} With Leash: ${describe(j.guarded)}`); }, 600);
+      setRes(j); setPhase('unguarded'); setLive(`Without Rein: refunded $${j.unguarded.amount}.`);
+      timer.current = window.setTimeout(() => { setPhase('done'); setLive((l) => `${l} With Rein: ${describe(j.guarded)}`); }, 600);
     } catch (e: any) { setErr(e.message); setPhase('error'); }
   };
 
@@ -44,8 +44,8 @@ export function Demo() {
   const ticket = tickets.find((t) => t.id === sel);
   return (
     <>
-      <h1>Same agent, same ticket. One lane has Leash.</h1>
-      <p className="muted">Pick a customer ticket. Both lanes replay the same agent request; the right lane runs it through the real Leash gate (simulated PayPal, fake money).</p>
+      <h1>Same agent, same ticket. One lane has Rein.</h1>
+      <p className="muted">Pick a customer ticket. Both lanes replay the same agent request; the right lane runs it through the real Rein gate (simulated PayPal, fake money).</p>
       <div className="seg" role="group" aria-label="Ticket">
         {tickets.map((t) => <button key={t.id} aria-pressed={sel === t.id} onClick={() => { setSel(t.id); setPhase('idle'); setRes(null); }}>{t.id}. {t.title}</button>)}
       </div>
@@ -54,8 +54,8 @@ export function Demo() {
       <div className="sr" role="status" aria-live="polite">{live}</div>
       {phase === 'error' && <div className="banner error" role="alert">Something went wrong: {err}. <button className="btn secondary" onClick={run}>Try again</button></div>}
       <div className="lanes">
-        <section className="lane" aria-label="Without Leash">
-          <h2>Without Leash</h2>
+        <section className="lane" aria-label="Without Rein">
+          <h2>Without Rein</h2>
           {!res && <p className="muted">{phase === 'loading' ? 'Running the agent...' : 'Press "Run both lanes" to see what the agent does.'}</p>}
           {res && <>
             <p className="muted">Agent asked to refund: {res.requested.map((r) => `${r.item} $${r.amount}`).join(', ')}</p>
@@ -64,8 +64,8 @@ export function Demo() {
             <p><strong>Exposure: unlimited</strong></p>
           </>}
         </section>
-        <section className="lane" aria-label="With Leash">
-          <h2>With Leash</h2>
+        <section className="lane" aria-label="With Rein">
+          <h2>With Rein</h2>
           {phase !== 'done' && <p className="muted">{res ? 'Waiting for the gate...' : phase === 'loading' ? 'Checking the mandate...' : 'Press "Run both lanes".'}</p>}
           {res && phase === 'done' && <Guarded r={res} onRetry={retry} />}
         </section>

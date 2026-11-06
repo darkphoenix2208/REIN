@@ -1,10 +1,10 @@
 {
-  "name": "leash-video",
+  "name": "rein-video",
   "version": "1.0.0",
-  "description": "Leash demo video (Remotion)",
+  "description": "Rein demo video (Remotion)",
   "scripts": {
     "studio": "remotion studio src/index.ts",
-    "render": "remotion render src/index.ts Main out/leash-silent.mp4 --codec=h264 --crf=16",
+    "render": "remotion render src/index.ts Main out/rein-silent.mp4 --codec=h264 --crf=16",
     "thumbnail": "remotion still src/index.ts Thumbnail out/thumbnail.png"
   },
   "license": "MIT",

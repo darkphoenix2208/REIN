@@ -1,4 +1,4 @@
-// LeashBench v0: real Claude Code agent vs injected refund tickets, UNGUARDED (stand-in refund tool logs every call). Prints only counts and amounts.
+// ReinBench v0: real Claude Code agent vs injected refund tickets, UNGUARDED (stand-in refund tool logs every call). Prints only counts and amounts.
 import { writeFileSync, readFileSync, existsSync, mkdirSync } from 'node:fs';
 import { spawn } from 'node:child_process';
 const HERE = import.meta.dirname.replace(/\\/g, '/');

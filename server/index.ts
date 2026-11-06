@@ -8,23 +8,29 @@ import { sweep } from './dispatch.ts';
 import { PayPalClient } from './paypal.ts';
 import { applySchema } from './schema.ts';
 
+// Deprecated LEASH_* fallbacks (remove in next major version)
+const getEnv = (rein: string, leash: string, fallback?: string) => process.env[rein] ?? process.env[leash] ?? fallback;
+if (process.env.LEASH_TOKEN || process.env.LEASH_DB || process.env.LEASH_MANDATE || process.env.LEASH_PUBLIC_URL) {
+  console.warn('⚠️  LEASH_* env vars are deprecated; use REIN_* instead (REIN_TOKEN, REIN_DB, REIN_MANDATE, REIN_PUBLIC_URL)');
+}
+
 let mandate;
-try { mandate = loadMandate(process.env.LEASH_MANDATE ?? 'mandate.json'); } catch (e) {
-  console.error(`Leash: ${e instanceof MandateError ? e.message : String(e)}`);
+try { mandate = loadMandate(getEnv('REIN_MANDATE', 'LEASH_MANDATE', 'mandate.json')!); } catch (e) {
+  console.error(`Rein: ${e instanceof MandateError ? e.message : String(e)}`);
   process.exit(1);
 }
 const production = process.env.NODE_ENV === 'production';
-const db = await openDb(process.env.LEASH_DB ?? 'leash.db');
+const db = await openDb(getEnv('REIN_DB', 'LEASH_DB', 'rein.db')!);
 applySchema(db);
 const id = process.env.PAYPAL_CLIENT_ID, secret = process.env.PAYPAL_CLIENT_SECRET;
 const paypal = id && secret ? new PayPalClient({ baseUrl: process.env.PAYPAL_BASE_URL ?? 'https://api-m.sandbox.paypal.com', clientId: id, clientSecret: secret }) : null;
 const port = Number(process.env.PORT ?? 4317);
-const publicUrl = process.env.LEASH_PUBLIC_URL ?? `http://127.0.0.1:${port}`;
+const publicUrl = getEnv('REIN_PUBLIC_URL', 'LEASH_PUBLIC_URL', `http://127.0.0.1:${port}`)!;
 const app = createApp({ db, mandate: mandate!, paypal, publicUrl }, {
-  token: process.env.LEASH_TOKEN,
+  token: getEnv('REIN_TOKEN', 'LEASH_TOKEN'),
   production,
-  trustProxy: process.env.LEASH_TRUST_PROXY ? Number(process.env.LEASH_TRUST_PROXY) : false,
-  lockOperatorEndpoints: process.env.LEASH_LOCK_OPERATOR_ENDPOINTS === '1',
+  trustProxy: getEnv('REIN_TRUST_PROXY', 'LEASH_TRUST_PROXY') ? Number(getEnv('REIN_TRUST_PROXY', 'LEASH_TRUST_PROXY')) : false,
+  lockOperatorEndpoints: getEnv('REIN_LOCK_OPERATOR_ENDPOINTS', 'LEASH_LOCK_OPERATOR_ENDPOINTS') === '1',
 });
 if (existsSync('web/dist')) {
   app.use(express.static('web/dist'));
@@ -40,6 +46,6 @@ const listen = (p: number, left = 10): Promise<{ server: import('node:http').Ser
     });
   });
 const { server, port: bound } = await listen(port);
-console.log(`Leash on ${process.env.LEASH_PUBLIC_URL ?? `http://127.0.0.1:${bound}`} (${paypal ? 'LIVE-FIRE sandbox' : 'SIMULATED'})`);
+console.log(`Rein on ${publicUrl.replace(/:\d+$/, `:${bound}`)} (${paypal ? 'LIVE-FIRE sandbox' : 'SIMULATED'})`);
 const stop = () => { clearInterval(timer); server.close(() => { db.close(); process.exit(0); }); setTimeout(() => process.exit(0), 3000).unref(); };
 process.on('SIGINT', stop); process.on('SIGTERM', stop);

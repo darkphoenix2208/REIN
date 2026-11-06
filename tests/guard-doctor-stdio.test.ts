@@ -29,17 +29,17 @@ describe('guard hook', () => {
 
 describe('doctor', () => {
   const root = resolve('.').replaceAll(String.fromCharCode(92), '/');
-  const hookScript = `${root}/hooks/leash-hook.mjs`, guardScript = `${root}/hooks/guard.mjs`;
+  const hookScript = `${root}/hooks/rein-hook.mjs`, guardScript = `${root}/hooks/guard.mjs`;
   const settings = (cfg: object) => { const f = join(mkdtempSync(join(tmpdir(), 'doc-')), 's.json'); writeFileSync(f, JSON.stringify(cfg)); return f; };
   const good = { hooks: { PreToolUse: [{ matcher: 'mcp__.*paypal.*', hooks: [{ type: 'command', command: `node "${hookScript}" pre` }] }, { matcher: 'Bash|Edit', hooks: [{ type: 'command', command: `node "${guardScript}"` }] }] } };
   test('missing hooks or a relative path are reported as failures', () => {
-    const none = doctor({ settingsFiles: [], hookScript, guardScript, leashUrl: 'http://127.0.0.1:1' });
+    const none = doctor({ settingsFiles: [], hookScript, guardScript, reinUrl: 'http://127.0.0.1:1' });
     assert.equal(none.ok, false); assert.ok(none.checks.filter((c: any) => !c.ok).length >= 4);
-    const rel = doctor({ settingsFiles: [settings({ hooks: { PreToolUse: [{ matcher: 'mcp__.*paypal.*', hooks: [{ type: 'command', command: 'node hooks/leash-hook.mjs pre' }] }] } })], hookScript, guardScript, leashUrl: 'http://127.0.0.1:1' });
+    const rel = doctor({ settingsFiles: [settings({ hooks: { PreToolUse: [{ matcher: 'mcp__.*paypal.*', hooks: [{ type: 'command', command: 'node hooks/rein-hook.mjs pre' }] }] } })], hookScript, guardScript, reinUrl: 'http://127.0.0.1:1' });
     assert.equal(rel.checks.find((c: any) => /absolute/.test(c.name)).ok, false);
   });
-  test('good config passes the static checks; the end-to-end block check passes even with Leash down (fails closed)', () => {
-    const r = doctor({ settingsFiles: [settings(good)], hookScript, guardScript, leashUrl: 'http://127.0.0.1:1' });
+  test('good config passes the static checks; the end-to-end block check passes even with Rein down (fails closed)', () => {
+    const r = doctor({ settingsFiles: [settings(good)], hookScript, guardScript, reinUrl: 'http://127.0.0.1:1' });
     assert.equal(r.ok, true, JSON.stringify(r.checks.filter((c: any) => !c.ok)));
   });
 });
@@ -47,7 +47,7 @@ describe('doctor', () => {
 describe('proxy over real MCP stdio', () => {
   test('process boots, serves item tools, executes a simulated refund, and never prints credentials', async () => {
     const { db, path } = await tempDb(); seedOrder(db, 'CAP1'); db.close();
-    const t = new StdioClientTransport({ command: process.execPath, args: ['--experimental-strip-types', '--disable-warning=ExperimentalWarning', 'server/proxy-main.ts'], env: { ...process.env as Record<string, string>, LEASH_DB: path, LEASH_MANDATE: 'mandate.json', PAYPAL_CLIENT_ID: '', PAYPAL_CLIENT_SECRET: '' }, stderr: 'pipe' });
+    const t = new StdioClientTransport({ command: process.execPath, args: ['--experimental-strip-types', '--disable-warning=ExperimentalWarning', 'server/proxy-main.ts'], env: { ...process.env as Record<string, string>, REIN_DB: path, REIN_MANDATE: 'mandate.json', PAYPAL_CLIENT_ID: '', PAYPAL_CLIENT_SECRET: '' }, stderr: 'pipe' });
     let err = ''; t.stderr?.on('data', (d: Buffer) => (err += d));
     const c = new Client({ name: 't', version: '1' }); await c.connect(t);
     assert.deepEqual((await c.listTools()).tools.map((x) => x.name).sort(), ['get_order', 'get_refund', 'refund_items']);
@@ -60,7 +60,7 @@ describe('proxy over real MCP stdio', () => {
   });
   test('an invalid mandate stops the proxy from starting (null blocks activation)', async () => {
     const f = join(mkdtempSync(join(tmpdir(), 'm-')), 'mandate.json'); writeFileSync(f, JSON.stringify({ schema_version: 1, perActionCapCents: 5000, hardMaxCents: null, dailyCapCents: 20000, hardDailyCapCents: 40000, expiresAt: '2099-01-01T00:00:00Z' }));
-    const r = spawnSync(process.execPath, ['--experimental-strip-types', '--disable-warning=ExperimentalWarning', 'server/proxy-main.ts'], { env: { ...process.env, LEASH_MANDATE: f, LEASH_DB: join(tmpdir(), 'x.db') }, encoding: 'utf8', timeout: 10000 });
+    const r = spawnSync(process.execPath, ['--experimental-strip-types', '--disable-warning=ExperimentalWarning', 'server/proxy-main.ts'], { env: { ...process.env, REIN_MANDATE: f, REIN_DB: join(tmpdir(), 'x.db') }, encoding: 'utf8', timeout: 10000 });
     assert.equal(r.status, 1); assert.match(r.stderr, /hardMaxCents is unset/);
   });
 });

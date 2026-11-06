@@ -4,7 +4,7 @@
 import { openDb } from '../server/db.ts';
 import { verifyChain, verifyPublished } from '../server/ledger.ts';
 
-const db = await openDb(process.env.LEASH_DB ?? 'leash.db');
+const db = await openDb(process.env.REIN_DB ?? 'rein.db');
 if (process.argv[2] === '--verify') {
   const r = verifyPublished(db, Number(process.argv[3]), String(process.argv[4]));
   console.log(r.ok ? 'OK: the ledger still contains the published head (history not rewritten).' : `MISMATCH: ${r.why}`);

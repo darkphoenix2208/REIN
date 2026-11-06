@@ -1,7 +1,7 @@
 // One place that runs a refund request end to end: read live PayPal state (OUTSIDE the transaction), check+reserve (ONE transaction),
 // call PayPal (OUTSIDE the transaction, idempotent), then record the outcome. Used by the MCP proxy and the HTTP API.
 import { randomUUID } from 'node:crypto';
-import { LeashBusyError, type Db } from './db.ts';
+import { ReinBusyError, type Db } from './db.ts';
 import { check, result, type Outcome } from './dispatch.ts';
 import { PayPalError, type PayPalClient } from './paypal.ts';
 import type { CheckInput, CheckResult, ExternalState, Mandate } from './types.ts';
@@ -40,8 +40,8 @@ export async function runRefund(d: GateDeps, input: Omit<CheckInput, 'actionId'>
   try {
     cr = check(d.db, d.mandate, { ...input, actionId }, now(), ext, d.paypal ? 'live' : 'sim');
   } catch (e) {
-    if (e instanceof LeashBusyError) return { status: 'unavailable', reason: 'Leash is busy; nothing was refunded. Retry in a moment.' };
-    return { status: 'unavailable', reason: 'Leash could not record the decision, so nothing was refunded (failing closed).' };
+    if (e instanceof ReinBusyError) return { status: 'unavailable', reason: 'Rein is busy; nothing was refunded. Retry in a moment.' };
+    return { status: 'unavailable', reason: 'Rein could not record the decision, so nothing was refunded (failing closed).' };
   }
   if (cr.shadow) {
     const exec = await execute(d, actionId, input.captureId, undefined, true, note);

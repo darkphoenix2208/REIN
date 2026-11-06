@@ -1,10 +1,10 @@
 # Database decisions
 
-Leash uses SQLite because the current product is a single-operator, single-instance sandbox application. It gives the gate a local transactional boundary without adding an external service. Both `better-sqlite3` and Node’s built-in `node:sqlite` implement the same small `Db` interface and run the same tests.
+Rein uses SQLite because the current product is a single-operator, single-instance sandbox application. It gives the gate a local transactional boundary without adding an external service. Both `better-sqlite3` and Node’s built-in `node:sqlite` implement the same small `Db` interface and run the same tests.
 
 ## Configuration
 
-`LEASH_DB` selects the database path and defaults to `leash.db`. `LEASH_DB_DRIVER` may force `better-sqlite3` or `node:sqlite`; otherwise Leash tries `better-sqlite3` and falls back to `node:sqlite`.
+`REIN_DB` selects the database path and defaults to `rein.db`. `REIN_DB_DRIVER` may force `better-sqlite3` or `node:sqlite`; otherwise Rein tries `better-sqlite3` and falls back to `node:sqlite`.
 
 Every connection enables WAL mode, `synchronous=NORMAL`, foreign keys, and a 3-second busy timeout. Prepared statements are cached by SQL string. Bind values are normalized because `node:sqlite` does not accept booleans or `undefined`.
 
@@ -101,13 +101,13 @@ hash = SHA-256(previous_hash || canonical_json({ actionId, event, payload, ts })
 
 Object keys are sorted during canonical serialization and the genesis hash is 64 zeroes. Decision events are appended in the same transaction as the state mutation. The UI and API can recompute the entire chain and show the current head.
 
-An optional seal stores `{count, head, mac}` outside the database, where `mac` is an HMAC using `LEASH_LEDGER_KEY`. This detects a database-only attacker truncating or rewriting history before the sealed position. It does not protect against an attacker who also possesses the key or controls the running process.
+An optional seal stores `{count, head, mac}` outside the database, where `mac` is an HMAC using `REIN_LEDGER_KEY`. This detects a database-only attacker truncating or rewriting history before the sealed position. It does not protect against an attacker who also possesses the key or controls the running process.
 
 ## Retention and recovery
 
 No automatic retention or compaction is implemented. Back up the database together with its WAL and SHM files using a SQLite-aware snapshot method, and protect any seal key separately. `npm run reset` deliberately deletes the local database plus WAL/SHM files and is intended only for disposable demo state.
 
-On Render’s free configuration the database lives at `/tmp/leash.db`, so redeploys and restarts may erase it. That deployment is suitable for a demo, not durable audit storage.
+On Render’s free configuration the database lives at `/tmp/rein.db`, so redeploys and restarts may erase it. That deployment is suitable for a demo, not durable audit storage.
 
 ## Why not Postgres yet?
 

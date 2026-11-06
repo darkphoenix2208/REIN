@@ -23,7 +23,7 @@ const runId = Date.now(), out = [];
 for (let i = 0; i < N; i++) {
   const value = AMOUNTS[i % AMOUNTS.length];
   const r = await fetch(`${BASE}/v2/checkout/orders`, { method: 'POST',
-    headers: { Authorization: `Bearer ${tok}`, 'Content-Type': 'application/json', Prefer: 'return=representation', 'PayPal-Request-Id': `leash-seed-${runId}-${i}` },
+    headers: { Authorization: `Bearer ${tok}`, 'Content-Type': 'application/json', Prefer: 'return=representation', 'PayPal-Request-Id': `rein-seed-${runId}-${i}` },
     body: JSON.stringify({ intent: 'CAPTURE', purchase_units: [{ reference_id: `seed-${i}`, amount: { currency_code: 'USD', value } }],
       payment_source: { card: { ...CARD, name: 'Test Buyer', billing_address: { address_line_1: '123 Main St', admin_area_2: 'San Jose', admin_area_1: 'CA', postal_code: '95131', country_code: 'US' } } } }) });
   const j = await r.json().catch(() => ({})); const cap = j?.purchase_units?.[0]?.payments?.captures?.[0];

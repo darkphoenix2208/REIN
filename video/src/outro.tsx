@@ -1,13 +1,13 @@
 import React from "react";
 import { AbsoluteFill, interpolate, spring, useCurrentFrame, useVideoConfig } from "remotion";
-import { AnimLabel, Bg, Chip, ease, Kicker, LeashMark, Pop, Slam, Words } from "./ui";
+import { AnimLabel, Bg, Chip, ease, Kicker, ReinMark, Pop, Slam, Words } from "./ui";
 import { C, display, mono, s } from "./theme";
 
 const clamp = { extrapolateLeft: "clamp", extrapolateRight: "clamp" } as const;
 
 const NODES = [
   { h: "AI agent", code: 'refund_items(["mug"])', sub: "names items · no amount · no key" },
-  { h: "Leash MCP proxy", code: "holds the PayPal token", sub: "unmapped PayPal tools don't exist" },
+  { h: "Rein MCP proxy", code: "holds the PayPal token", sub: "unmapped PayPal tools don't exist" },
   { h: "Price it", code: "mug → $18.00", sub: "from trusted order data" },
   { h: "Decide + reserve", code: "BEGIN IMMEDIATE", sub: "live PayPal state read first" },
   { h: "PayPal refund", code: "PayPal-Request-Id", sub: "idempotent · result logged" },
@@ -36,7 +36,7 @@ export const HowItWorks: React.FC = () => {
         <Pop at={0}>
           <Kicker>How it works</Kicker>
         </Pop>
-        <Words text="The agent names items. Leash computes the amount." at={0.15} size={64} hi={["items.", "amount."]} style={{ marginTop: 14 }} />
+        <Words text="The agent names items. Rein computes the amount." at={0.15} size={64} hi={["items.", "amount."]} style={{ marginTop: 14 }} />
       </div>
       {/* rail */}
       <div style={{ position: "absolute", left: X0 + W / 2, top: RAIL, width: 4 * (W + GAP), height: 3, background: C.line }} />
@@ -229,12 +229,12 @@ export const End: React.FC = () => {
         </Slam>
         <Pop at={2.0}>
           <div style={{ display: "flex", alignItems: "center", gap: 18, marginTop: 70 }}>
-            <LeashMark size={56} />
-            <div style={{ fontFamily: display, fontWeight: 800, fontSize: 64, letterSpacing: "-0.04em", color: C.text }}>Leash</div>
+            <ReinMark size={56} />
+            <div style={{ fontFamily: display, fontWeight: 800, fontSize: 64, letterSpacing: "-0.04em", color: C.text }}>Rein</div>
           </div>
         </Pop>
         <Pop at={2.5}>
-          <div style={{ fontFamily: mono, fontSize: 32, color: C.violetSoft, marginTop: 22 }}>github.com/Guten-Morgen1302/Leash</div>
+          <div style={{ fontFamily: mono, fontSize: 32, color: C.violetSoft, marginTop: 22 }}>github.com/Guten-Morgen1302/Rein</div>
         </Pop>
         <Pop at={3.0}>
           <div style={{ display: "flex", gap: 14, marginTop: 26 }}>

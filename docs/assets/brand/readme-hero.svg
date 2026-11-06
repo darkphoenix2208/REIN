@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1280" height="420" viewBox="0 0 1280 420" role="img" aria-labelledby="title desc">
-  <title id="title">Leash</title>
+  <title id="title">Rein</title>
   <desc id="desc">Give your AI agent a refund budget, not your PayPal keys.</desc>
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
@@ -21,7 +21,7 @@
     <path d="M0 42C0 19 19 0 42 0h115c23 0 42 19 42 42v69h50c23 0 42 19 42 42s-19 42-42 42H94c-52 0-94-42-94-94V42Zm62 20v39c0 18 14 32 32 32h43v-71H62Z" fill="url(#violet)"/>
     <circle cx="235" cy="153" r="23" fill="#101126"/>
   </g>
-  <text x="430" y="147" fill="#ffffff" font-family="Arial, Helvetica, sans-serif" font-size="84" font-weight="700" letter-spacing="-3">Leash</text>
+  <text x="430" y="147" fill="#ffffff" font-family="Arial, Helvetica, sans-serif" font-size="84" font-weight="700" letter-spacing="-3">Rein</text>
   <text x="433" y="205" fill="#a99cff" font-family="Arial, Helvetica, sans-serif" font-size="25" font-weight="700" letter-spacing="3">AUTHOR · AUTHORIZE · VERIFY</text>
   <text x="433" y="266" fill="#f5f5f8" font-family="Arial, Helvetica, sans-serif" font-size="29" font-weight="600">A refund budget for AI agents.</text>
   <text x="433" y="308" fill="#a9acbc" font-family="Arial, Helvetica, sans-serif" font-size="22">Item-scoped PayPal refunds · human approvals · hash-chained audit trail</text>

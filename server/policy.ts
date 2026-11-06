@@ -21,7 +21,7 @@ export function decide(a: { amountCents: number; currency?: string | undefined }
   if (s.now > m.expiresAt) return r('blocked', 'R-MANDATE-EXPIRED', 'The mandate has expired.');
   if (!Number.isInteger(a.amountCents) || a.amountCents <= 0)
     return r('blocked', 'R-INVALID', 'Refund amount must be a positive number.');
-  if (!s.pay) return r('blocked', 'R-UNKNOWN-TXN', 'That payment is not known to Leash.');
+  if (!s.pay) return r('blocked', 'R-UNKNOWN-TXN', 'That payment is not known to Rein.');
   if (a.currency && s.pay.cur && a.currency !== s.pay.cur)
     return r('blocked', 'R-CURRENCY', `Refund currency ${a.currency} differs from the capture's ${s.pay.cur}.`);
   const left = s.pay.c - s.pay.f - s.pay.r; // captured - refunded - RESERVED (closes the per-capture race)
@@ -49,7 +49,7 @@ export function decide(a: { amountCents: number; currency?: string | undefined }
   const needsDispute = !!m.blockIfOpenDispute && s.ext?.disputeOpen == null;
   const needsAge = m.returnWindowDays != null && capturedAt == null;
   if (needsDispute || needsAge)
-    return r('pending_approval', 'R-STATE-UNAVAILABLE', 'Leash could not read the payment\'s live PayPal state (dispute or purchase date), so a human must decide.');
+    return r('pending_approval', 'R-STATE-UNAVAILABLE', 'Rein could not read the payment\'s live PayPal state (dispute or purchase date), so a human must decide.');
   if (s.windowSum + a.amountCents > m.dailyCapCents)
     return r('pending_approval', 'R-DAILY-CAP', `This would take today's refunds past ${usd(m.dailyCapCents)}.`);
   if (a.amountCents > m.perActionCapCents)

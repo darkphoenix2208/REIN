@@ -1,7 +1,7 @@
-# Leash
+# Rein
 
 <div align="center">
-  <img src="docs/assets/brand/readme-hero.svg" alt="Leash — a refund budget for AI agents" width="100%" />
+  <img src="docs/assets/brand/readme-hero.svg" alt="Rein — a refund budget for AI agents" width="100%" />
   <br /><br />
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-8170FF?style=for-the-badge" alt="MIT license" /></a>
   <a href="package.json"><img src="https://img.shields.io/badge/Node.js-22.18%2B-2DDF9B?style=for-the-badge&logo=node.js&logoColor=white" alt="Node.js 22.18 or newer" /></a>
@@ -11,20 +11,20 @@
   <strong>Give your AI agent a refund budget, not your PayPal keys.</strong>
   <br /><br />
   <a href="#quick-start">Quick start</a> ·
-  <a href="video/leash-product-demo.mp4">Product video</a> ·
+  <a href="video/rein-product-demo.mp4">Product video</a> ·
   <a href="docs/DOCUMENTATION_INDEX.md">Documentation</a> ·
   <a href="docs/Product/IMPACT_AND_EVIDENCE.md">Evidence</a>
 </div>
 
-Leash is a deterministic mandate gate for AI agents that move money through PayPal. The agent never holds the PayPal token. It asks Leash to refund specific line items; Leash computes the amount from trusted order data, checks it against a plain-JSON mandate and live PayPal state, then allows, escalates to a human, or blocks, and records every decision in a hash-chained ledger. **PayPal sandbox only. No real money.**
+Rein is a deterministic mandate gate for AI agents that move money through PayPal. The agent never holds the PayPal token. It asks Rein to refund specific line items; Rein computes the amount from trusted order data, checks it against a plain-JSON mandate and live PayPal state, then allows, escalates to a human, or blocks, and records every decision in a hash-chained ledger. **PayPal sandbox only. No real money.**
 
 <a id="product-demo"></a>
 
 ![Product demo](docs/assets/brand/divider-demo.svg)
 
 <div align="center">
-  <a href="video/leash-product-demo.mp4">
-    <img src="docs/assets/leash-demo.gif" alt="Leash blocks a prompt-injected whole-order refund" width="800" />
+  <a href="video/rein-product-demo.mp4">
+    <img src="docs/assets/rein-demo.gif" alt="Rein blocks a prompt-injected whole-order refund" width="800" />
   </a>
   <br />
   <strong><a href="https://youtu.be/rbKJmVQOJqw">Watch the complete 2:03 product video</a></strong>
@@ -34,13 +34,13 @@ Leash is a deterministic mandate gate for AI agents that move money through PayP
 
 #### Prompt-injection gate
 
-![A prompt-injected support ticket running through the guarded Leash lane](docs/assets/screenshots/prompt-injection-gate.jpg)
+![A prompt-injected support ticket running through the guarded Rein lane](docs/assets/screenshots/prompt-injection-gate.jpg)
 
 | Human approval | Verifiable audit trail |
 |---|---|
-| ![A mobile approval request that creates a single-use grant](docs/assets/screenshots/human-approval.jpg) | ![The Leash hash-chained decision ledger](docs/assets/screenshots/audit-ledger.jpg) |
+| ![A mobile approval request that creates a single-use grant](docs/assets/screenshots/human-approval.jpg) | ![The Rein hash-chained decision ledger](docs/assets/screenshots/audit-ledger.jpg) |
 
-The GIF is an eight-second extract from the supplied product video. The full MP4 is stored in the repository at [`video/leash-product-demo.mp4`](video/leash-product-demo.mp4).
+The GIF is an eight-second extract from the supplied product video. The full MP4 is stored in the repository at [`video/rein-product-demo.mp4`](video/rein-product-demo.mp4).
 
 <a id="documentation"></a>
 
@@ -64,18 +64,18 @@ The GIF is an eight-second extract from the supplied product video. The full MP4
 Three steps, no keys needed:
 
 ```bash
-git clone https://github.com/Guten-Morgen1302/Leash.git && cd Leash
+git clone https://github.com/Guten-Morgen1302/Rein.git && cd Rein
 npm ci
 npm run demo        # builds the UI and serves http://127.0.0.1:4317 (picks the next free port if busy)
 ```
 
-Open `/demo`. Ticket 2 (a prompt-injected "refund the entire order") is preselected: press **Run both lanes**. Left lane, no Leash: $200 refunded. Right lane: blocked by `R-HARD-MAX`. Ticket 1 is allowed ($18), ticket 3 escalates to `/approve/:id` (works on a phone) and executes only after a human approves and the agent retries.
+Open `/demo`. Ticket 2 (a prompt-injected "refund the entire order") is preselected: press **Run both lanes**. Left lane, no Rein: $200 refunded. Right lane: blocked by `R-HARD-MAX`. Ticket 1 is allowed ($18), ticket 3 escalates to `/approve/:id` (works on a phone) and executes only after a human approves and the agent retries.
 
-Real-agent footage (same injected ticket, a real Claude agent, with and without Leash): `npm run demo:agent`. Terminal replay against a running server: `npm run replay`. Start over: `npm run reset`. Requires Node 22.18+ (`.nvmrc` pins 24); on Windows use Git Bash or PowerShell, no extra tools.
+Real-agent footage (same injected ticket, a real Claude agent, with and without Rein): `npm run demo:agent`. Terminal replay against a running server: `npm run replay`. Start over: `npm run reset`. Requires Node 22.18+ (`.nvmrc` pins 24); on Windows use Git Bash or PowerShell, no extra tools.
 
-<a id="how-leash-works"></a>
+<a id="how-rein-works"></a>
 
-![How Leash works](docs/assets/brand/divider-system.svg)
+![How Rein works](docs/assets/brand/divider-system.svg)
 
 ### What is real and what is simulated
 
@@ -93,11 +93,11 @@ Real-agent footage (same injected ticket, a real Claude agent, with and without 
 
 ### Built with PayPal and AI
 
-| Tool | Role in Leash |
+| Tool | Role in Rein |
 |---|---|
 | PayPal REST API, sandbox (OAuth token, Payments v2 refunds and captures, Disputes list) | The money path. `server/paypal.ts` creates refunds idempotently (`PayPal-Request-Id` = action id), reads the capture time and any open dispute before deciding, and re-reads refunds for `/proof`. Orders v2 with a test card (`scripts/seed.mjs`) created the sandbox captures. Sandbox only: the client refuses any other host. |
 | PayPal AI Toolkit / MCP server (hosted `mcp.sandbox.paypal.com` and the local `@paypal/mcp`) | The Claude Code hook gates PayPal's own `create_refund` tool. We ran it against the real toolkit plugin and re-tested the hosted server's `create_refund` (a $1.00 sandbox refund returned COMPLETED). |
-| Claude (Anthropic) models and Claude Code | The agent under test (Haiku 4.5 and Sonnet 5.5 in the benchmark and `npm run demo:agent`) and the harness whose hooks Leash uses. Claude Code was also used to build the project. |
+| Claude (Anthropic) models and Claude Code | The agent under test (Haiku 4.5 and Sonnet 5.5 in the benchmark and `npm run demo:agent`) and the harness whose hooks Rein uses. Claude Code was also used to build the project. |
 | Google Gemini (`GEMINI_API_KEY`, optional) | Two advisory jobs: the one-paragraph summary on the approval page, and the policy compiler that drafts a mandate from plain English. Neither moves money: the gate is deterministic code and never reads a model's output. |
 | AG Grid Community 36.2.0 (sponsor) | The ledger grid on `/ledger`. |
 
@@ -105,11 +105,11 @@ Other tools: React, Vite, Express, SQLite (better-sqlite3 and node:sqlite), the 
 
 ### Policy is data
 
-Limits live in [mandate.json](mandate.json), rendered in plain language at `/mandate`. A missing or null limit makes the mandate invalid: Leash does not guess. Rules are listed in [docs/Backend/POLICY_REFERENCE.md](docs/Backend/POLICY_REFERENCE.md).
+Limits live in [mandate.json](mandate.json), rendered in plain language at `/mandate`. A missing or null limit makes the mandate invalid: Rein does not guess. Rules are listed in [docs/Backend/POLICY_REFERENCE.md](docs/Backend/POLICY_REFERENCE.md).
 
-### How Leash differs from other agent-payment gates
+### How Rein differs from other agent-payment gates
 
-Most entries share one principle: the AI proposes, deterministic rules move money. Leash's ground is narrower: **refunds**, where the agent names *items* and never an amount (Leash computes it from trusted order data), the agent never holds the PayPal credential (MCP proxy), and every claim has a benchmark you can rerun. See [docs/Product/COMPETITIVE_ANALYSIS.md](docs/Product/COMPETITIVE_ANALYSIS.md).
+Most entries share one principle: the AI proposes, deterministic rules move money. Rein's ground is narrower: **refunds**, where the agent names *items* and never an amount (Rein computes it from trusted order data), the agent never holds the PayPal credential (MCP proxy), and every claim has a benchmark you can rerun. See [docs/Product/COMPETITIVE_ANALYSIS.md](docs/Product/COMPETITIVE_ANALYSIS.md).
 
 <a id="evidence-and-limits"></a>
 
@@ -117,7 +117,7 @@ Most entries share one principle: the AI proposes, deterministic rules move mone
 
 ### Evidence
 
-Pages: `/demo`, `/ledger`, `/author` (policy to draft, with what is NOT enforced), `/mandate`, `/proof` (real sandbox refunds). [docs/Product/IMPACT_AND_EVIDENCE.md](docs/Product/IMPACT_AND_EVIDENCE.md): LeashBench (`scripts/leashbench/`), item-scoped A/B (agent-chooses-amount 70% over-refund vs item-scoped 0%), policy-compiler tests. [docs/Architecture/THREAT_MODEL.md](docs/Architecture/THREAT_MODEL.md) says what Leash does not protect against.
+Pages: `/demo`, `/ledger`, `/author` (policy to draft, with what is NOT enforced), `/mandate`, `/proof` (real sandbox refunds). [docs/Product/IMPACT_AND_EVIDENCE.md](docs/Product/IMPACT_AND_EVIDENCE.md): ReinBench (`scripts/reinbench/`), item-scoped A/B (agent-chooses-amount 70% over-refund vs item-scoped 0%), policy-compiler tests. [docs/Architecture/THREAT_MODEL.md](docs/Architecture/THREAT_MODEL.md) says what Rein does not protect against.
 
 ### What this is not
 
@@ -145,7 +145,7 @@ paypal-hackathon-devpost/
 ├── hooks/                  # Claude Code pre/post-tool guard hooks
 ├── tests/                  # Policy, API, concurrency, security, MCP and browser tests
 ├── scripts/                # Seeding, replay, diagnostics, ledger and benchmarks
-│   └── leashbench/         # Reproducible adversarial-agent evaluations
+│   └── reinbench/         # Reproducible adversarial-agent evaluations
 ├── docs/
 │   ├── API/                # HTTP and MCP contracts
 │   ├── Architecture/       # System design and threat model
@@ -212,5 +212,5 @@ For the complete guide, start at the [documentation index](docs/DOCUMENTATION_IN
   <a href="SECURITY.md">Security</a> ·
   <a href="LICENSE">MIT License</a>
   <br /><br />
-  <img src="docs/assets/brand/readme-footer.svg" alt="Built with care by Leash contributors. Open source under the MIT License." width="100%" />
+  <img src="docs/assets/brand/readme-footer.svg" alt="Built with care by Rein contributors. Open source under the MIT License." width="100%" />
 </div>

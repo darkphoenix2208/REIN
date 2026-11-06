@@ -10,7 +10,7 @@ import { decide } from '../server/policy.ts';
 
 const M: any = { perActionCapCents: 5000, hardMaxCents: 10000, dailyCapCents: 20000, hardDailyCapCents: 40000, expiresAt: Date.now() + 864e5 };
 const seed = async (driver, caps) => {
-  const path = join(mkdtempSync(join(tmpdir(), 'leash-')), 't.db'); const db = await openDb(path, { driver }); applySchema(db);
+  const path = join(mkdtempSync(join(tmpdir(), 'rein-')), 't.db'); const db = await openDb(path, { driver }); applySchema(db);
   for (const [id, c] of Object.entries(caps)) db.run(`INSERT INTO payments(txn_id,captured_cents,refunded_cents,reserved_cents,currency,source) VALUES (?,?,0,0,'USD','seed')`, id, c);
   return { path, db };
 };

@@ -292,8 +292,8 @@ export const AnimLabel: React.FC<{ children?: React.ReactNode }> = ({ children =
   </div>
 );
 
-/** Leash mark: a violet badge holding an "L" whose foot ends in a leash clasp. */
-export const LeashMark: React.FC<{ size?: number; color?: string }> = ({ size = 40, color = C.violet }) => (
+/** Rein mark: a violet badge holding an "L" whose foot ends in a rein clasp. */
+export const ReinMark: React.FC<{ size?: number; color?: string }> = ({ size = 40, color = C.violet }) => (
   <svg width={size} height={size} viewBox="0 0 40 40">
     <rect x="1" y="1" width="38" height="38" rx="11" fill={color} />
     <path d="M14 9.5 V24.5 Q14 30 19.5 30 H24.5" fill="none" stroke="#0b0a12" strokeWidth="4.6" strokeLinecap="round" />
@@ -484,8 +484,8 @@ export const CHAPTERS = ["Inject", "Allow", "Escalate", "Approve", "Retry", "Led
 export const Chapters: React.FC<{ active: number }> = ({ active }) => (
   <div style={{ position: "absolute", left: 96, right: 96, top: 44, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
     <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-      <LeashMark size={34} />
-      <div style={{ fontFamily: display, fontWeight: 800, fontSize: 30, letterSpacing: "-0.03em", color: C.text }}>Leash</div>
+      <ReinMark size={34} />
+      <div style={{ fontFamily: display, fontWeight: 800, fontSize: 30, letterSpacing: "-0.03em", color: C.text }}>Rein</div>
     </div>
     <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
       {CHAPTERS.map((name, i) => (

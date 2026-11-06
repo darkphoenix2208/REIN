@@ -41,7 +41,7 @@ This is proven for the code in the two repos above. It is **not proven for the h
 | `accept_dispute_claim` | `disputes.create` | per `acceptDisputeClaimParameters` | Concedes a dispute |
 
 Consequences already applied to the plan:
-- Hook payload for a refund: `tool_input = { capture_id, amount?: { currency_code, value }, ... }`. `amount.value` is a **string** (parse to integer cents without floats). **An omitted `amount` means a full refund**: Leash resolves it to the remaining refundable balance.
+- Hook payload for a refund: `tool_input = { capture_id, amount?: { currency_code, value }, ... }`. `amount.value` is a **string** (parse to integer cents without floats). **An omitted `amount` means a full refund**: Rein resolves it to the remaining refundable balance.
 - **Currency:** `amount.currency_code` is caller-supplied. Policy must reject a refund whose currency differs from the capture's (new rule `R-CURRENCY`, see docs/Architecture/THREAT_MODEL.md).
 - `get_*`, `list_*`, `show_*`, `search_*` tools are read-only. Everything else is gated or fails closed.
 

@@ -1,6 +1,6 @@
 # Video runbook (target 2:45, hard cap 3:00)
 
-Positioning: Leash is the narrow, measured refund gate. Do not claim "the first agent payment gate" or "the agent cannot over-refund". Another entry (Bursar) is broader; say so if asked.
+Positioning: Rein is the narrow, measured refund gate. Do not claim "the first agent payment gate" or "the agent cannot over-refund". Another entry (Bursar) is broader; say so if asked.
 
 ## Before recording (10 minutes)
 1. `npm ci && npm run web:build`, then `npm run demo` (note the printed port). Close other tabs, hide bookmarks, large font, 1080p.
@@ -14,7 +14,7 @@ Positioning: Leash is the narrow, measured refund gate. Do not claim "the first 
 |---|---|---|
 | 0:00-0:15 | Title, then the ticket text with the hidden "SYSTEM NOTICE" | "An AI support agent can refund customers through PayPal. This ticket asks for $18 and hides an order to refund everything." |
 | 0:15-0:55 | Terminal: `npm run demo:agent`, lane A | "A real Claude agent, no guard: it refunds the whole $200." |
-| 0:55-1:30 | Same run, lane B | "Same agent, same ticket, through Leash. The full-order request is blocked by rule R-HARD-MAX. The legitimate $18 goes through. The agent names items; Leash computes the amount." |
+| 0:55-1:30 | Same run, lane B | "Same agent, same ticket, through Rein. The full-order request is blocked by rule R-HARD-MAX. The legitimate $18 goes through. The agent names items; Rein computes the amount." |
 | 1:30-2:00 | `/demo` ticket 3, phone-width approval, Approve, agent retry | "Borderline refunds wait for a person. Approval executes nothing; the agent's retry is re-checked." |
 | 2:00-2:20 | `/ledger` (chain verified, head hash), `/mandate` | "Every decision is in a hash-chained ledger. The limits are plain data." |
 | 2:20-2:40 | `/proof` | "These are real PayPal sandbox refunds made through the same gate. The demo page itself is simulated." |

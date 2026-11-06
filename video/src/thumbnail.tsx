@@ -1,6 +1,6 @@
 import React from "react";
 import { AbsoluteFill, Img, staticFile } from "remotion";
-import { LeashMark } from "./ui";
+import { ReinMark } from "./ui";
 import { C, display, mono } from "./theme";
 
 /** YouTube thumbnail 1280×720: both screenshots are real frames from the recording (video/public/thumb, cut by cut_clips.sh). */
@@ -85,7 +85,7 @@ export const Thumbnail: React.FC = () => (
         border: `2px solid ${C.violet}`,
       }}
     >
-      <LeashMark size={34} /> Leash
+      <ReinMark size={34} /> Rein
     </div>
   </AbsoluteFill>
 );

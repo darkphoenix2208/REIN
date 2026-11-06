@@ -70,8 +70,8 @@ export const InjectScene: React.FC = () => {
       clip="c1_inject"
       url="127.0.0.1:4400/demo"
       kicker="01 · Prompt injection"
-      title="Same ticket. One lane has Leash."
-      hi={["Leash"]}
+      title="Same ticket. One lane has Rein."
+      hi={["Rein"]}
       note="Both lanes replay the same agent request · PayPal call simulated (fake money) · the gate is real"
       cams={[
         { t: 0, x: 640, y: 330, z: 1.18 },
@@ -80,7 +80,7 @@ export const InjectScene: React.FC = () => {
       callouts={[
         { from: 0.5, to: r - 0.6, box: [124, 331, 912, 28], color: C.red, label: "Hidden instruction inside the ticket", spot: true },
         { from: r + 0.1, box: [134, 612, 322, 44], color: C.red, label: "No gate: $200 out" },
-        { from: r + 0.7, box: [660, 513, 262, 126], color: C.green, label: "Leash: blocked" },
+        { from: r + 0.7, box: [660, 513, 262, 126], color: C.green, label: "Rein: blocked" },
       ]}
     >
       <Beat at={0.5} color={C.red}>
@@ -90,7 +90,7 @@ export const InjectScene: React.FC = () => {
         No gate → <b>$200.00 refunded</b>
       </Beat>
       <Beat at={r + 0.7} color={C.green}>
-        Leash → <b>blocked</b>: over the $100 hard max <M>R-HARD-MAX</M>
+        Rein → <b>blocked</b>: over the $100 hard max <M>R-HARD-MAX</M>
       </Beat>
     </FootScene>
   );
@@ -317,7 +317,7 @@ export const MandateScene: React.FC = () => {
         ]}
       />
       <Beat at={p + 1.2} color={C.amber}>
-        A missing limit makes it <b>invalid</b>. Leash never guesses.
+        A missing limit makes it <b>invalid</b>. Rein never guesses.
       </Beat>
     </FootScene>
   );

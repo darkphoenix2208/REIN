@@ -1,6 +1,6 @@
 # Deployment
 
-Leash can run locally without credentials in fully simulated mode, or with PayPal sandbox credentials in live-fire mode. Production PayPal endpoints are intentionally unsupported.
+Rein can run locally without credentials in fully simulated mode, or with PayPal sandbox credentials in live-fire mode. Production PayPal endpoints are intentionally unsupported.
 
 ## Prerequisites
 
@@ -24,21 +24,21 @@ The server defaults to `http://127.0.0.1:4317` and tries the next ten ports if t
 | Variable | Default | Purpose |
 |---|---|---|
 | `PORT` | `4317` | Initial HTTP port |
-| `LEASH_PUBLIC_URL` | bound loopback URL | Base URL embedded in approval links |
-| `LEASH_DB` | `leash.db` | SQLite path |
-| `LEASH_DB_DRIVER` | auto | `better-sqlite3` or `node:sqlite` |
-| `LEASH_MANDATE` | `mandate.json` | Active mandate path |
-| `LEASH_TOKEN` | unset | Bearer token for hooks and live refund API |
-| `LEASH_TRUST_PROXY` | unset | Numeric trusted proxy-hop count |
-| `LEASH_LOCK_OPERATOR_ENDPOINTS` | unset | Set to `1` to protect ledger and exposure endpoints |
+| `REIN_PUBLIC_URL` | bound loopback URL | Base URL embedded in approval links |
+| `REIN_DB` | `rein.db` | SQLite path |
+| `REIN_DB_DRIVER` | auto | `better-sqlite3` or `node:sqlite` |
+| `REIN_MANDATE` | `mandate.json` | Active mandate path |
+| `REIN_TOKEN` | unset | Bearer token for hooks and live refund API |
+| `REIN_TRUST_PROXY` | unset | Numeric trusted proxy-hop count |
+| `REIN_LOCK_OPERATOR_ENDPOINTS` | unset | Set to `1` to protect ledger and exposure endpoints |
 | `PAYPAL_CLIENT_ID` / `PAYPAL_CLIENT_SECRET` | unset | Enables PayPal sandbox access |
 | `PAYPAL_BASE_URL` | sandbox API host | Must contain `sandbox` |
 | `GEMINI_API_KEY` | unset | Enables live compiler and summaries |
 | `GEMINI_MODEL` | discovered | Optional explicit Gemini model |
-| `LEASH_EXPOSE_AMOUNT_TOOL` | unset | Set to `1` to expose weaker MCP amount refunds |
-| `LEASH_LEDGER_KEY` | unset | Key material for an external ledger seal workflow |
+| `REIN_EXPOSE_AMOUNT_TOOL` | unset | Set to `1` to expose weaker MCP amount refunds |
+| `REIN_LEDGER_KEY` | unset | Key material for an external ledger seal workflow |
 
-Use a secret manager or process launcher for credentials. Do not put PayPal secrets in agent-readable MCP settings, commit `.env`, or expose a live sandbox refund endpoint without `LEASH_TOKEN`.
+Use a secret manager or process launcher for credentials. Do not put PayPal secrets in agent-readable MCP settings, commit `.env`, or expose a live sandbox refund endpoint without `REIN_TOKEN`.
 
 ## PayPal sandbox preparation
 
@@ -53,9 +53,9 @@ The included `render.yaml` defines one Node web service:
 - `npm ci --include=dev && npm run web:build`
 - `node --disable-warning=ExperimentalWarning server/index.ts`
 - health check at `/health`
-- Node 24, trusted proxy hop count 1, and SQLite at `/tmp/leash.db`
+- Node 24, trusted proxy hop count 1, and SQLite at `/tmp/rein.db`
 
-Set `LEASH_PUBLIC_URL`, `LEASH_TOKEN`, and optional Gemini and PayPal sandbox secrets in Render. For a public non-demo deployment, also set `LEASH_LOCK_OPERATOR_ENDPOINTS=1`.
+Set `REIN_PUBLIC_URL`, `REIN_TOKEN`, and optional Gemini and PayPal sandbox secrets in Render. For a public non-demo deployment, also set `REIN_LOCK_OPERATOR_ENDPOINTS=1`.
 
 Important: the blueprint uses the free plan and ephemeral `/tmp` storage. Ledger history resets on redeploy, and SQLite restricts the service to one instance. The repository includes this deployment definition but the project README does not claim that an instance is currently deployed.
 
