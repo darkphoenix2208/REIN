@@ -18,8 +18,20 @@ export const kindOf = (status: string): keyof typeof KIND | null =>
 
 export function ModeChip() {
   const [mode, setMode] = useState<string>('');
+  const [isLive, setIsLive] = useState<boolean>(false);
   useEffect(() => {
-    fetch('/health').then((r) => r.json()).then((j) => setMode(j.mode === 'live' ? 'LIVE-FIRE (PayPal sandbox)' : 'SIMULATED')).catch(() => setMode('OFFLINE'));
+    fetch('/health').then((r) => r.json()).then((j) => {
+      const live = j.mode === 'live';
+      setIsLive(live);
+      setMode(live ? 'LIVE' : 'SIMULATED');
+    }).catch(() => setMode('OFFLINE'));
   }, []);
-  return <span className="chip mode" title="Live mode calls the PayPal sandbox; simulated stubs only the final PayPal call.">{mode || '...'}</span>;
+  return (
+    <span
+      className={`chip mode ${isLive ? 'mode-live' : 'mode-sim'}`}
+      title={isLive ? 'Live mode: calls PayPal sandbox API' : 'Simulated mode: stubs final PayPal call'}
+    >
+      {mode || '...'}
+    </span>
+  );
 }

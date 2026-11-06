@@ -67,6 +67,7 @@ export function Ledger() {
     <>
       <h1>Ledger</h1>
       {err && <div className="banner error" role="alert">Could not load the ledger: {err} <button className="btn secondary" onClick={load}>Retry</button></div>}
+      {!data && !err && <div className="banner">Loading ledger...</div>}
       {data && (
         <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', marginBottom: '1rem' }}>
           <p className="row" style={{ margin: 0 }}>

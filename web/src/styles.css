@@ -254,6 +254,19 @@ main {
   font-weight: 500;
 }
 
+.chip.mode-live {
+  color: var(--allow);
+  background: var(--allow-bg);
+  border-color: var(--allow);
+  font-weight: 600;
+}
+
+.chip.mode-sim {
+  color: var(--ink-muted);
+  background: var(--bg);
+  border-color: var(--line);
+}
+
 /* Segmented Control */
 .seg {
   display: flex;
