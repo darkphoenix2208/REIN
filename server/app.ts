@@ -219,6 +219,23 @@ export function createApp(d: GateDeps, o: AppOptions = {}): express.Express {
     res.json({ received: true });
   });
 
+  // Attack lab: run vectors through gate
+  api.post('/attack-lab/run', async (req, res) => {
+    const { vectorId, captureId } = req.body;
+    if (typeof vectorId !== 'number' || typeof captureId !== 'string') {
+      return void res.status(400).json({ error: 'bad_request' });
+    }
+
+    try {
+      const { runAttackVector } = await import('./attack-lab.ts');
+      const result = await runAttackVector(d, vectorId, captureId);
+      res.json(result);
+    } catch (err: any) {
+      console.error('attack-lab error', err);
+      res.status(500).json({ error: err.message });
+    }
+  });
+
   api.use((_req, res) => void res.status(404).json({ error: 'not_found' })); // an unknown /v1 path must never fall through to the SPA
   app.use('/v1', api);
   app.get('/health', (_req, res) => void res.json({ ok: true, mode: d.paypal ? 'live' : 'sim' }));
