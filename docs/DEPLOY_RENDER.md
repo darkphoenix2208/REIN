@@ -11,7 +11,7 @@ Rein is Render-ready via `render.yaml`. This guide walks through one-click deplo
 ## Step 1: Push to GitHub
 
 ```bash
-# In D:\Leash-main\Leash-main
+# In your project directory
 git remote add origin https://github.com/YOUR_USERNAME/rein.git
 git push -u origin master
 ```

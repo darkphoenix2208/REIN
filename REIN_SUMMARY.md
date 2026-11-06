@@ -87,7 +87,8 @@ All previous team names removed. **Only darkphoenix2208** credited throughout.
 
 ### View Everything
 ```bash
-cd D:\Leash-main\Leash-main
+# Navigate to project directory
+cd /path/to/rein
 
 # Read the new README
 cat README.md

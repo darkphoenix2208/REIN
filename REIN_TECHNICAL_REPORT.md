@@ -95,7 +95,7 @@
 
 ### 6. Environment & Cleanup ✅
 - ✅ Inter font package installed (@fontsource/inter)
-- ✅ package-lock.json name fixed: leash → rein
+- ✅ package-lock.json name fixed to "rein"
 - ✅ All scripts have --experimental-strip-types flag
 - ✅ Web build working
 - ✅ Typecheck clean

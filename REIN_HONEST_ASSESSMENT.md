@@ -185,7 +185,7 @@ This is INFORMATIONAL, not AUTOMATED price matching.
 ### VERIFIED BY RUNNING
 ✅ **Deleted files**:
 ```bash
-cd 'D:\Leash-main\Leash-main'
+# In project directory
 rm FINAL_SUMMARY.md
 rm DEVPOST_SUBMISSION.md  
 # (keeping docs/Product/DEVPOST_SUBMISSION.md)
