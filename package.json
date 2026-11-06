@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "description": "Author, authorize, verify: a payment-specific mandate gate for AI agents that move money through PayPal (sandbox).",
+  "author": "darkphoenix2208",
   "license": "MIT",
   "type": "module",
   "engines": {
