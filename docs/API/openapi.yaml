@@ -1,0 +1,417 @@
+openapi: 3.1.0
+info:
+  title: Rein API
+  version: 0.1.0
+  description: |
+    Deterministic mandate gate for AI agents that process PayPal refunds.
+    The agent never holds PayPal credentials - Rein computes amounts from trusted
+    order data, validates against policy and live PayPal state, then allows,
+    escalates to human approval, or blocks.
+
+    **PayPal sandbox only. No real money.**
+
+servers:
+  - url: http://127.0.0.1:4317/v1
+    description: Local development
+  - url: https://your-deployment.onrender.com/v1
+    description: Production (replace with actual URL)
+
+security:
+  - BearerAuth: []
+
+paths:
+  /check:
+    post:
+      summary: Gate check (pre-tool hook)
+      description: |
+        Used by Claude Code PreToolUse hook. Evaluates policy and reserves
+        refund if allowed. Does NOT call PayPal.
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [actionId, sessionId, tool, captureId]
+              properties:
+                actionId:
+                  type: string
+                  description: Tool use ID from agent
+                sessionId:
+                  type: string
+                  description: Agent session identifier
+                tool:
+                  type: string
+                  enum: [refund, refund_items]
+                captureId:
+                  type: string
+                  description: PayPal capture ID
+                amountCents:
+                  type: integer
+                  nullable: true
+                  description: Amount in cents (null = full remaining balance)
+                currency:
+                  type: string
+                  default: USD
+                items:
+                  type: array
+                  description: Required for refund_items
+                  items:
+                    type: object
+                    required: [itemId, qty]
+                    properties:
+                      itemId:
+                        type: string
+                      qty:
+                        type: integer
+                        minimum: 1
+      responses:
+        '200':
+          description: Policy decision
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CheckResult'
+        '400':
+          description: Invalid input
+        '503':
+          description: Service unavailable or REIN_TOKEN not set
+
+  /result:
+    post:
+      summary: Record execution result (post-tool hook)
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [actionId, outcome]
+              properties:
+                actionId:
+                  type: string
+                outcome:
+                  type: string
+                  enum: [executed, failed, unknown]
+                refundId:
+                  type: string
+                  description: PayPal refund ID if executed
+      responses:
+        '200':
+          description: Result recorded
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+
+  /refund:
+    post:
+      summary: Direct refund (full pipeline)
+      description: |
+        Runs check + execute + result in one call. Live mode requires bearer token.
+        Simulated mode is public (no money moves).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [sessionId, captureId]
+              properties:
+                sessionId:
+                  type: string
+                captureId:
+                  type: string
+                items:
+                  type: array
+                  description: For item-scoped refunds
+                  items:
+                    type: object
+                    required: [itemId, qty]
+                    properties:
+                      itemId:
+                        type: string
+                      qty:
+                        type: integer
+                amount:
+                  type: string
+                  description: For amount-scoped refunds (e.g. "18.00")
+      responses:
+        '200':
+          description: Gate outcome
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GateOutcome'
+
+  /approve:
+    post:
+      summary: Human approval decision
+      description: Approve or deny a pending request
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [actionId, token, decision]
+              properties:
+                actionId:
+                  type: string
+                token:
+                  type: string
+                  description: Fragment token from approval URL
+                decision:
+                  type: string
+                  enum: [approve, deny]
+      responses:
+        '200':
+          description: Decision recorded
+        '403':
+          description: Invalid token
+        '404':
+          description: Unknown approval
+        '409':
+          description: Already decided or no longer valid
+        '410':
+          description: Expired
+
+  /ledger:
+    get:
+      summary: Audit ledger
+      description: |
+        Hash-chained decision log. Public by default for demo transparency.
+        Set REIN_LOCK_OPERATOR_ENDPOINTS=1 to require bearer token.
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 500
+            default: 100
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+      responses:
+        '200':
+          description: Ledger rows and chain status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  rows:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/LedgerRow'
+                  total:
+                    type: integer
+                  chain:
+                    type: object
+                    properties:
+                      ok:
+                        type: boolean
+                      rows:
+                        type: integer
+                      head:
+                        type: string
+                  mode:
+                    type: string
+                    enum: [sim, live]
+
+  /mandate:
+    get:
+      summary: Active mandate (policy)
+      responses:
+        '200':
+          description: Mandate in machine and plain language
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  mandate:
+                    $ref: '#/components/schemas/Mandate'
+                  lines:
+                    type: array
+                    items:
+                      type: string
+
+  /order/{captureId}:
+    get:
+      summary: Resolve capture to order items
+      description: Maps PayPal capture_id → order → line items for dynamic item resolution
+      parameters:
+        - name: captureId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: PayPal capture ID
+      responses:
+        '200':
+          description: Order data with items
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  captureId:
+                    type: string
+                  orderId:
+                    type: string
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        item_id:
+                          type: string
+                        name:
+                          type: string
+                        unit_cents:
+                          type: integer
+                        qty:
+                          type: integer
+                  totalCents:
+                    type: integer
+        '404':
+          description: Capture not found in database
+
+  /webhooks/paypal:
+    post:
+      summary: PayPal webhook receiver
+      description: |
+        Receives PAYMENT.CAPTURE.REFUNDED and CUSTOMER.DISPUTE.CREATED events.
+        Reconciles unknown_outcome actions via custom_id.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                event_type:
+                  type: string
+                id:
+                  type: string
+                resource:
+                  type: object
+      responses:
+        '200':
+          description: Webhook received
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      description: REIN_TOKEN from environment
+
+  schemas:
+    CheckResult:
+      type: object
+      required: [status, ruleId, reason, actionId]
+      properties:
+        status:
+          type: string
+          enum: [allowed, blocked, pending_approval]
+        ruleId:
+          type: string
+        reason:
+          type: string
+        actionId:
+          type: string
+        approvalUrl:
+          type: string
+          description: Present when status is pending_approval
+        token:
+          type: string
+          description: Approval token (fragment)
+
+    GateOutcome:
+      type: object
+      required: [status, actionId]
+      properties:
+        status:
+          type: string
+          enum: [executed, blocked, pending_approval, execution_failed, unknown_outcome, shadow, unavailable]
+        actionId:
+          type: string
+        ruleId:
+          type: string
+        refundId:
+          type: string
+        amountCents:
+          type: integer
+        mode:
+          type: string
+          enum: [live, sim]
+        reason:
+          type: string
+        approvalUrl:
+          type: string
+
+    Mandate:
+      type: object
+      required: [perActionCapCents, hardMaxCents, dailyCapCents, hardDailyCapCents, expiresAt]
+      properties:
+        schema_version:
+          type: integer
+        perActionCapCents:
+          type: integer
+          description: Auto-approve limit
+        hardMaxCents:
+          type: integer
+          description: Never exceed
+        dailyCapCents:
+          type: integer
+          description: Daily auto-approve limit
+        hardDailyCapCents:
+          type: integer
+          description: Daily hard limit
+        expiresAt:
+          type: integer
+          description: Unix timestamp milliseconds
+        returnWindowDays:
+          type: integer
+        blockIfOpenDispute:
+          type: boolean
+        dupWindowMs:
+          type: integer
+        escalateFullOrder:
+          type: boolean
+        shadow:
+          type: boolean
+
+    LedgerRow:
+      type: object
+      properties:
+        seq:
+          type: integer
+        action_id:
+          type: string
+        event:
+          type: string
+        rule_id:
+          type: string
+        amount_cents:
+          type: integer
+        prev_hash:
+          type: string
+        hash:
+          type: string
+        created_at:
+          type: integer

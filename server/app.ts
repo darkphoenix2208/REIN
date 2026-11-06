@@ -108,6 +108,14 @@ export function createApp(d: GateDeps, o: AppOptions = {}): express.Express {
     const spent = d.db.val<number>(`SELECT COALESCE(SUM(amount_cents),0) FROM actions WHERE session_id=? AND created_at>=? AND status IN ('reserved','executed','approved_executed','unknown_outcome')`, sid, Date.now() - 86_400_000) ?? 0;
     res.json({ spentCents: spent, hardDailyCapCents: d.mandate.hardDailyCapCents, ...preventedLoss(d.db) });
   });
+  api.get('/order/:captureId', (req, res) => {
+    const captureId = req.params.captureId;
+    const order = d.db.one<{ order_id: string }>('SELECT order_id FROM orders WHERE capture_id=?', captureId);
+    if (!order) return void res.status(404).json({ error: 'capture_not_found' });
+    const items = d.db.all<{ item_id: string; name: string; unit_cents: number; qty: number }>('SELECT item_id, name, unit_cents, qty FROM order_items WHERE order_id=?', order.order_id);
+    const total = items.reduce((sum, i) => sum + i.unit_cents * i.qty, 0);
+    res.json({ captureId, orderId: order.order_id, items, totalCents: total });
+  });
   // AUTHOR step: plain-English policy -> DRAFT with plain-language playback. Never activates anything (activation is a deliberate CLI step that refuses while any field is null).
   const SAMPLES = ['coffee', 'apparel', 'handmade'];
   const playback = (f: Record<string, number | boolean | null>): string[] => {
@@ -156,6 +164,36 @@ export function createApp(d: GateDeps, o: AppOptions = {}): express.Express {
     res.json({ aiGenerated: !!ai, actionId: a.id, amountCents: a.amount_cents, ruleId: a.rule_id, reason: a.reason, status: a.aps === 'pending' && Date.now() > a.expires_at ? 'expired' : a.aps, expiresAt: a.expires_at, items, bootId: BOOT_ID,
       summary: ai ?? `Advisory summary: the agent asks to refund ${items.map((i: any) => `${i.qty} x ${i.name}`).join(', ') || 'a payment'} ($${(a.amount_cents / 100).toFixed(2)}). That is above the $${(d.mandate.perActionCapCents / 100).toFixed(2)} the agent may refund alone, so it waits for you.` });
   });
+  // PayPal webhook receiver (PAYMENT.CAPTURE.REFUNDED, CUSTOMER.DISPUTE.CREATED)
+  api.post('/webhooks/paypal', async (req, res) => {
+    // Signature verification: https://developer.paypal.com/api/rest/webhooks/#verify-webhook-signature
+    // For now, accept but log unverified (full verification needs webhook ID from dashboard)
+    const event = req.body;
+    if (!event || !event.event_type) return void res.status(400).json({ error: 'invalid_webhook' });
+
+    console.log(`Webhook received: ${event.event_type} ${event.id || ''}`);
+
+    if (event.event_type === 'PAYMENT.CAPTURE.REFUNDED') {
+      // Reconcile refund with custom_id = actionId
+      const refundId = event.resource?.id;
+      const customId = event.resource?.custom_id;
+      if (refundId && customId) {
+        // Find action by ID and settle if it was unknown_outcome
+        const action = d.db.one<{ status: string }>('SELECT status FROM actions WHERE id=?', customId);
+        if (action && action.status === 'unknown_outcome') {
+          result(d.db, { actionId: customId, outcome: 'executed', refundId }, Date.now(), d.paypal ? 'live' : 'sim');
+          console.log(`Reconciled unknown_outcome ${customId} -> executed (${refundId})`);
+        }
+      }
+    } else if (event.event_type === 'CUSTOMER.DISPUTE.CREATED') {
+      // Log dispute creation (future: could auto-update dispute status for pending approvals)
+      const txnId = event.resource?.disputed_transactions?.[0]?.seller_transaction_id;
+      console.log(`Dispute created for transaction ${txnId || 'unknown'}`);
+    }
+
+    res.json({ received: true });
+  });
+
   api.use((_req, res) => void res.status(404).json({ error: 'not_found' })); // an unknown /v1 path must never fall through to the SPA
   app.use('/v1', api);
   app.get('/health', (_req, res) => void res.json({ ok: true, mode: d.paypal ? 'live' : 'sim' }));
