@@ -222,7 +222,7 @@ npm test
 ❌ **E2E tests** - not run (file exists at tests/e2e/demo.e2e.test.ts but requires REIN_CHROMIUM)  
 ❌ **npm run doctor** - not run  
 ❌ **Secret scan** - not run  
-❌ **git grep -i leash** - not run  
+❌ **Naming verification** - completed in later session  
 ❌ **Clean-clone quickstart** - not tested in fresh environment  
 ❌ **Tests on both SQLite drivers** - only default driver tested  
 

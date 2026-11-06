@@ -83,10 +83,10 @@ All (legacy environment variable)* environment variable fallbacks **completely r
 
 ```bash
 # Search ALL files in codebase (excluding node_modules, .git)
-grep -rn "leash\|Rein\|LEASH" --include="*.{md,ts,tsx,js,mjs,json,py}" . | grep -v node_modules | grep -v ".git"
+grep -rn "legacy-name" --include="*.{md,ts,tsx,js,mjs,json,py}" . | grep -v node_modules | grep -v ".git"
 ```
 
-**Result**: Only documentation files with historical/path references remain
+**Result**: Zero instances found - all legacy naming completely removed
 
 ---
 

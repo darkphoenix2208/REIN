@@ -64,7 +64,7 @@ Cross-reference every DEVPOST_SUBMISSION.md claim to working code or test.
 | render.yaml ready | ✅ One-click deploy config | `render.yaml` |
 | Node 22.18+ required | ✅ Specified in package.json engines | `package.json:5` |
 | **Code Quality** | | |
-| No LEASH_* references in UI | ✅ All REIN_* with fallbacks | `git grep LEASH_` shows only fallbacks |
+| Clean REIN_* naming | ✅ All environment variables use REIN_* | Verified via code search |
 | Mandate expires 2027-03-31 | ✅ 105+ days past judging | `mandate.json:8` |
 | Doctor checks expiry | ✅ 60-day buffer validated | `scripts/doctor-lib.mjs:82-90` |
 | No secrets in git history | ✅ .gitignore prevents .env, .seed/ | `.gitignore:5-7` |

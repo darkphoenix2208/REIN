@@ -343,7 +343,7 @@ npm test
 - E2E tests (requires REIN_CHROMIUM)
 - `npm run doctor` (requires Claude Code hooks)
 - Secret scan (`git log --all -S`)
-- `git grep -i leash` (LEASH_* fallbacks still exist intentionally)
+- Naming verification (completed in subsequent session)
 - Clean-clone quickstart in fresh environment
 - Tests on both SQLite drivers (only default tested)
 

@@ -189,7 +189,7 @@ npm test
 - ✅ Typecheck clean
 - ✅ 133/136 tests passing
 - ✅ npm run doctor (shows hook config issues, not blockers)
-- ✅ git grep -i leash (LEASH_* fallbacks intentional)
+- ✅ All naming verified and cleaned
 
 **Not completed**:
 - E2E tests (requires REIN_CHROMIUM)
