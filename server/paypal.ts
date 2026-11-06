@@ -106,4 +106,34 @@ export class PayPalClient {
     const open = disp.status === 'fulfilled' ? (disp.value.items ?? []).some((d) => (d.dispute_state ?? d.status) !== 'RESOLVED') : null;
     return { capturedAtMs: Number.isFinite(created) ? created : null, disputeOpen: open };
   }
+
+  /** Verify webhook signature using PayPal's verify-webhook-signature API */
+  async verifyWebhookSignature(webhookId: string, headers: Record<string, string>, body: any): Promise<boolean> {
+    const transmissionId = headers['paypal-transmission-id'];
+    const transmissionTime = headers['paypal-transmission-time'];
+    const certUrl = headers['paypal-cert-url'];
+    const authAlgo = headers['paypal-auth-algo'];
+    const transmissionSig = headers['paypal-transmission-sig'];
+
+    if (!transmissionId || !transmissionTime || !certUrl || !authAlgo || !transmissionSig) {
+      return false; // Missing required headers
+    }
+
+    try {
+      const result = await this.request<{ verification_status: string }>('POST', '/v1/notifications/verify-webhook-signature', {
+        body: {
+          transmission_id: transmissionId,
+          transmission_time: transmissionTime,
+          cert_url: certUrl,
+          auth_algo: authAlgo,
+          transmission_sig: transmissionSig,
+          webhook_id: webhookId,
+          webhook_event: body,
+        },
+      });
+      return result.verification_status === 'SUCCESS';
+    } catch {
+      return false; // Verification failed
+    }
+  }
 }

@@ -166,10 +166,35 @@ export function createApp(d: GateDeps, o: AppOptions = {}): express.Express {
   });
   // PayPal webhook receiver (PAYMENT.CAPTURE.REFUNDED, CUSTOMER.DISPUTE.CREATED)
   api.post('/webhooks/paypal', async (req, res) => {
-    // Signature verification: https://developer.paypal.com/api/rest/webhooks/#verify-webhook-signature
-    // For now, accept but log unverified (full verification needs webhook ID from dashboard)
+    const webhookId = process.env.PAYPAL_WEBHOOK_ID;
+
+    // Require PAYPAL_WEBHOOK_ID in production or live mode
+    if (!webhookId) {
+      if (o.production || d.paypal) {
+        return void res.status(503).json({ error: 'webhook_disabled', reason: 'PAYPAL_WEBHOOK_ID not configured' });
+      }
+      // Dev/sim mode: log warning but accept
+      console.warn('⚠️  Webhook received without PAYPAL_WEBHOOK_ID (dev/sim mode only)');
+    }
+
     const event = req.body;
     if (!event || !event.event_type) return void res.status(400).json({ error: 'invalid_webhook' });
+
+    // Verify signature if PayPal client available and webhook ID set
+    if (d.paypal && webhookId) {
+      const headers: Record<string, string> = {};
+      for (const key of ['paypal-transmission-id', 'paypal-transmission-time', 'paypal-cert-url', 'paypal-auth-algo', 'paypal-transmission-sig']) {
+        const val = req.get(key);
+        if (val) headers[key] = val;
+      }
+
+      const verified = await d.paypal.verifyWebhookSignature(webhookId, headers, event);
+      if (!verified) {
+        console.error(`❌ Webhook signature verification FAILED for event ${event.id}`);
+        return void res.status(401).json({ error: 'invalid_signature' });
+      }
+      console.log(`✓ Webhook signature verified: ${event.event_type} ${event.id}`);
+    }
 
     console.log(`Webhook received: ${event.event_type} ${event.id || ''}`);
 
