@@ -24,13 +24,13 @@ export function doctor({ settingsFiles, hookScript, guardScript, reinUrl, nodeBi
   add(pre.some((h) => gn.test(h.cmd)), 'Bypass guard hook (Bash/Write/Edit) is configured', 'Add the guard hook block from docs/Backend/CLAUDE_CODE_INTEGRATION.md');
   const sample = spawnSync(nodeBin, [hookScript], {
     input: JSON.stringify({ session_id: 'doctor', tool_name: 'mcp__plugin_paypal_paypal-sandbox__create_refund', tool_use_id: `doctor_${Date.now()}`, tool_input: { capture_id: 'DOCTOR-UNKNOWN', amount: { currency_code: 'USD', value: '900000.00' } } }),
-    env: { ...process.env, REIN_URL: reinUrl, LEASH_URL: reinUrl }, timeout: 8000,
+    env: { ...process.env, REIN_URL: reinUrl }, timeout: 8000,
   });
   add(sample.status === 2, 'A deliberately over-cap sample refund is BLOCKED end to end (exit 2)', `Sample exited ${sample.status}; start the service (npm run demo) and re-run`);
 
   // Check mandate expiry (must not expire within 60 days of judging end: Dec 15, 2026)
   try {
-    const mandatePath = process.env.REIN_MANDATE ?? process.env.LEASH_MANDATE ?? 'mandate.json';
+    const mandatePath = process.env.REIN_MANDATE ?? 'mandate.json';
     if (existsSync(mandatePath)) {
       const mandate = JSON.parse(readFileSync(mandatePath, 'utf8'));
       const expiresAt = new Date(mandate.expiresAt).getTime();

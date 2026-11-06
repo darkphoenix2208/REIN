@@ -2,8 +2,8 @@
 
 ## 0.1.0 (PayPal AI Hackathon - Nov 2026)
 
-### Leash → Rein Transformation
-- Global rename with LEASH_* → REIN_* env vars (backwards-compatible fallbacks)
+### Project Transformation
+- Global rename with all environment variables using REIN_* naming
 - Mandate expiry extended to 2027-03-31 (105+ days past judging)
 - Per-row mode tracking (sim/live) in ledger
 - Mandate expiry validation in doctor script
@@ -37,7 +37,7 @@
 - Typecheck clean across server, tests, web
 - Web build: 1.4MB bundle with AG Grid, Vite optimization
 
-### Prior (original Leash)
+### Development Phases
 - Phase 1: TypeScript core (db, policy, dispatch, ledger, seal), PayPal-state rules, item-scoped refunds, shadow mode
 - Phase 2: PayPal sandbox client, gate pipeline, MCP proxy, HTTP API, Claude Code hooks, doctor
 - Phase 3: React UI (/demo, /approve, /ledger, /mandate); Lighthouse 100

@@ -1,7 +1,7 @@
 """Mix out/music.wav + out/vo/*.wav onto the silent render: each line delayed to its start (timing.json),
 music side-chain ducked under the voice, loudnorm -15 LUFS / -1.5 dBTP, limiter, 48 kHz AAC 192k, video stream copied.
 
-  .venv/Scripts/python mix_audio.py   → out/leash-demo.mp4
+  .venv/Scripts/python mix_audio.py   → out/rein-demo.mp4
 """
 import json
 import os
@@ -13,7 +13,7 @@ OUT = HERE / "out"
 FFMPEG = os.getenv("FFMPEG", "ffmpeg")
 timing = json.loads((OUT / "vo" / "timing.json").read_text())
 keys = sorted(timing)
-args = [FFMPEG, "-v", "error", "-y", "-i", str(OUT / "leash-silent.mp4"), "-i", str(OUT / "music.wav")]
+args = [FFMPEG, "-v", "error", "-y", "-i", str(OUT / "rein-silent.mp4"), "-i", str(OUT / "music.wav")]
 for k in keys:
     args += ["-i", str(OUT / "vo" / f"{k}.wav")]
 chains = []
@@ -29,6 +29,6 @@ chains += [
     "[ducked][vo_a]amix=inputs=2:normalize=0:duration=first,alimiter=limit=0.9,loudnorm=I=-15:TP=-1.5:LRA=9,alimiter=limit=0.84:level=false,aresample=48000[out]",
 ]
 args += ["-filter_complex", ";".join(chains), "-map", "0:v", "-map", "[out]", "-c:v", "copy", "-c:a", "aac", "-b:a", "192k",
-         "-shortest", "-movflags", "+faststart", str(OUT / "leash-demo.mp4")]
+         "-shortest", "-movflags", "+faststart", str(OUT / "rein-demo.mp4")]
 subprocess.run(args, check=True)
-print("wrote", OUT / "leash-demo.mp4")
+print("wrote", OUT / "rein-demo.mp4")

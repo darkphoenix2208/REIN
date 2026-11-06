@@ -30,7 +30,7 @@ export interface OpenOptions {
 }
 
 export async function openDb(path: string, o: OpenOptions = {}): Promise<Db> {
-  const want = o.driver ?? ((process.env.REIN_DB_DRIVER ?? process.env.LEASH_DB_DRIVER) as Driver | undefined);
+  const want = o.driver ?? (process.env.REIN_DB_DRIVER as Driver | undefined);
   let raw: any;
   let driver: Driver = 'node:sqlite';
   if (want !== 'node:sqlite') {
