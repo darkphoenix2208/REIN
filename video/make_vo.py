@@ -1,4 +1,4 @@
-"""English voice-over for the Leash demo via Gemini TTS, one clip per scene → video/out/vo/NN.wav + timing.json.
+"""English voice-over for the Rein demo via Gemini TTS, one clip per scene → video/out/vo/NN.wav + timing.json.
 
   .venv/Scripts/python make_vo.py            # all lines, then transcribe each and regenerate any that came out wrong
   .venv/Scripts/python make_vo.py 7 8        # only (re)generate lines 7 and 8
@@ -37,22 +37,22 @@ FFPROBE = os.getenv("FFPROBE", "ffprobe")
 # (start_seconds, max_seconds, text)
 LINES: list[tuple[float, float, str]] = [
     (0.25, 5.4, "A hidden line in a ticket. Your agent refunds two hundred dollars, not eighteen."),
-    (6.35, 3.6, "Meet Leash."),
+    (6.35, 3.6, "Meet Rein."),
     (10.75, 7.4, "When an agent picks the refund amount, our tests saw it over-refund seventy percent of the time."),
-    (18.75, 7.3, "Same agent, same injected ticket. Without Leash, two hundred dollars, gone. With Leash, blocked."),
+    (18.75, 7.3, "Same agent, same injected ticket. Without Rein, two hundred dollars, gone. With Rein, blocked."),
     (26.75, 4.6, "An honest eighteen-dollar refund goes straight through."),
     (31.9, 5.1, "Seventy-five dollars is over the agent's limit, so a human decides."),
     (37.6, 8.3, "The approval opens on a phone. Approving refunds nothing by itself. It mints a one-time grant."),
     (46.55, 4.5, "The agent retries, and the grant works exactly once."),
     (51.65, 13.2, "Under the hood, the agent never holds the PayPal key. It names items, never amounts. "
-                  "Leash prices them, checks live PayPal state, and reserves the money before PayPal is ever called."),
+                  "Rein prices them, checks live PayPal state, and reserves the money before PayPal is ever called."),
     (65.65, 5.7, "Every decision lands in a hash-chained ledger."),
     (71.95, 5.0, "The limits are plain JSON, shown in plain English."),
     (77.55, 7.5, "Paste in a real refund policy. You get a draft of the rules, and never an invented dollar limit."),
     (85.65, 8.8, "And it's real: refunds through the same gate, on the PayPal sandbox, re-read live from PayPal."),
     (95.05, 10.0, "One hundred and three tests, on two database drivers. Zero failures."),
     (105.65, 9.4, "Forty injected agent runs through the real proxy. Zero dollars over the legitimate refund."),
-    (115.65, 6.6, "Leash. Give your agent a refund budget, not your PayPal keys."),
+    (115.65, 6.6, "Rein. Give your agent a refund budget, not your PayPal keys."),
 ]
 
 

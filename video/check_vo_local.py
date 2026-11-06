@@ -25,7 +25,7 @@ bad = 0
 for i, (start, max_s, text) in enumerate(vo.LINES, 1):
     pcm = subprocess.check_output([FFMPEG, "-v", "error", "-i", f"out/vo/{i:02d}.wav", "-f", "s16le", "-ac", "1", "-ar", "16000", "-"])
     segs, _ = model.transcribe(np.frombuffer(pcm, np.int16).astype(np.float32) / 32768, beam_size=5, language="en",
-                               initial_prompt="Leash is a refund gate for AI agents that use PayPal.")
+                               initial_prompt="Rein is a refund gate for AI agents that use PayPal.")
     heard = " ".join(s.text.strip() for s in segs)
     score = vo.similar(text, heard)
     end = timing[f"{i:02d}"]["start"] + timing[f"{i:02d}"]["dur"]
