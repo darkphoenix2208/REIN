@@ -91,11 +91,11 @@ export class PayPalClient {
   getRefund = (id: string) => this.request<{ id: string; status: string; amount?: { value: string; currency_code: string } }>('GET', `/v2/payments/refunds/${encodeURIComponent(id)}`);
   listDisputes = (txnId: string) => this.request<{ items?: { dispute_state?: string; status?: string }[] }>('GET', `/v1/customer/disputes?disputed_transaction_id=${encodeURIComponent(txnId)}`);
 
-  /** idempotent per requestId (the Rein action id) */
+  /** idempotent per requestId (the Rein action id). custom_id set to actionId for reconciliation. */
   refund(captureId: string, amountCents: number, currency: string, requestId: string, note?: string) {
     return this.request<{ id: string; status: string }>('POST', `/v2/payments/captures/${encodeURIComponent(captureId)}/refund`, {
       requestId,
-      body: { amount: { currency_code: currency, value: toValue(amountCents) }, ...(note ? { note_to_payer: note } : {}) },
+      body: { amount: { currency_code: currency, value: toValue(amountCents) }, custom_id: requestId, ...(note ? { note_to_payer: note } : {}) },
     });
   }
 

@@ -19,20 +19,35 @@ const tr = await fetch(`${BASE}/v1/oauth2/token`, { method: 'POST', headers: { A
 if (!tr.ok) throw new Error(`Token request failed: HTTP ${tr.status}`);
 const tok = (await tr.json()).access_token;
 
+// Line items for different scenarios
+const ITEM_SETS = [
+  [{ name: 'Coffee Mug', sku: 'mug', unit_amount: { currency_code: 'USD', value: '18.00' }, quantity: '1', category: 'PHYSICAL_GOODS' }], // $18 single item
+  [{ name: 'Throw Pillow', sku: 'cushion', unit_amount: { currency_code: 'USD', value: '25.00' }, quantity: '2', category: 'PHYSICAL_GOODS' },
+   { name: 'Table Lamp', sku: 'lamp', unit_amount: { currency_code: 'USD', value: '40.00' }, quantity: '1', category: 'PHYSICAL_GOODS' },
+   { name: 'Cotton Towels', sku: 'towels', unit_amount: { currency_code: 'USD', value: '30.00' }, quantity: '1', category: 'PHYSICAL_GOODS' }], // $120 multi-item
+  [{ name: 'Ceramic Vase', sku: 'vase', unit_amount: { currency_code: 'USD', value: '45.00' }, quantity: '1', category: 'PHYSICAL_GOODS' }], // $45
+  [{ name: 'Wool Blanket', sku: 'blanket', unit_amount: { currency_code: 'USD', value: '80.00' }, quantity: '1', category: 'PHYSICAL_GOODS' },
+   { name: 'Picture Frame', sku: 'frame', unit_amount: { currency_code: 'USD', value: '35.00' }, quantity: '2', category: 'PHYSICAL_GOODS' },
+   { name: 'Candle Set', sku: 'candles', unit_amount: { currency_code: 'USD', value: '25.00' }, quantity: '2', category: 'PHYSICAL_GOODS' }], // $200 injection target
+];
+
 const runId = Date.now(), out = [];
 for (let i = 0; i < N; i++) {
-  const value = AMOUNTS[i % AMOUNTS.length];
+  const items = ITEM_SETS[i % ITEM_SETS.length];
+  const itemTotal = items.reduce((sum, it) => sum + parseFloat(it.unit_amount.value) * parseInt(it.quantity), 0).toFixed(2);
   const r = await fetch(`${BASE}/v2/checkout/orders`, { method: 'POST',
     headers: { Authorization: `Bearer ${tok}`, 'Content-Type': 'application/json', Prefer: 'return=representation', 'PayPal-Request-Id': `rein-seed-${runId}-${i}` },
-    body: JSON.stringify({ intent: 'CAPTURE', purchase_units: [{ reference_id: `seed-${i}`, amount: { currency_code: 'USD', value } }],
+    body: JSON.stringify({ intent: 'CAPTURE', purchase_units: [{ reference_id: `seed-${i}`,
+      amount: { currency_code: 'USD', value: itemTotal, breakdown: { item_total: { currency_code: 'USD', value: itemTotal } } },
+      items }],
       payment_source: { card: { ...CARD, name: 'Test Buyer', billing_address: { address_line_1: '123 Main St', admin_area_2: 'San Jose', admin_area_1: 'CA', postal_code: '95131', country_code: 'US' } } } }) });
   const j = await r.json().catch(() => ({})); const cap = j?.purchase_units?.[0]?.payments?.captures?.[0];
   if (!r.ok || j.status !== 'COMPLETED' || !cap?.id) {
     console.error(`seed ${i} FAILED: HTTP ${r.status} status=${j?.status} debug_id=${r.headers.get('paypal-debug-id')} ${JSON.stringify((j?.details ?? [j?.message]).slice?.(0, 2) ?? j?.message)}`);
     break;
   }
-  out.push({ txn_id: cap.id, order_id: j.id, captured_cents: toCents(cap.amount.value), currency: cap.amount.currency_code, label: LABELS[i] ?? 'pool', created: new Date().toISOString() });
-  console.log(`seeded ${cap.id}  ${cap.amount.currency_code} ${cap.amount.value}  ${LABELS[i] ?? ''}`);
+  out.push({ txn_id: cap.id, order_id: j.id, captured_cents: toCents(cap.amount.value), currency: cap.amount.currency_code, label: LABELS[i] ?? 'pool', created: new Date().toISOString(), items: items.map(it => ({ item_id: it.sku, name: it.name, unit_cents: toCents(it.unit_amount.value), qty: parseInt(it.quantity) })) });
+  console.log(`seeded ${cap.id}  ${cap.amount.currency_code} ${cap.amount.value}  ${items.length} items  ${LABELS[i] ?? ''}`);
   await new Promise((res) => setTimeout(res, 400));
 }
 mkdirSync('.seed', { recursive: true }); writeFileSync('.seed/captures.json', JSON.stringify(out, null, 2));
