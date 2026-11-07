@@ -1,0 +1,53 @@
+name: CI
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+    branches: [master, main]
+
+jobs:
+  test:
+    name: Typecheck, Dual Driver Tests & Security Audit
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck (server, tests, web)
+        run: npm run typecheck
+
+      - name: Run test suite (better-sqlite3 driver)
+        run: npm test
+
+      - name: Run test suite (node:sqlite driver)
+        run: npm run test:node-sqlite
+
+      - name: Build web SPA assets
+        run: npm run web:build
+
+      - name: Security audit (npm audit)
+        run: npm audit --audit-level=high
+
+      - name: Secret scan check
+        run: |
+          echo "Scanning for accidental committed private keys or unencrypted secrets..."
+          if grep -rn "BEGIN OPENSSH PRIVATE KEY" . --exclude-dir={node_modules,.git,web/dist}; then
+            echo "ERROR: Found unencrypted private key in repository"
+            exit 1
+          fi
+          if grep -rn "BEGIN PRIVATE KEY" . --exclude-dir={node_modules,.git,web/dist}; then
+            echo "ERROR: Found unencrypted private key in repository"
+            exit 1
+          fi
+          echo "Secret scan passed cleanly: no raw secrets committed."

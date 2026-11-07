@@ -14,7 +14,7 @@
 - [x] B. Signed checkpoints / /verify page end-to-end
 - [x] C. Backtest and shadow diff on /mandate
 - [x] D. Buyer-side purchases (buy → price-match → refund loop)
-- [ ] E. Render deploy and Workflows
+- [x] E. Render deploy and Workflows
 - [ ] F. AG Grid community improvements / ops dashboard
 
 ## STAGE 3: POLICY AND APPROVALS DEPTH

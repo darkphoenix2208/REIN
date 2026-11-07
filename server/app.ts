@@ -73,6 +73,13 @@ export function createApp(d: GateDeps, o: AppOptions = {}): express.Express {
     eq(req.get('authorization') ?? '', `Bearer ${o.token}`) ? next() : void res.status(401).json({ error: 'unauthorized' });
   });
 
+  // Render workflow endpoints: service token required (fails closed 401 if missing/wrong, 503 if unset)
+  api.use('/workflow', (req: Request, res: Response, next: NextFunction) => {
+    const token = o.token ?? process.env.REIN_TOKEN;
+    if (!token) return void res.status(503).json({ error: 'service_unavailable', reason: 'Workflow service token not configured' });
+    eq(req.get('authorization') ?? '', `Bearer ${token}`) ? next() : void res.status(401).json({ error: 'unauthorized', reason: 'Invalid or missing service bearer token' });
+  });
+
   const cents = (v: unknown): number | null | typeof NaN => (v === null || v === undefined ? null : Number.isInteger(v) && (v as number) >= 0 ? (v as number) : NaN);
 
   // Hook path: the agent's own PayPal tool is gated; Rein decides and reserves, the hook allows or blocks.
@@ -743,9 +750,114 @@ export function createApp(d: GateDeps, o: AppOptions = {}): express.Express {
     }
   });
 
+  // Health & readiness probes inside API
+  api.get('/healthz', (_req, res) => {
+    res.json({ status: 'ok', uptime: process.uptime(), mode: d.paypal ? 'live' : 'sim' });
+  });
+  api.get('/readyz', (_req, res) => {
+    try {
+      d.db.val('SELECT 1');
+      res.json({ status: 'ready', db: 'ok', mode: d.paypal ? 'live' : 'sim', uptime: process.uptime() });
+    } catch (e: any) {
+      res.status(503).json({ status: 'not_ready', error: e?.message ?? 'Database check failed' });
+    }
+  });
+
+  // Workflow reconciliation (idempotent unknown_outcome reconciler)
+  api.post('/workflow/reconcile', async (_req, res) => {
+    const now = Date.now();
+    sweep(d.db, now);
+
+    const unknowns = d.db.all<{ id: string; capture_id: string; amount_cents: number; tool: string }>(
+      `SELECT id, capture_id, amount_cents, tool FROM actions WHERE status='unknown_outcome'`
+    );
+
+    let reconciledCount = 0;
+    for (const act of unknowns) {
+      const mode = d.paypal ? 'live' : 'sim';
+      if (d.paypal && act.capture_id) {
+        try {
+          const state = await d.paypal.readState(act.capture_id);
+          if (state.capturedAtMs != null) {
+            d.db.run('UPDATE payments SET reserved_cents=MAX(0, reserved_cents-?), refunded_cents=refunded_cents+? WHERE txn_id=?', act.amount_cents, act.amount_cents, act.capture_id);
+            d.db.run(`UPDATE actions SET status='executed', updated_at=? WHERE id=?`, now, act.id);
+            const { ledger } = await import('./ledger.ts');
+            ledger(d.db, act.id, 'reconciled_executed', { mode }, now);
+            reconciledCount++;
+          }
+        } catch {}
+      } else {
+        // Simulated / fallback: settle to executed
+        if (act.capture_id) {
+          d.db.run('UPDATE payments SET reserved_cents=MAX(0, reserved_cents-?), refunded_cents=refunded_cents+? WHERE txn_id=?', act.amount_cents, act.amount_cents, act.capture_id);
+        }
+        d.db.run(`UPDATE actions SET status='executed', updated_at=? WHERE id=?`, now, act.id);
+        const { ledger } = await import('./ledger.ts');
+        ledger(d.db, act.id, 'reconciled_executed', { mode }, now);
+        reconciledCount++;
+      }
+    }
+
+    const remainingUnknowns = d.db.val<number>(
+      `SELECT COUNT(*) FROM actions WHERE status='unknown_outcome'`
+    ) ?? 0;
+
+    res.json({
+      ok: true,
+      reconciled: reconciledCount,
+      unknownCount: remainingUnknowns,
+      timestamp: now,
+      idempotent: true,
+    });
+  });
+
+  // Workflow Attack Lab (idempotent parallel test runner)
+  api.post('/workflow/attack-lab/run', async (_req, res) => {
+    const { seedAttackLabData, runAttackVector, ATTACK_VECTORS } = await import('./attack-lab.ts');
+    const { captureIds } = seedAttackLabData(d.db);
+    const results: any[] = [];
+
+    for (const vec of ATTACK_VECTORS) {
+      try {
+        const capId = captureIds[vec.id] ?? 'ATTACK-DEFAULT';
+        const r = await runAttackVector(d, vec.id, capId);
+        results.push(r);
+      } catch (err: any) {
+        results.push({
+          vectorId: vec.id,
+          vector: vec.vector,
+          error: err.message,
+          blocked: false,
+          escalated: false,
+          allowed: false,
+        });
+      }
+    }
+
+    res.json({
+      ok: true,
+      vectorsRun: results.length,
+      blockedCount: results.filter((r) => r.blocked).length,
+      escalatedCount: results.filter((r) => r.escalated).length,
+      allowedCount: results.filter((r) => r.allowed).length,
+      timestamp: Date.now(),
+      idempotent: true,
+      results,
+    });
+  });
+
   api.use((_req, res) => void res.status(404).json({ error: 'not_found' })); // an unknown /v1 path must never fall through to the SPA
   app.use('/v1', api);
   app.get('/health', (_req, res) => void res.json({ ok: true, mode: d.paypal ? 'live' : 'sim' }));
+  app.get('/healthz', (_req, res) => void res.json({ status: 'ok', uptime: process.uptime(), mode: d.paypal ? 'live' : 'sim' }));
+  app.get('/readyz', (_req, res) => {
+    try {
+      d.db.val('SELECT 1');
+      res.json({ status: 'ready', db: 'ok', mode: d.paypal ? 'live' : 'sim', uptime: process.uptime() });
+    } catch (e: any) {
+      res.status(503).json({ status: 'not_ready', error: e?.message ?? 'Database check failed' });
+    }
+  });
 
   app.use((e: any, _req: Request, res: Response, _next: NextFunction) => {
     if (e instanceof ReinBusyError || isBusy(e)) return void res.status(503).set('Retry-After', '1').json({ error: 'busy', fix: 'Retry in a moment.' });

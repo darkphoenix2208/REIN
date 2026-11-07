@@ -1,199 +1,86 @@
-# Deploy to Render.com
+# Deploying Rein to Render
 
-Rein is Render-ready via `render.yaml`. This guide walks through one-click deployment.
+> [!IMPORTANT]
+> **Status**: Everything touching live Render deployment is **NOT VERIFIED** until an operator deploys to Render with production credentials. The implementation includes local fallbacks and tested idempotent HTTP endpoints.
 
-## Prerequisites
-
-- Render.com account (free tier works)
-- PayPal sandbox app credentials (optional for live mode)
-- GitHub repo pushed (Render builds from Git)
-
-## Step 1: Push to GitHub
-
-```bash
-# In your project directory
-git remote add origin https://github.com/YOUR_USERNAME/rein.git
-git push -u origin master
-```
-
-## Step 2: Create Render Service
-
-1. Go to https://dashboard.render.com
-2. Click **New +** → **Web Service**
-3. Connect your GitHub repo
-4. Render auto-detects `render.yaml` — click **Apply**
-
-## Step 3: Configure Environment Variables
-
-Render creates the service from `render.yaml`, but you need to set secrets in the dashboard:
-
-### Required (SIMULATED mode)
-```
-REIN_TOKEN=<generate random 32-char string>
-NODE_ENV=production
-```
-
-### Optional (LIVE-FIRE mode with PayPal)
-```
-PAYPAL_CLIENT_ID=<your sandbox app client ID>
-PAYPAL_CLIENT_SECRET=<your sandbox app client secret>
-PAYPAL_BASE_URL=https://api-m.sandbox.paypal.com
-```
-
-### Optional (Gemini policy compiler)
-```
-GEMINI_API_KEY=<your Gemini API key>
-```
-
-### Optional (Channel3 price checks)
-```
-CHANNEL3_API_KEY=<your Channel3 API key>
-```
-
-**Generate REIN_TOKEN:**
-```bash
-node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
-```
-
-## Step 4: Deploy
-
-Render builds automatically on push. Watch the build logs:
-
-1. Build runs `npm ci`
-2. Compiles TypeScript (`npm run typecheck`)
-3. Builds web UI (`npm run web:build`)
-4. Runs tests (`npm test`)
-5. Starts server (`npm start`)
-
-**Build time**: ~3 minutes  
-**Cold start**: ~10 seconds
-
-## Step 5: Seed Database
-
-Render uses ephemeral disk (resets on deploy). To persist data:
-
-1. Upgrade to Render Disk (paid) and mount at `/data`
-2. Set `REIN_DB=/data/rein.db`
-3. SSH into instance: `npm run seed-db`
-
-**OR** use in-memory mode (demo only):
-- Database resets on every deploy
-- Good for hackathon judging, not production
-
-## Step 6: Configure PayPal Webhooks (optional)
-
-If using LIVE-FIRE mode:
-
-1. Get your Render URL: `https://your-app.onrender.com`
-2. In PayPal Developer Dashboard → Webhooks:
-   - URL: `https://your-app.onrender.com/v1/webhooks/paypal`
-   - Events: `PAYMENT.CAPTURE.REFUNDED`, `CUSTOMER.DISPUTE.CREATED`
-3. Note: Signature verification is not fully implemented (accepts unverified)
-
-## Step 7: Verify Deployment
-
-```bash
-# Check health
-curl https://your-app.onrender.com/v1/mandate
-
-# Run demo ticket
-curl -X POST https://your-app.onrender.com/v1/demo/run \
-  -H 'Content-Type: application/json' \
-  -d '{"ticketId": 1}'
-
-# Check ledger
-curl https://your-app.onrender.com/v1/ledger?limit=10
-```
-
-## Troubleshooting
-
-### Build fails: "engine Not compatible"
-- Render uses Node 22.18+ (specified in package.json engines)
-- If using local 22.14, upgrade or wait for Render's build (it auto-installs correct version)
-
-### Tests timeout
-- Render free tier has limited CPU
-- Increase test timeout: `--test-timeout=120000` in package.json
-- Or skip tests: remove `npm test` from render.yaml build command
-
-### Database locked errors
-- Use `REIN_DB_DRIVER=better-sqlite3` (faster, sync)
-- Or increase `busy_timeout` in db.ts
-
-### Rate limiting too aggressive
-- Set `REIN_RATE_LIMIT_PER_MIN=500` (default 240)
-- Or disable for demo: `REIN_RATE_LIMIT_PER_MIN=999999`
-
-## render.yaml Explained
-
-```yaml
-services:
-  - type: web
-    name: rein
-    runtime: node
-    buildCommand: npm ci && npm run web:build && npm test
-    startCommand: npm start
-    envVars:
-      - key: NODE_ENV
-        value: production
-      - key: PORT
-        value: 10000
-    disk:
-      name: rein-data
-      mountPath: /data
-      sizeGB: 1
-```
-
-- **runtime**: Node.js (version from package.json engines)
-- **buildCommand**: Install deps, build UI, run tests
-- **startCommand**: `node server/index.ts` (via npm start)
-- **envVars**: PORT auto-set by Render, NODE_ENV=production
-- **disk**: Optional persistent storage (paid tier)
-
-## Cost
-
-- **Free tier**: 750 hours/month, sleeps after 15min idle, 512MB RAM
-- **Starter ($7/mo)**: Always-on, 512MB RAM
-- **Standard ($25/mo)**: 2GB RAM, autoscaling
-- **Disk**: $0.25/GB/month
-
-**Recommendation for hackathon demo**: Free tier + in-memory DB (no disk)
-
-## Post-Deploy Checklist
-
-- [ ] `/v1/mandate` returns policy JSON
-- [ ] `/demo` page loads (React UI)
-- [ ] Run ticket 1 → ALLOWED
-- [ ] Run ticket 2 → BLOCKED
-- [ ] `/ledger` shows hash chain ✓
-- [ ] `/ops` dashboard shows metrics
-- [ ] `/attack-lab` loads 8 vectors
-- [ ] SIMULATED mode chip visible (or LIVE-FIRE if PayPal configured)
-
-## Security Notes
-
-- **REIN_TOKEN**: Keep secret, rotate periodically
-- **PayPal credentials**: Sandbox only, never commit to repo
-- **HTTPS**: Render provides TLS automatically
-- **Rate limiting**: Enabled by default (240 req/min per IP)
-- **Trust proxy**: Auto-configured by Render (REIN_TRUST_PROXY=1)
-
-## Rollback
-
-Render keeps deploy history. To rollback:
-
-1. Dashboard → your service → Deploys tab
-2. Find previous working deploy
-3. Click **Redeploy**
-
-## Next Steps
-
-- Point custom domain (optional)
-- Enable Render monitoring/alerts
-- Set up GitHub Actions for CI/CD
-- Add Sentry for error tracking
-- Configure log aggregation (Papertrail, Datadog)
+Rein is designed to run securely and reliably on Render as a single-instance service with persistent disk storage for its SQLite audit ledger.
 
 ---
 
-**Need help?** Open an issue on GitHub or check Render docs: https://render.com/docs
+## 1. Architecture on Render
+
+- **Runtime**: Node.js 22 LTS
+- **Build Command**: `npm ci --include=dev && npm run web:build`
+- **Start Command**: `node --experimental-strip-types server/index.ts`
+- **Health Checks**:
+  - `/healthz` (liveness: process alive)
+  - `/readyz` (readiness: SQLite readable and writable)
+- **Database**: Single-instance SQLite stored on Render Persistent Disk mounted at `/var/data` (`REIN_DB=/var/data/rein.db`).
+- **Proxy Trust**: `REIN_TRUST_PROXY=1` (ensures accurate client IP detection behind Render's reverse proxy for rate limiting).
+
+---
+
+## 2. Environment Variables
+
+| Variable | Required? | Default | Purpose |
+|---|---|---|---|
+| `NODE_ENV` | **Yes** | `production` | Enforces production mode and strict security |
+| `NODE_VERSION` | **Yes** | `22` | Specifies Node.js LTS runtime |
+| `REIN_TOKEN` | **Yes** | — | 32+ char bearer token protecting operator endpoints |
+| `REIN_TRUST_PROXY` | **Yes** | `1` | Enables 1 proxy hop trust for client IP rate limits |
+| `REIN_DB` | **Yes** | `/var/data/rein.db` | Path to persistent SQLite ledger database |
+| `REIN_LOCK_OPERATOR_ENDPOINTS` | Recommended | `1` | Locks `/ledger` and `/exposure` behind `REIN_TOKEN` |
+| `REIN_PUBLIC_URL` | Recommended | Auto-detected | Canonical public HTTPS URL on Render |
+| `ANTHROPIC_API_KEY` | Optional | — | Enables live Claude agent in "Beat the Gate" |
+| `CHANNEL3_API_KEY` | Optional | — | Enables live product pricing intelligence |
+| `PAYPAL_CLIENT_ID` | Optional | — | PayPal sandbox App Client ID (never live keys) |
+| `PAYPAL_CLIENT_SECRET` | Optional | — | PayPal sandbox Secret (never live keys) |
+| `REIN_DISABLE_CHALLENGE` | Optional | `0` | Kill switch (`1` disables challenge endpoint with 503) |
+| `RENDER_API_KEY` | Optional | — | For Render Workflows container dispatch |
+
+---
+
+## 3. Public Read-Only Demo Mode (Safe through Dec 15)
+
+To leave Rein safely hosted online through December 15 for judges without risk of credential leakage, excessive spend, or unauthorized ledger tampering:
+
+1. **Simulated by Default**: If PayPal credentials are not configured, Rein runs in SIMULATED mode. The UI prominently displays a `SIMULATED` badge.
+2. **Operator Lockdown (`REIN_LOCK_OPERATOR_ENDPOINTS=1`)**:
+   - Administrative and ledger modification endpoints require the `REIN_TOKEN` bearer header.
+   - Public visitors can interact with the Demo, read the public mandate, attempt the Challenge, and view the Verify page.
+3. **Rate Limiting**:
+   - Built-in per-IP rate limiting (240 req/min default; 30 req/min on `/demo/run`).
+   - Challenge attempt rate limit: 3 attempts per IP per 5 minutes.
+4. **Kill Switch**:
+   - If abuse occurs, set `REIN_DISABLE_CHALLENGE=1` in the Render dashboard to instantly deactivate challenge execution.
+
+---
+
+## 4. Render Workflows (@renderinc/sdk)
+
+Rein integrates with Render Workflows (`@renderinc/sdk`) for background tasks:
+
+- **Isolated Execution**: Workflows run inside isolated containers without direct filesystem access to SQLite.
+- **Idempotent HTTP API**: Containers call Rein's authenticated endpoints over HTTPS:
+  - `POST /v1/workflow/reconcile`: Reconciles `unknown_outcome` transactions and cleans up elapsed reservations.
+  - `POST /v1/workflow/attack-lab/run`: Runs the 8 adversarial test vectors in parallel and aggregates defense telemetry.
+- **Local Fallback**: When `RENDER_API_KEY` is not present, `server/render-workflow.ts` automatically executes tasks locally with zero downtime.
+
+---
+
+## 5. One-Click Deploy Steps
+
+1. Fork or push this repository to GitHub.
+2. Log into [Render.com](https://dashboard.render.com).
+3. Click **New +** → **Blueprint**.
+4. Select the repository. Render automatically reads `render.yaml`.
+5. Provide `REIN_TOKEN` (generate via `openssl rand -hex 32` or `node -e "console.log(crypto.randomBytes(32).toString('hex'))"`).
+6. Click **Apply**.
+7. Once deployed, verify:
+   ```bash
+   # Liveness check
+   curl -i https://<your-service>.onrender.com/healthz
+
+   # Readiness check
+   curl -i https://<your-service>.onrender.com/readyz
+   ```

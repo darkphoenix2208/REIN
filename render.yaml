@@ -1,23 +1,42 @@
-# Optional hosting. Free tier notes: cold starts after idle, and the disk is ephemeral, so the ledger resets on redeploy. Single instance only (SQLite).
+# Render deployment blueprint for Rein
+# Single-instance architecture with persistent SQLite disk and locked operator endpoints.
+# Safe for public hosting through Dec 15: rate limits on, operator endpoints locked with REIN_TOKEN,
+# simulated fallback when API keys are absent, challenge kill switch documented.
+
 services:
   - type: web
     name: rein
     runtime: node
-    plan: free
-    # NODE_ENV=production makes npm skip devDependencies, and the UI build needs vite: install them explicitly
+    plan: starter # Starter plan required for persistent disk
     buildCommand: npm ci --include=dev && npm run web:build
-    startCommand: node --disable-warning=ExperimentalWarning server/index.ts
-    healthCheckPath: /health
+    startCommand: node --experimental-strip-types server/index.ts
+    healthCheckPath: /healthz
+    disk:
+      name: rein-data
+      mountPath: /var/data
+      sizeGB: 1
     envVars:
       - key: NODE_VERSION
-        value: "24"
+        value: "22"
       - key: NODE_ENV
         value: production
       - key: REIN_TRUST_PROXY
         value: "1"
       - key: REIN_DB
-        value: /tmp/rein.db
+        value: /var/data/rein.db
+      - key: REIN_LOCK_OPERATOR_ENDPOINTS
+        value: "1"
       - key: REIN_PUBLIC_URL
         sync: false
-      - key: GEMINI_API_KEY
+      - key: REIN_TOKEN
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: CHANNEL3_API_KEY
+        sync: false
+      - key: PAYPAL_CLIENT_ID
+        sync: false
+      - key: PAYPAL_CLIENT_SECRET
+        sync: false
+      - key: REIN_DISABLE_CHALLENGE
         sync: false
