@@ -5,6 +5,7 @@ import { randomBytes, randomUUID, createHash, timingSafeEqual } from 'node:crypt
 import { tx, type Db } from './db.ts';
 import { decide, resolveItems, decidePayout, type ItemRow, type PayoutPolicyState } from './policy.ts';
 import { hashArgs, ledger, sha } from './ledger.ts';
+import { sendTelegramApproval, getTelegramConfig } from './telegram.ts';
 import type { CheckInput, CheckResult, Decision, ExternalState, Mandate, PayRow } from './types.ts';
 
 // statuses that SPEND the cap (blocked, denied, expired, failed and shadow do not)
@@ -76,6 +77,29 @@ function checkPayout(db: Db, m: Mandate, a: CheckInput, now: number, mode: 'sim'
   return finishPayout(db, a, now, d, amountCents, payeeEmail, m, mode);
 }
 
+async function sendTelegramNotification(actionId: string, tool: string, amountCents: number, ruleId: string, reason: string, approvalUrl: string, sessionId: string, captureId?: string, payeeEmail?: string): Promise<void> {
+  const telegramConfig = getTelegramConfig();
+  if (!telegramConfig) return; // Telegram not configured, skip
+
+  try {
+    await sendTelegramApproval(telegramConfig, {
+      actionId,
+      amountCents,
+      currency: 'USD',
+      ruleId,
+      reason,
+      approvalUrl,
+      sessionId,
+      tool,
+      captureId,
+      payeeEmail,
+    });
+  } catch (error) {
+    // Log error but don't fail the approval flow
+    console.error('Telegram notification failed:', error);
+  }
+}
+
 function finishPayout(db: Db, a: CheckInput, now: number, d: Decision, amountCents: number, payeeEmail: string, m: Mandate, mode: 'sim' | 'live'): CheckResult {
   const status = d.status === 'allowed' ? 'reserved' : d.status;
 
@@ -90,6 +114,10 @@ function finishPayout(db: Db, a: CheckInput, now: number, d: Decision, amountCen
     const token = randomBytes(16).toString('hex');
     db.run('INSERT INTO approvals(action_id, token_hash, expires_at, status) VALUES (?,?,?,?)', a.actionId, sha(token), now + 15 * 60_000, 'pending');
     const approvalUrl = `${process.env.REIN_PUBLIC_URL ?? 'http://127.0.0.1:4317'}/approve/${a.actionId}#t=${token}`;
+
+    // Send Telegram notification (async, non-blocking)
+    sendTelegramNotification(a.actionId, a.tool, amountCents, d.ruleId, d.reason, approvalUrl, a.sessionId, undefined, payeeEmail).catch(() => {});
+
     return { status: 'pending_approval', ruleId: d.ruleId, reason: d.reason, actionId: a.actionId, approvalUrl, token };
   }
 
@@ -183,6 +211,9 @@ function finish(db: Db, a: CheckInput, now: number, d: Decision, amountCents: nu
     db.run('INSERT INTO approvals(action_id, token_hash, expires_at, status) VALUES (?,?,?,?)', a.actionId, sha(token), now + 15 * 60_000, 'pending');
     if (lines && orderId) for (const l of lines) db.run('INSERT INTO action_items(action_id,order_id,item_id,qty) VALUES (?,?,?,?)', a.actionId, orderId, l.itemId, l.qty);
     approvalUrl = `${process.env.REIN_PUBLIC_URL ?? 'http://127.0.0.1:4317'}/approve/${a.actionId}#t=${token}`; // token in the fragment: never sent to servers or logs
+
+    // Send Telegram notification (async, non-blocking)
+    sendTelegramNotification(a.actionId, a.tool, amountCents, d.ruleId, d.reason, approvalUrl, a.sessionId, a.captureId).catch(() => {});
   }
   ledger(db, a.actionId, status, { mode, ruleId: d.ruleId, amountCents, captureId: a.captureId, items: lines }, now);
   return { ...d, actionId: a.actionId, ...(approvalUrl ? { approvalUrl } : {}), ...(token ? { token } : {}) };
