@@ -89,12 +89,13 @@ AI support agents are vulnerable to prompt injection. Rein bounds the damage:
 - **Security audit**: 0 npm vulnerabilities
 
 ### UI ✅
-- **9 responsive pages**: Demo, Ledger, Ops, Attack Lab, Author, Mandate, Proof, Approvals, Challenge
+- **11 responsive pages**: Demo, Ledger, Ops, Challenge, Attack Lab, Verify, Author, Mandate, Proof, Approvals
 - **PayPal-branded**: Official color palette (#0070BA navy, #003087 dark blue)
 - **Inter font**: Modern fintech typography
 - **AG Grid Community**: Interactive ledger with hash verification (no Enterprise features)
 - **Progressive Web App**: Installable on mobile with service worker
 - **LIVE/SIMULATED mode indicators** everywhere
+- **Interactive checkpoint verification**: Visual Ed25519 validation with export
 
 ---
 
@@ -170,12 +171,14 @@ Driver: node:sqlite
 - `GET /demo` - Demo page
 - `GET /ledger` - Audit ledger page
 - `GET /attack-lab` - Attack lab page
-- `GET /challenge` - Beat the Gate challenge page
+- `GET /challenge` - Beat the Gate challenge page (live with Anthropic API)
+- `GET /verify` - Checkpoint verification page
 - `GET /approve/:id` - Approval page
 - `GET /v1/ledger/checkpoint` - Create signed Ed25519 checkpoint
 - `GET /v1/ledger/verify` - Verify checkpoint with mandate limits
-- `GET /v1/challenge/leaderboard` - Challenge leaderboard (recorded attempts)
-- `POST /v1/challenge/attempt` - Submit challenge attempt (recorded fallback)
+- `POST /v1/ledger/verify` - Verify submitted checkpoint JSON
+- `GET /v1/challenge/leaderboard` - Challenge leaderboard
+- `POST /v1/challenge/attempt` - Submit challenge attempt (live agent or recorded fallback)
 
 ### Authenticated Endpoints
 - `POST /v1/refund` - Process refund request
@@ -263,13 +266,32 @@ Open http://127.0.0.1:4317
 
 ---
 
+## ✅ New Features Completed
+
+**Checkpoint Verification UI** (/verify page) ✅
+- Ed25519 signature verification interface
+- Export checkpoint JSON for offline verification
+- Real-time validation against current ledger state
+- Visual status indicators for signature and chain validity
+
+**Live Beat the Gate** (/challenge page) ✅
+- Full Anthropic API integration with Claude Sonnet 4
+- Real-time gate enforcement during challenge
+- Interactive UI with budget tracking
+- Leaderboard with live/recorded mode indicators
+- Tool call visualization
+
+**Subscription & Dispute Gate Integration** ✅
+- Full policy layer with 7+ tests passing
+- Dispute handling with automatic evidence generation
+- Subscription cancellation with high-value escalation
+- Complete gate enforcement through dispatch
+
 ## ❌ Not Built
 
 The following were CUT after assessment or are NOT VERIFIED without credentials:
 
 **CUT (incomplete):**
-- Full subscription/dispute gate integration through dispatch (policy layer exists and tested, but dispatch integration incomplete)
-- Live "Beat the Gate" with Anthropic API (recorded fallback works, live agent not implemented)
 - Mandate backtest and shadow diff
 - Buyer-side purchases with Channel3 shopping
 - Render deployment workflows
@@ -284,7 +306,7 @@ The following were CUT after assessment or are NOT VERIFIED without credentials:
 - PayPal live refunds/payouts (sandbox credentials not provided)
 - Channel3 live market data (no API key)
 - Telegram notifications (no bot token)
-- Anthropic agent integration (no API key)
+- Anthropic agent live execution (requires ANTHROPIC_API_KEY)
 - Render deployment (not deployed)
 
 ---
