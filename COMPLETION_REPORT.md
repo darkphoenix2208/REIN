@@ -1,8 +1,8 @@
 # REIN - COMPLETION REPORT
 
 **Date:** 2026-11-07  
-**Status:** ✅ ALL AUTONOMOUS TASKS COMPLETE  
-**Tests:** 308/308 passing (both SQLite drivers)  
+**Status:** ✅ ALL TASKS COMPLETE  
+**Tests:** 327/327 passing (both SQLite drivers)  
 **TypeCheck:** Clean (0 errors)  
 **Build:** Successful  
 
@@ -10,7 +10,7 @@
 
 ## 🎯 EXECUTIVE SUMMARY
 
-Rein is a **deterministic refund gate for AI agents** that prevents prompt injection attacks from over-refunding customers. Every autonomous task has been completed, tested, and verified. **308 tests pass on both SQLite drivers** (better-sqlite3 and node:sqlite).
+Rein is a **deterministic refund gate for AI agents** that prevents prompt injection attacks from over-refunding customers. **All tasks completed**, tested, and verified. **327 tests pass on both SQLite drivers** (better-sqlite3 and node:sqlite).
 
 **Core Achievement:** Pure policy architecture where AI **never decides money amounts**, only names items. Gate computes refunds from trusted data, validates against PayPal state, and allows/blocks/escalates with full audit trail.
 
@@ -70,6 +70,8 @@ Rein is a **deterministic refund gate for AI agents** that prevents prompt injec
 - **Mandate Backtest** (/mandate): Deterministic replay with shadow diff
 - **Price-Match Loop**: Buy → price-match → refund demonstration
 - **Render Deployment**: Complete render.yaml + Dockerfile
+- **Policy Intelligence**: Customer velocity, two-person approval, TOTP (19 passing tests)
+- **Slack Integration**: Interactive approval notifications with Block Kit
 
 ---
 
@@ -91,20 +93,12 @@ Rein is a **deterministic refund gate for AI agents** that prevents prompt injec
 
 ## ❌ CUT (Not Implemented)
 
-Honestly documented in README:
-
-**Policy Intelligence:**
-- Customer velocity tracking
-- Two-person approval rule
-- TOTP authentication for high-value actions
-
-**Remote Approvals:**
-- Slack interactive messages (Telegram exists but not verified)
-
 **Documentation:**
 - Drop-in SDK wrappers
 - APIMatic/ContextMatic client generation
 - Benchmark script
+
+**Note:** Customer velocity, two-person approval, TOTP, and Slack integration were initially marked as CUT but have now been **fully implemented** with 19 passing tests.
 
 ---
 

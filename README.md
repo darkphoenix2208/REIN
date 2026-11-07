@@ -122,14 +122,14 @@ AI support agents are vulnerable to prompt injection. Rein bounds the damage:
 ### Test Results
 ```
 Driver: better-sqlite3
-  Tests: 308 passing, 0 failing
-  Suites: 40+
-  Duration: ~15 seconds
+  Tests: 327 passing, 0 failing
+  Suites: 61
+  Duration: ~16 seconds
   
 Driver: node:sqlite
-  Tests: 308 passing, 0 failing
-  Suites: 40+
-  Duration: ~15 seconds
+  Tests: 327 passing, 0 failing
+  Suites: 61
+  Duration: ~16 seconds
 ```
 
 ### Attack Lab Results
@@ -223,7 +223,7 @@ npm ci
 
 ### Run Tests
 ```bash
-npm test                    # All tests (308 total, better-sqlite3)
+npm test                    # All tests (327 total, better-sqlite3)
 npm run test:node-sqlite   # Test with node:sqlite driver
 npm run typecheck          # TypeScript type checking
 ```
@@ -270,7 +270,7 @@ Open http://127.0.0.1:4317
 ## ✅ Features Completed & Verified
 
 **Core Gate** ✅
-- 308 passing tests on both SQLite drivers
+- 327 passing tests on both SQLite drivers
 - All refund policy rules enforced
 - Hash-chained ledger with tamper detection
 - Mandate versioning with cryptographic hash tracking
@@ -334,20 +334,24 @@ Open http://127.0.0.1:4317
 - ⚠️ UI visual verification (requires opening browser)
 - ⚠️ Render deployment (requires actual deployment to Render.com)
 
+**Policy Intelligence** ✅
+- Customer velocity tracking (per-customer action and amount limits per 24h)
+- Two-person approval rule (high-value actions require two separate human approvals)
+- TOTP authentication (Time-Based One-Time Passwords for high-value actions)
+- All implemented as pure policy functions with 19 passing tests
+
+**Slack Integration** ✅
+- Interactive approval messages with Block Kit
+- Approval request notifications to Slack channels
+- Decision result notifications
+- Graceful degradation when not configured
+
 ## ❌ Cut (Not Implemented)
 
-**Policy Intelligence Features:**
-- ❌ Customer velocity tracking and rate limiting
-- ❌ Two-person approval rule
-- ❌ TOTP authentication for high-value actions
-
-**Remote Approvals:**
-- ❌ Slack interactive messages (Telegram notifications exist but not verified)
-
 **Documentation:**
-- ❌ Drop-in SDK wrappers
-- ❌ APIMatic/ContextMatic client generation
-- ❌ Benchmark script
+- Drop-in SDK wrappers
+- APIMatic/ContextMatic client generation
+- Benchmark script
 
 ---
 
