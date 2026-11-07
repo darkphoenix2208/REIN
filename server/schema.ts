@@ -40,4 +40,7 @@ CREATE INDEX IF NOT EXISTS mandate_versions_time ON mandate_versions(activated_a
   try { db.run('ALTER TABLE actions ADD COLUMN agent_id TEXT'); } catch {}
   try { db.run('ALTER TABLE ledger ADD COLUMN mandate_version TEXT'); } catch {}
   try { db.run('ALTER TABLE ledger ADD COLUMN agent_id TEXT'); } catch {}
+  try { db.run('ALTER TABLE mandate_versions ADD COLUMN effective_from INTEGER'); } catch {}
+  try { db.run('ALTER TABLE mandate_versions ADD COLUMN effective_to INTEGER'); } catch {}
+  try { db.run('ALTER TABLE mandate_versions ADD COLUMN approver TEXT'); } catch {}
 }

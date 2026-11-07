@@ -15,7 +15,9 @@ import { askGemini } from './llm.ts';
 import { readFileSync } from 'node:fs';
 import { signCheckpoint, storeCheckpoint, getLatestCheckpoint, verifyCheckpoint, getPublicKeyInfo } from './checkpoint.ts';
 import { getLeaderboard, initChallengeSchema, checkRateLimit, getTotalSpent, recordAttempt, getRecordedAttempt, isKillSwitchActive, hasApiKey } from './beat-the-gate.ts';
-import { backtestMandate } from './backtest.ts';
+import { backtestMandate, BacktestRequestSchema, SaveMandateVersionSchema } from './backtest.ts';
+import { saveMandateVersion } from './mandate-version.ts';
+import Anthropic from '@anthropic-ai/sdk';
 import { generateEvidencePackPdf } from './evidence-pdf.ts';
 import { listMandateVersions, getCurrentMandateVersion, mandateHash } from './mandate-version.ts';
 
@@ -247,22 +249,116 @@ export function createApp(d: GateDeps, o: AppOptions = {}): express.Express {
   api.get('/mandate', (_req, res) => res.json({ lines: describeMandate(d.mandate), mandate: d.mandate }));
 
   api.post('/mandate/backtest', (req, res) => {
-    const testMandate = req.body.mandate;
-    if (!testMandate || typeof testMandate !== 'object') {
-      return void res.status(400).json({ error: 'invalid_mandate', reason: 'Request body must contain a mandate object' });
+    const candidateData = req.body.candidate ?? req.body.mandate ?? req.body;
+    if (!candidateData || typeof candidateData !== 'object') {
+      return void res.status(400).json({ error: 'invalid_mandate', reason: 'Request body must contain a candidate object' });
     }
-
-    // Merge test mandate with current mandate (allows partial overrides)
-    const fullMandate = { ...d.mandate, ...testMandate };
-
-    const options = {
+    const mergedCandidate = { ...d.mandate, ...candidateData };
+    const parsed = BacktestRequestSchema.safeParse({
+      candidate: mergedCandidate,
       startDate: req.body.startDate ? Number(req.body.startDate) : undefined,
       endDate: req.body.endDate ? Number(req.body.endDate) : undefined,
-      limit: req.body.limit ? Math.min(Number(req.body.limit), 500) : 100,
-    };
+      limit: req.body.limit ? Number(req.body.limit) : undefined,
+    });
 
-    const result = backtestMandate(d.db, fullMandate, options);
+    if (!parsed.success) {
+      return void res.status(400).json({
+        error: 'invalid_candidate_mandate',
+        reason: 'Candidate mandate failed validation',
+        details: parsed.error.format(),
+      });
+    }
+
+    const { candidate, startDate, endDate, limit } = parsed.data;
+    const result = backtestMandate(d.db, candidate as any, { startDate, endDate, limit });
     res.json(result);
+  });
+
+  api.post('/mandate/version', (req, res) => {
+    const rawMandate = req.body.mandate ?? req.body.candidate ?? d.mandate;
+    const parsed = SaveMandateVersionSchema.safeParse({
+      mandate: { ...d.mandate, ...rawMandate },
+      approver: String(req.body.approver ?? ''),
+      notes: req.body.notes ? String(req.body.notes) : undefined,
+      effectiveFrom: req.body.effectiveFrom ? Number(req.body.effectiveFrom) : undefined,
+      effectiveTo: req.body.effectiveTo ? Number(req.body.effectiveTo) : undefined,
+    });
+
+    if (!parsed.success) {
+      return void res.status(400).json({
+        error: 'invalid_mandate_version',
+        reason: 'Mandate version payload failed validation',
+        details: parsed.error.format(),
+      });
+    }
+
+    const { mandate, approver, notes, effectiveFrom, effectiveTo } = parsed.data;
+    const versionId = saveMandateVersion(d.db, mandate as any, approver, notes, {
+      effectiveFrom,
+      effectiveTo,
+      approver,
+    });
+    const hash = mandateHash(mandate as any);
+
+    res.json({
+      ok: true,
+      versionId,
+      hash,
+      activatedBy: approver,
+      effectiveFrom: effectiveFrom ?? Date.now(),
+      effectiveTo: effectiveTo ?? null,
+    });
+  });
+
+  api.post('/mandate/copilot', async (req, res) => {
+    const goal = String(req.body.goal ?? '').trim();
+    if (!goal) {
+      return void res.status(400).json({ error: 'invalid_goal', reason: 'Goal is required' });
+    }
+
+    const apiKey = process.env.ANTHROPIC_API_KEY;
+    const client = o.challengeClient || (apiKey ? new Anthropic({ apiKey }) : null);
+
+    if (!client && !apiKey) {
+      // Keyless recorded fallback
+      return void res.json({
+        mode: 'RECORDED',
+        simulated: true,
+        goal,
+        candidate: {
+          ...d.mandate,
+          perActionCapCents: 2000,
+          hardMaxCents: 5000,
+          dailyCapCents: 10000,
+          hardDailyCapCents: 15000,
+        },
+        reasoning: 'RECORDED ADVISORY: Tightened per-action cap to $20.00 and daily cap to $100.00 to reduce exposure based on your goal.',
+      });
+    }
+
+    try {
+      const model = process.env.REIN_CHALLENGE_MODEL || 'claude-3-5-haiku-20241022';
+      const prompt = `Current mandate parameters:\n${JSON.stringify(d.mandate, null, 2)}\n\nUser business goal: "${goal}"\n\nRecommend updated numeric parameters (perActionCapCents, hardMaxCents, dailyCapCents, hardDailyCapCents, etc.) as a JSON object matching CandidateMandateSchema. Respond ONLY with valid JSON.`;
+
+      const response = await client.messages.create({
+        model,
+        max_tokens: 600,
+        messages: [{ role: 'user', content: prompt }],
+      });
+
+      const text = response.content.find((b: any) => b.type === 'text')?.text || '{}';
+      const cleanJson = text.replace(/```json/g, '').replace(/```/g, '').trim();
+      const parsed = JSON.parse(cleanJson);
+      res.json({
+        mode: 'LIVE',
+        simulated: false,
+        goal,
+        candidate: { ...d.mandate, ...parsed },
+        reasoning: `Suggested adjustments derived by ${model} for goal: "${goal}"`,
+      });
+    } catch (err: any) {
+      res.status(500).json({ error: 'copilot_failed', reason: err.message });
+    }
   });
   api.get('/exposure', (req, res) => {
     const sid = String(req.query.sessionId ?? '');

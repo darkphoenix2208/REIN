@@ -12,7 +12,7 @@
 
 - [x] A. Real Beat the Gate (live Claude agent through gate)
 - [x] B. Signed checkpoints / /verify page end-to-end
-- [ ] C. Backtest and shadow diff on /mandate
+- [x] C. Backtest and shadow diff on /mandate
 - [ ] D. Buyer-side purchases (buy → price-match → refund loop)
 - [ ] E. Render deploy and Workflows
 - [ ] F. AG Grid community improvements / ops dashboard

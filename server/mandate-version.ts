@@ -10,6 +10,9 @@ export interface MandateVersion {
   activatedBy: string | null;
   notes: string | null;
   hash: string;
+  effectiveFrom?: number | null;
+  effectiveTo?: number | null;
+  approver?: string | null;
 }
 
 export function mandateHash(mandate: Mandate): string {
@@ -20,11 +23,13 @@ export function saveMandateVersion(
   db: Db,
   mandate: Mandate,
   activatedBy?: string,
-  notes?: string
+  notes?: string,
+  options?: { effectiveFrom?: number; effectiveTo?: number; approver?: string }
 ): number {
   const mandateJson = JSON.stringify(mandate);
   const hash = mandateHash(mandate);
   const now = Date.now();
+  const approver = options?.approver ?? activatedBy ?? null;
 
   // Check if this exact mandate already exists
   const existing = db.one<{ id: number }>(
@@ -37,26 +42,22 @@ export function saveMandateVersion(
   }
 
   db.run(
-    'INSERT INTO mandate_versions(mandate_json, activated_at, activated_by, notes, hash) VALUES (?,?,?,?,?)',
+    'INSERT INTO mandate_versions(mandate_json, activated_at, activated_by, notes, hash, effective_from, effective_to, approver) VALUES (?,?,?,?,?,?,?,?)',
     mandateJson,
     now,
     activatedBy ?? null,
     notes ?? null,
-    hash
+    hash,
+    options?.effectiveFrom ?? null,
+    options?.effectiveTo ?? null,
+    approver
   );
 
   return db.val<number>('SELECT last_insert_rowid()')!;
 }
 
 export function getMandateVersion(db: Db, id: number): MandateVersion | null {
-  const row = db.one<{
-    id: number;
-    mandate_json: string;
-    activated_at: number;
-    activated_by: string | null;
-    notes: string | null;
-    hash: string;
-  }>('SELECT * FROM mandate_versions WHERE id=?', id);
+  const row = db.one<any>('SELECT * FROM mandate_versions WHERE id=?', id);
 
   if (!row) return null;
 
@@ -67,18 +68,14 @@ export function getMandateVersion(db: Db, id: number): MandateVersion | null {
     activatedBy: row.activated_by,
     notes: row.notes,
     hash: row.hash,
+    effectiveFrom: row.effective_from,
+    effectiveTo: row.effective_to,
+    approver: row.approver,
   };
 }
 
 export function getCurrentMandateVersion(db: Db): MandateVersion | null {
-  const row = db.one<{
-    id: number;
-    mandate_json: string;
-    activated_at: number;
-    activated_by: string | null;
-    notes: string | null;
-    hash: string;
-  }>('SELECT * FROM mandate_versions ORDER BY id DESC LIMIT 1');
+  const row = db.one<any>('SELECT * FROM mandate_versions ORDER BY id DESC LIMIT 1');
 
   if (!row) return null;
 
@@ -89,26 +86,28 @@ export function getCurrentMandateVersion(db: Db): MandateVersion | null {
     activatedBy: row.activated_by,
     notes: row.notes,
     hash: row.hash,
+    effectiveFrom: row.effective_from,
+    effectiveTo: row.effective_to,
+    approver: row.approver,
   };
 }
 
 export function listMandateVersions(db: Db, limit = 50): MandateVersion[] {
-  const rows = db.all<{
-    id: number;
-    mandate_json: string;
-    activated_at: number;
-    activated_by: string | null;
-    notes: string | null;
-    hash: string;
-  }>('SELECT * FROM mandate_versions ORDER BY id DESC LIMIT ?', limit);
+  const rows = db.all<any>(
+    'SELECT * FROM mandate_versions ORDER BY id DESC LIMIT ?',
+    limit
+  );
 
-  return rows.map(row => ({
+  return rows.map((row) => ({
     id: row.id,
     mandateJson: row.mandate_json,
     activatedAt: row.activated_at,
     activatedBy: row.activated_by,
     notes: row.notes,
     hash: row.hash,
+    effectiveFrom: row.effective_from,
+    effectiveTo: row.effective_to,
+    approver: row.approver,
   }));
 }
 
@@ -116,47 +115,49 @@ export function compareMandateVersions(
   db: Db,
   fromId: number,
   toId: number
-): { from: Mandate | null; to: Mandate | null; changes: string[] } {
+): { from: MandateVersion | null; to: MandateVersion | null; changes: string[] } {
   const from = getMandateVersion(db, fromId);
   const to = getMandateVersion(db, toId);
-
-  const fromMandate = from ? JSON.parse(from.mandateJson) as Mandate : null;
-  const toMandate = to ? JSON.parse(to.mandateJson) as Mandate : null;
-
   const changes: string[] = [];
 
-  if (!fromMandate || !toMandate) {
-    return { from: fromMandate, to: toMandate, changes: ['One or both versions not found'] };
+  if (!from || !to) {
+    return { from, to, changes };
   }
 
-  // Compare all mandate fields
-  const fields: (keyof Mandate)[] = [
-    'perActionCapCents',
-    'hardMaxCents',
-    'dailyCapCents',
-    'hardDailyCapCents',
-    'dupWindowMs',
-    'escalateFullOrder',
-    'returnWindowDays',
-    'blockIfOpenDispute',
-    'payoutPerPayeeCapCents',
-    'payoutDailyCapCents',
-    'payoutHardMaxCents',
-    'payoutEscalateNewPayee',
-  ];
+  const mFrom = JSON.parse(from.mandateJson);
+  const mTo = JSON.parse(to.mandateJson);
 
-  for (const field of fields) {
-    if (fromMandate[field] !== toMandate[field]) {
-      changes.push(`${field}: ${fromMandate[field]} → ${toMandate[field]}`);
+  const allKeys = Array.from(new Set([...Object.keys(mFrom), ...Object.keys(mTo)]));
+  for (const k of allKeys) {
+    const valFrom = mFrom[k];
+    const valTo = mTo[k];
+    if (JSON.stringify(valFrom) !== JSON.stringify(valTo)) {
+      changes.push(`${k}: ${JSON.stringify(valFrom ?? 'unset')} → ${JSON.stringify(valTo ?? 'unset')}`);
     }
   }
 
-  // Compare allowlist
-  const fromAllowlist = fromMandate.payoutAllowlist ?? [];
-  const toAllowlist = toMandate.payoutAllowlist ?? [];
-  if (JSON.stringify(fromAllowlist) !== JSON.stringify(toAllowlist)) {
-    changes.push(`payoutAllowlist: [${fromAllowlist.join(', ')}] → [${toAllowlist.join(', ')}]`);
+  return { from, to, changes };
+}
+
+export function getActiveMandateForAction(db: Db, timestamp: number): MandateVersion | null {
+  const row = db.one<any>(
+    'SELECT * FROM mandate_versions WHERE activated_at <= ? ORDER BY activated_at DESC LIMIT 1',
+    timestamp
+  );
+
+  if (!row) {
+    return getCurrentMandateVersion(db);
   }
 
-  return { from: fromMandate, to: toMandate, changes };
+  return {
+    id: row.id,
+    mandateJson: row.mandate_json,
+    activatedAt: row.activated_at,
+    activatedBy: row.activated_by,
+    notes: row.notes,
+    hash: row.hash,
+    effectiveFrom: row.effective_from,
+    effectiveTo: row.effective_to,
+    approver: row.approver,
+  };
 }
