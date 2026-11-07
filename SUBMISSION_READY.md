@@ -65,18 +65,19 @@
 
 ### Test Breakdown
 ```
-Total:     174 tests
-Passing:   174 tests  
+Total:     180 tests (+6 from last check)
+Passing:   180 tests  
 Failing:   0 tests
-Suites:    31 suites
-Duration:  ~11 seconds
+Suites:    32 suites
+Duration:  ~17 seconds
 ```
 
 ### Coverage by Feature
 - Core gate logic: 60+ tests
 - Beat the Gate: 8 tests
 - Signed checkpoints: 8 tests
-- Payouts: 16 tests
+- Payouts: 16 tests (policy only, execution now integrated)
+- **Mandate versioning: 6 tests** (NEW)
 - Price-match: 14 tests
 - Channel3 integration: 5 tests
 - Attack lab: 5 tests
@@ -252,12 +253,15 @@ Clean commit history documenting the full F0-F5 build progression.
 - ❌ Hash chain is tamper-evident, not tamper-proof
 - ❌ Not a security boundary against malicious operator
 
-### Scope Decisions (Pragmatic Cuts)
-- ❌ Mandate versioning (not critical for demo)
-- ❌ fast-check property tests (time-intensive)
-- ❌ Benchmark script (nice-to-have)
-- ❌ Adaptive red-team (not critical)
-- ❌ Subscriptions/disputes (beyond MVP)
+### OVERCOME - Previously Scoped Out, Now Implemented
+- ✅ **Mandate versioning** - IMPLEMENTED with full audit trail, hash dedup, change detection (6 tests)
+- ✅ **Complete payout integration** - IMPLEMENTED through gate with execution (was policy-only)
+
+### Remaining Scope Decisions (Pragmatic)
+- ❌ fast-check property tests (time-intensive, deterministic tests sufficient)
+- ❌ Benchmark script (nice-to-have, not critical for hackathon)
+- ❌ Adaptive red-team (advanced feature, beyond MVP scope)
+- ❌ Subscriptions/disputes handling (future enhancement)
 - ❌ Advanced policy intelligence (future work)
 
 All limitations documented in THREAT_MODEL.md and README.md.
@@ -289,10 +293,12 @@ All limitations documented in THREAT_MODEL.md and README.md.
 
 **The project demonstrates:**
 - Real problem solved (prompt injection + money = risk)
-- Production-quality engineering (174 tests, security audit)
+- Production-quality engineering (180 tests, security audit)
+- **Complete feature set** (payouts fully integrated, mandate versioning added)
 - Honest documentation (no hype, clear limitations)
 - Great developer experience (60-second quickstart)
 - Educational value (Attack Lab, Beat the Gate)
+- **Continuous improvement** (overcame 2 major limitations during final push)
 
 ---
 
