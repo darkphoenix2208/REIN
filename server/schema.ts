@@ -25,5 +25,13 @@ CREATE TABLE IF NOT EXISTS ledger(
   seq INTEGER PRIMARY KEY AUTOINCREMENT, action_id TEXT, event TEXT, payload_json TEXT, prev_hash TEXT, hash TEXT, created_at INTEGER);
 CREATE TABLE IF NOT EXISTS payee_allowlist(
   session_id TEXT NOT NULL, payee_email TEXT NOT NULL, added_at INTEGER NOT NULL, PRIMARY KEY(session_id, payee_email));
+CREATE TABLE IF NOT EXISTS mandate_versions(
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  mandate_json TEXT NOT NULL,
+  activated_at INTEGER NOT NULL,
+  activated_by TEXT,
+  notes TEXT,
+  hash TEXT NOT NULL);
+CREATE INDEX IF NOT EXISTS mandate_versions_time ON mandate_versions(activated_at);
 `);
 }
