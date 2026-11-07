@@ -3,7 +3,7 @@
 // Live PayPal state (disputes, capture date) is read by the caller BEFORE check() and passed in as `ext`.
 import { randomBytes, randomUUID, createHash, timingSafeEqual } from 'node:crypto';
 import { tx, type Db } from './db.ts';
-import { decide, resolveItems, decidePayout, decideSubscriptionCancel, decideDisputeHandle, type ItemRow, type PayoutPolicyState, type SubscriptionPolicyState, type DisputePolicyState } from './policy.ts';
+import { decide, resolveItems, decidePayout, decideSubscriptionCancel, decideDisputeHandle, decidePurchase, type ItemRow, type PayoutPolicyState, type SubscriptionPolicyState, type DisputePolicyState, type PurchasePolicyState } from './policy.ts';
 import { hashArgs, ledger, sha } from './ledger.ts';
 import { sendTelegramApproval, getTelegramConfig } from './telegram.ts';
 import { mandateHash, saveMandateVersion } from './mandate-version.ts';
@@ -421,6 +421,104 @@ export function checkDispute(
     }
 
     ledger(db, a.actionId, status, { mode, ruleId: d.ruleId, amountCents: a.disputeAmountCents }, now, mHash, agentId);
+    return { ...d, actionId: a.actionId, ...(approvalUrl ? { approvalUrl } : {}), ...(token ? { token } : {}) };
+  });
+}
+
+export function checkPurchase(
+  db: Db,
+  m: Mandate,
+  a: {
+    actionId: string;
+    sessionId: string;
+    tool: string;
+    productId: string;
+    category?: string;
+    amountCents: number;
+    agentId?: string;
+    lookupFailed?: boolean;
+  },
+  now: number,
+  mode: 'sim' | 'live'
+): CheckResult {
+  const agentId = a.agentId ?? a.sessionId;
+  const windowStart = now - DAY_MS;
+  const spendRow = db.one<{ total: number }>(
+    `SELECT COALESCE(SUM(amount_cents), 0) AS total FROM actions
+     WHERE agent_id=? AND action_type='purchase' AND status IN ('allowed', 'executed', 'reserved') AND created_at > ?`,
+    agentId,
+    windowStart
+  );
+  const agentDailySpendCents = spendRow?.total ?? 0;
+
+  const argsHash = hashArgs(a.tool, a.productId, a.amountCents, undefined);
+  const grant = db.one<{ id: string }>(
+    'SELECT id FROM grants WHERE args_hash=? AND session_id=? AND used=0 AND expires_at>?',
+    argsHash,
+    a.sessionId,
+    now
+  );
+
+  const state: PurchasePolicyState = {
+    amountCents: a.amountCents,
+    agentDailySpendCents,
+    productId: a.productId,
+    productCategory: a.category,
+    lookupFailed: a.lookupFailed,
+    now,
+    approved: !!grant,
+  };
+
+  const d = decidePurchase(a.productId, a.amountCents, a.category, m, state);
+
+  if (grant) db.run('UPDATE grants SET used=1 WHERE id=?', grant.id);
+
+  const mHash = mandateHash(m);
+  saveMandateVersion(db, m);
+
+  return tx(db, () => {
+    const status = d.status;
+    db.run(
+      `INSERT INTO actions(id,session_id,tool,capture_id,amount_cents,decision,rule_id,reason,status,created_at,updated_at,action_type,mandate_version,agent_id)
+       VALUES (?,?,?,NULL,?,?,?,?,?,?,?,'purchase',?,?)`,
+      a.actionId,
+      a.sessionId,
+      a.tool,
+      a.amountCents,
+      status,
+      d.ruleId,
+      d.reason,
+      status,
+      now,
+      now,
+      mHash,
+      agentId
+    );
+
+    let approvalUrl: string | undefined;
+    let token: string | undefined;
+    if (status === 'pending_approval') {
+      token = randomBytes(16).toString('hex');
+      db.run('INSERT INTO approvals(action_id, token_hash, expires_at, status) VALUES (?,?,?,?)', a.actionId, sha(token), now + 15 * 60_000, 'pending');
+      approvalUrl = `${process.env.REIN_PUBLIC_URL ?? 'http://127.0.0.1:4317'}/approve/${a.actionId}#t=${token}`;
+    }
+
+    ledger(
+      db,
+      a.actionId,
+      status,
+      {
+        mode,
+        actionType: 'purchase',
+        ruleId: d.ruleId,
+        amountCents: a.amountCents,
+        productId: a.productId,
+        category: a.category,
+      },
+      now,
+      mHash,
+      agentId
+    );
     return { ...d, actionId: a.actionId, ...(approvalUrl ? { approvalUrl } : {}), ...(token ? { token } : {}) };
   });
 }

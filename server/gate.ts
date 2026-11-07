@@ -6,6 +6,7 @@ import { check, result, type Outcome } from './dispatch.ts';
 import { PayPalError, type PayPalClient } from './paypal.ts';
 import { sendPayout } from './payouts.ts';
 import { mandateHash, saveMandateVersion } from './mandate-version.ts';
+import { getProduct, searchProducts, checkPrice, computePriceMatchDifference, type Channel3Client, type Product } from './channel3.ts';
 import type { CheckInput, CheckResult, ExternalState, Mandate } from './types.ts';
 
 export interface GateDeps {
@@ -17,7 +18,7 @@ export interface GateDeps {
 }
 
 export type GateOutcome =
-  | { status: 'executed'; actionId: string; ruleId: string; refundId?: string; payoutId?: string; amountCents: number; mode: 'live' | 'sim' }
+  | { status: 'executed'; actionId: string; ruleId: string; refundId?: string; payoutId?: string; orderId?: string; captureId?: string; amountCents: number; mode: 'live' | 'sim' }
   | { status: 'blocked'; actionId: string; ruleId: string; reason: string }
   | { status: 'pending_approval'; actionId: string; ruleId: string; reason: string; approvalUrl?: string }
   | { status: 'execution_failed'; actionId: string; reason: string; debugId?: string }
@@ -439,4 +440,268 @@ export async function runDisputeHandle(
       reason: acceptResult.error || 'Dispute claim acceptance failed.'
     };
   }
+}
+
+export async function runPurchase(
+  d: GateDeps,
+  input: {
+    productId: string;
+    qty?: number;
+    sessionId?: string;
+    agentId?: string;
+    actionId?: string;
+    channel3Client?: Channel3Client;
+    clientPriceCents?: number;
+    note?: string;
+  }
+): Promise<GateOutcome & { orderId?: string; captureId?: string; product?: Product | null }> {
+  const now = d.now ?? Date.now;
+  const actionId = input.actionId ?? `buy_${randomUUID()}`;
+  const sessionId = input.sessionId ?? 'default-session';
+  const agentId = input.agentId ?? sessionId;
+  const qty = input.qty ?? 1;
+
+  // 1. Look up product via Channel3
+  const { product } = await getProduct(input.productId, { client: input.channel3Client });
+  const lookupFailed = !product;
+  const unitPrice = product ? product.priceCents : (input.clientPriceCents ?? 1000);
+  const amountCents = unitPrice * qty;
+  const category = product?.category;
+
+  // 2. Dispatch check
+  const { checkPurchase } = await import('./dispatch.ts');
+  let cr: CheckResult;
+  try {
+    cr = checkPurchase(
+      d.db,
+      d.mandate,
+      {
+        actionId,
+        sessionId,
+        tool: 'purchase_item',
+        productId: input.productId,
+        category,
+        amountCents,
+        agentId,
+        lookupFailed,
+      },
+      now(),
+      d.paypal ? 'live' : 'sim'
+    );
+  } catch (e) {
+    if (e instanceof ReinBusyError) {
+      return { status: 'unavailable', reason: 'Rein is busy; purchase not processed. Retry in a moment.' };
+    }
+    return { status: 'unavailable', reason: 'Rein could not record the decision, failing closed.' };
+  }
+
+  if (cr.status === 'pending_approval') {
+    return {
+      status: 'pending_approval',
+      actionId,
+      ruleId: cr.ruleId,
+      reason: cr.reason,
+      approvalUrl: cr.approvalUrl!.replace(/^https?:\/\/[^/]+/, d.publicUrl ?? 'http://127.0.0.1:4317'),
+      product,
+    };
+  }
+
+  if (cr.status === 'blocked') {
+    return { status: 'blocked', actionId, ruleId: cr.ruleId, reason: cr.reason, product };
+  }
+
+  // 3. Execution (Checkout)
+  const orderId = `ORD-${actionId.slice(-8).toUpperCase()}`;
+  const captureId = `CAP-${actionId.slice(-8).toUpperCase()}`;
+  const mode = d.paypal ? 'live' : 'sim';
+
+  const ts = now();
+  d.db.run(
+    `INSERT INTO payments(txn_id, captured_cents, refunded_cents, reserved_cents, currency, source, captured_at)
+     VALUES (?, ?, 0, 0, 'USD', ?, ?)`,
+    captureId,
+    amountCents,
+    mode === 'live' ? 'paypal_orders' : 'simulated_shop',
+    ts
+  );
+  d.db.run(`INSERT INTO orders(order_id, capture_id) VALUES (?, ?)`, orderId, captureId);
+  d.db.run(
+    `INSERT INTO order_items(order_id, item_id, name, unit_cents, qty, refundable)
+     VALUES (?, ?, ?, ?, ?, 1)`,
+    orderId,
+    input.productId,
+    product?.name ?? `Item ${input.productId}`,
+    unitPrice,
+    qty
+  );
+
+  d.db.run('UPDATE actions SET capture_id=? WHERE id=?', captureId, actionId);
+  result(d.db, { actionId, outcome: 'executed', refundId: captureId }, ts, mode);
+
+  return {
+    status: 'executed',
+    actionId,
+    ruleId: cr.ruleId,
+    amountCents,
+    orderId,
+    captureId,
+    product,
+    mode,
+  };
+}
+
+export async function runPriceMatch(
+  d: GateDeps,
+  input: {
+    captureId: string;
+    itemId: string;
+    qty?: number;
+    sessionId?: string;
+    agentId?: string;
+    parentActionId?: string;
+    client?: Channel3Client;
+  }
+): Promise<GateOutcome & { priceMatch?: any }> {
+  const sessionId = input.sessionId ?? 'default-session';
+  const qty = input.qty ?? 1;
+
+  const order = d.db.one<{ order_id: string }>('SELECT order_id FROM orders WHERE capture_id=?', input.captureId);
+  if (!order) return { status: 'unavailable', reason: 'Order not found for capture.' };
+  const item = d.db.one<{ unit_cents: number; name: string }>(
+    'SELECT unit_cents, name FROM order_items WHERE order_id=? AND item_id=?',
+    order.order_id,
+    input.itemId
+  );
+  if (!item) return { status: 'unavailable', reason: 'Item not found in order.' };
+
+  const priceCheck = await checkPrice(input.captureId, input.itemId, item.unit_cents, fetch, input.client);
+
+  if (priceCheck.marketPriceCents === null || priceCheck.source === 'unavailable') {
+    return { status: 'unavailable', reason: 'Market price lookup failed; price match cannot proceed without verified market data.' };
+  }
+
+  const unitDiff = computePriceMatchDifference(item.unit_cents, priceCheck.marketPriceCents);
+  if (unitDiff <= 0) {
+    return { status: 'blocked', actionId: '', ruleId: 'R-NO-ANOMALY', reason: 'Our price is already at or below market price.' };
+  }
+
+  const totalAdjustmentCents = unitDiff * qty;
+  const actionId = `pm_${randomUUID()}`;
+
+  const outcome = await runRefund(
+    d,
+    {
+      actionId,
+      sessionId,
+      tool: 'price_match_refund',
+      captureId: input.captureId,
+      amountCents: totalAdjustmentCents,
+      agentId: input.agentId ?? sessionId,
+    },
+    `Price-match adjustment ($${(unitDiff / 100).toFixed(2)}/unit vs market $${(priceCheck.marketPriceCents / 100).toFixed(2)})`
+  );
+
+  return {
+    ...outcome,
+    priceMatch: {
+      itemId: input.itemId,
+      itemName: item.name,
+      ourPriceCents: item.unit_cents,
+      marketPriceCents: priceCheck.marketPriceCents,
+      adjustmentCents: totalAdjustmentCents,
+      source: priceCheck.source,
+      parentActionId: input.parentActionId,
+    },
+  };
+}
+
+export async function runShoppingLoop(
+  d: GateDeps,
+  options?: {
+    productId?: string;
+    sessionId?: string;
+    agentId?: string;
+    channel3Client?: Channel3Client;
+  }
+): Promise<{
+  success: boolean;
+  steps: {
+    step: string;
+    name: string;
+    result: any;
+  }[];
+  chainResult: { ok: boolean; rows: number; head: string };
+}> {
+  const steps: { step: string; name: string; result: any }[] = [];
+  const sessionId = options?.sessionId ?? `session_${randomUUID()}`;
+  const agentId = options?.agentId ?? 'buyer-agent-1';
+  const targetId = options?.productId ?? 'prod-mug';
+
+  // Step 1: Search products via Channel3
+  const searchRes = await searchProducts('mug', { client: options?.channel3Client });
+  steps.push({
+    step: '1_search',
+    name: 'Search Channel3 Catalog',
+    result: { query: 'mug', count: searchRes.products.length, source: searchRes.source, sample: searchRes.products[0] },
+  });
+
+  // Step 2: Purchase item through Gate
+  const buyRes = await runPurchase(d, {
+    productId: targetId,
+    qty: 1,
+    sessionId,
+    agentId,
+    channel3Client: options?.channel3Client,
+  });
+  steps.push({
+    step: '2_purchase',
+    name: 'Gate-Enforced Purchase',
+    result: buyRes,
+  });
+
+  if (buyRes.status !== 'executed' || !buyRes.captureId) {
+    const { verifyChain } = await import('./ledger.ts');
+    return { success: false, steps, chainResult: verifyChain(d.db) as any };
+  }
+
+  const captureId = buyRes.captureId;
+
+  // Step 3: Price-match refund ($18 -> $15 = $3 refund)
+  const pmRes = await runPriceMatch(d, {
+    captureId,
+    itemId: targetId,
+    qty: 1,
+    sessionId,
+    agentId,
+    parentActionId: buyRes.actionId,
+    client: options?.channel3Client,
+  });
+  steps.push({
+    step: '3_price_match',
+    name: 'Price-Match Refund (Market Difference)',
+    result: pmRes,
+  });
+
+  // Step 4: Refund remaining balance
+  const refRes = await runRefund(d, {
+    sessionId,
+    tool: 'refund',
+    captureId,
+    amountCents: null,
+    agentId,
+  });
+  steps.push({
+    step: '4_refund',
+    name: 'Remaining Balance Refund',
+    result: refRes,
+  });
+
+  const { verifyChain } = await import('./ledger.ts');
+  const chainResult = verifyChain(d.db) as any;
+
+  return {
+    success: buyRes.status === 'executed' && pmRes.status === 'executed' && refRes.status === 'executed' && chainResult.ok,
+    steps,
+    chainResult,
+  };
 }

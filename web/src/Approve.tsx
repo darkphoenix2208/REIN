@@ -30,6 +30,21 @@ export function Approve({ actionId }: { actionId: string }) {
         <ul className="plain">{info.items.map((i: any, k: number) => <li key={k}>{i.qty} x {i.name} ({dollars(i.unit_cents)})</li>)}</ul>
         <p>{info.reason}</p>
         <p className="muted"><strong>AI summary, advisory only.</strong> {info.summary}</p>
+        {info.exchangeSuggestions && info.exchangeSuggestions.length > 0 && (
+          <div style={{ marginTop: '1rem', padding: '0.75rem', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '6px' }}>
+            <h4 style={{ margin: '0 0 0.5rem 0', fontSize: '0.95rem' }}>Exchange Instead of Refund? (Channel3 Suggestions)</h4>
+            <p className="muted" style={{ fontSize: '0.82rem', margin: '0 0 0.5rem 0' }}>Consider offering an exchange for a similar item before approving a money-losing refund:</p>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.5rem' }}>
+              {info.exchangeSuggestions.map((item: any) => (
+                <div key={item.id} style={{ border: '1px solid #cbd5e1', padding: '0.5rem', borderRadius: '4px', background: '#fff', fontSize: '0.82rem' }}>
+                  <strong>{item.name}</strong>
+                  <div style={{ color: '#003087', fontWeight: 600 }}>{dollars(item.priceCents)}</div>
+                  <div className="muted" style={{ fontSize: '0.75rem', marginTop: '0.25rem' }}>{item.description}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
         <p className="num">{info.status === 'pending' ? (left > 0 ? `Expires in ${Math.floor(left / 60)}:${String(left % 60).padStart(2, '0')}` : 'Expired') : `Status: ${info.status}`}</p>
         {!token && info.status === 'pending' && <div className="banner error">This link is missing its approval token (the part after #). Use the full link.</div>}
       </div>

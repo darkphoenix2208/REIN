@@ -1,7 +1,8 @@
 // The policy engine: a PURE function. Limits are data (Mandate), state is passed in, nothing here does I/O.
 // Rule order is the contract in docs/Backend/POLICY_REFERENCE.md. Hard rules (blocks) are re-checked even after human approval;
 // approval waives only the soft rules (daily cap, action cap, state-unavailable).
-import type { Decision, ExternalState, Mandate, PayRow } from './types.ts';
+import type { Decision, ExternalState, Mandate, PayRow, PurchasePolicyState } from './types.ts';
+export type { PurchasePolicyState };
 
 export const usd = (c: number): string => `$${(c / 100).toFixed(2)}`;
 const DAY_MS = 86_400_000;
@@ -234,4 +235,52 @@ export function decideDisputeHandle(
   }
 
   return r('allowed', 'R-ALLOW', 'Within the mandate.');
+}
+
+export function decidePurchase(
+  productId: string,
+  amountCents: number,
+  category: string | undefined,
+  m: Mandate,
+  s: PurchasePolicyState
+): Decision {
+  if (s.now > m.expiresAt) return r('blocked', 'R-MANDATE-EXPIRED', 'The mandate has expired.');
+  if (!Number.isInteger(amountCents) || amountCents <= 0)
+    return r('blocked', 'R-INVALID', 'Purchase amount must be a positive integer of cents.');
+
+  // Lookup failure: fail closed / escalate
+  if (s.lookupFailed)
+    return r('pending_approval', 'R-PRODUCT-LOOKUP-FAILED', 'Product pricing or catalog lookup failed. A human must verify before purchase.');
+
+  // Blocklist check
+  const cat = (category ?? '').toLowerCase();
+  const pid = productId.toLowerCase();
+  if (m.productBlocklist && m.productBlocklist.some((b) => b.toLowerCase() === cat || b.toLowerCase() === pid)) {
+    return r('blocked', 'R-PRODUCT-BLOCKLIST', `Item or category "${category || productId}" is on the product blocklist.`);
+  }
+
+  // Allowlist check
+  if (m.productAllowlist && m.productAllowlist.length > 0 && !m.productAllowlist.some((a) => a.toLowerCase() === cat || a.toLowerCase() === pid)) {
+    return r('blocked', 'R-PRODUCT-ALLOWLIST', `Item or category "${category || productId}" is not on the product allowlist.`);
+  }
+
+  // Hard cap check
+  const hardMax = m.purchaseHardMaxCents ?? m.hardMaxCents;
+  if (amountCents > hardMax)
+    return r('blocked', 'R-PURCHASE-HARD-MAX', `Purchase ${usd(amountCents)} exceeds the ${usd(hardMax)} hard cap.`);
+
+  // Daily budget check
+  const dailyBudget = m.agentDailyBudgetCents ?? m.hardDailyCapCents;
+  if (s.agentDailySpendCents + amountCents > dailyBudget)
+    return r('blocked', 'R-AGENT-BUDGET', `Daily purchase budget of ${usd(dailyBudget)} would be exceeded (current spend: ${usd(s.agentDailySpendCents)}).`);
+
+  // Human approval waives soft threshold
+  if (s.approved) return r('allowed', 'R-APPROVED', 'A human approved this exact purchase.');
+
+  // Soft cap check
+  const softCap = m.perPurchaseCapCents ?? m.perActionCapCents;
+  if (amountCents > softCap)
+    return r('pending_approval', 'R-PURCHASE-CAP', `Purchase ${usd(amountCents)} exceeds the ${usd(softCap)} approval threshold.`);
+
+  return r('allowed', 'R-ALLOW', 'Purchase is within mandate limits.');
 }

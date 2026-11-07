@@ -20,6 +20,8 @@ import { saveMandateVersion } from './mandate-version.ts';
 import Anthropic from '@anthropic-ai/sdk';
 import { generateEvidencePackPdf } from './evidence-pdf.ts';
 import { listMandateVersions, getCurrentMandateVersion, mandateHash } from './mandate-version.ts';
+import { searchProducts, getProduct, getSimilarProducts, type Channel3Client } from './channel3.ts';
+import { runPurchase, runPriceMatch, runShoppingLoop } from './gate.ts';
 
 const eq = (a: string, b: string): boolean => {
   const x = Buffer.from(a), y = Buffer.from(b);
@@ -35,7 +37,8 @@ export interface AppOptions {
   fetchImpl?: typeof fetch; // tests
   askImpl?: (prompt: string) => Promise<string>; // tests
   lockOperatorEndpoints?: boolean;
-  challengeClient?: any; // REIN_LOCK_OPERATOR_ENDPOINTS=1: require the bearer token on /ledger and /exposure too.
+  challengeClient?: any;
+  channel3Client?: Channel3Client; // REIN_LOCK_OPERATOR_ENDPOINTS=1: require the bearer token on /ledger and /exposure too.
   // Off by default so the public demo's own transparency feature (anyone can watch the hash chain) keeps working unauthenticated.
   // /approval/:id and POST /approve stay public regardless: that flow is designed for a human clicking an emailed link with no login,
   // and its secret is the per-action token, not a service-wide bearer.
@@ -415,11 +418,120 @@ export function createApp(d: GateDeps, o: AppOptions = {}): express.Express {
   api.get('/approval/:id', async (req, res) => {
     const a = d.db.one<any>('SELECT a.id, a.amount_cents, a.rule_id, a.reason, a.status, ap.expires_at, ap.status aps FROM actions a JOIN approvals ap ON ap.action_id=a.id WHERE a.id=?', req.params.id);
     if (!a) return void res.status(404).json({ error: 'unknown_approval', bootId: BOOT_ID, why: 'This demo was reset after a server restart, or the link is wrong.' });
-    const items = d.db.all<any>('SELECT oi.name, oi.unit_cents, ai.qty FROM action_items ai JOIN order_items oi ON oi.order_id=ai.order_id AND oi.item_id=ai.item_id WHERE ai.action_id=?', a.id);
+    const items = d.db.all<any>('SELECT oi.name, oi.unit_cents, ai.qty, oi.item_id FROM action_items ai JOIN order_items oi ON oi.order_id=ai.order_id AND oi.item_id=ai.item_id WHERE ai.action_id=?', a.id);
     let ai = summaries.get(a.id);
     if (ai === undefined) { ai = await aiSummary({ amountCents: a.amount_cents, ruleId: a.rule_id, ticket: tickets.get(a.id) ?? '' }, o.fetchImpl); if (ai) summaries.set(a.id, ai); }
-    res.json({ aiGenerated: !!ai, actionId: a.id, amountCents: a.amount_cents, ruleId: a.rule_id, reason: a.reason, status: a.aps === 'pending' && Date.now() > a.expires_at ? 'expired' : a.aps, expiresAt: a.expires_at, items, bootId: BOOT_ID,
-      summary: ai ?? `Advisory summary: the agent asks to refund ${items.map((i: any) => `${i.qty} x ${i.name}`).join(', ') || 'a payment'} ($${(a.amount_cents / 100).toFixed(2)}). That is above the $${(d.mandate.perActionCapCents / 100).toFixed(2)} the agent may refund alone, so it waits for you.` });
+
+    // Exchange-instead-of-refund suggestions from Channel3 (read-only evidence)
+    let exchangeSuggestions: any[] = [];
+    const targetItemId = items[0]?.item_id ?? d.db.one<{ item_id: string }>('SELECT item_id FROM action_items WHERE action_id=?', a.id)?.item_id;
+    if (targetItemId) {
+      exchangeSuggestions = await getSimilarProducts(targetItemId, { client: o.channel3Client });
+    }
+
+    res.json({
+      aiGenerated: !!ai,
+      actionId: a.id,
+      amountCents: a.amount_cents,
+      ruleId: a.rule_id,
+      reason: a.reason,
+      status: a.aps === 'pending' && Date.now() > a.expires_at ? 'expired' : a.aps,
+      expiresAt: a.expires_at,
+      items,
+      exchangeSuggestions,
+      bootId: BOOT_ID,
+      summary: ai ?? `Advisory summary: the agent asks to refund ${items.map((i: any) => `${i.qty} x ${i.name}`).join(', ') || 'a payment'} ($${(a.amount_cents / 100).toFixed(2)}). That is above the $${(d.mandate.perActionCapCents / 100).toFixed(2)} the agent may refund alone, so it waits for you.`
+    });
+  });
+
+  // --- Shop routes (Buyer-side purchases, Channel3 catalog, and buy->price-match->refund loop) ---
+  api.get('/shop/products', async (req, res) => {
+    const q = String(req.query.q ?? '');
+    const category = req.query.category ? String(req.query.category) : undefined;
+    const maxPriceCents = req.query.maxPriceCents ? Number(req.query.maxPriceCents) : undefined;
+    const result = await searchProducts(q, {
+      category,
+      maxPriceCents,
+      client: o.channel3Client,
+      fetchImpl: o.fetchImpl,
+    });
+    res.json({
+      query: q,
+      count: result.products.length,
+      source: result.source,
+      products: result.products,
+    });
+  });
+
+  api.get('/shop/products/:id', async (req, res) => {
+    const result = await getProduct(req.params.id, { client: o.channel3Client });
+    if (!result.product) {
+      return void res.status(404).json({ error: 'product_not_found', source: result.source });
+    }
+    res.json({ product: result.product, source: result.source });
+  });
+
+  api.get('/shop/similar/:id', async (req, res) => {
+    const similar = await getSimilarProducts(req.params.id, { client: o.channel3Client });
+    res.json({ productId: req.params.id, similar });
+  });
+
+  api.post('/shop/purchase', async (req, res) => {
+    const productId = String(req.body.productId ?? '').trim();
+    if (!productId) {
+      return void res.status(400).json({ error: 'missing_product_id', reason: 'productId is required' });
+    }
+    const qty = req.body.qty ? Number(req.body.qty) : 1;
+    const sessionId = req.body.sessionId ? String(req.body.sessionId) : undefined;
+    const agentId = req.body.agentId ? String(req.body.agentId) : undefined;
+    const clientPriceCents = req.body.clientPriceCents ? Number(req.body.clientPriceCents) : undefined;
+
+    const outcome = await runPurchase(d, {
+      productId,
+      qty,
+      sessionId,
+      agentId,
+      channel3Client: o.channel3Client,
+      clientPriceCents,
+    });
+    res.status(outcome.status === 'blocked' ? 403 : 200).json(outcome);
+  });
+
+  api.post('/shop/price-match', async (req, res) => {
+    const captureId = String(req.body.captureId ?? '').trim();
+    const itemId = String(req.body.itemId ?? '').trim();
+    if (!captureId || !itemId) {
+      return void res.status(400).json({ error: 'invalid_request', reason: 'captureId and itemId are required' });
+    }
+    const qty = req.body.qty ? Number(req.body.qty) : 1;
+    const sessionId = req.body.sessionId ? String(req.body.sessionId) : undefined;
+    const agentId = req.body.agentId ? String(req.body.agentId) : undefined;
+    const parentActionId = req.body.parentActionId ? String(req.body.parentActionId) : undefined;
+
+    const outcome = await runPriceMatch(d, {
+      captureId,
+      itemId,
+      qty,
+      sessionId,
+      agentId,
+      parentActionId,
+      client: o.channel3Client,
+    });
+    res.status(outcome.status === 'blocked' ? 403 : outcome.status === 'unavailable' ? 400 : 200).json(outcome);
+  });
+
+  api.post('/shop/loop', async (req, res) => {
+    const productId = req.body.productId ? String(req.body.productId) : undefined;
+    const sessionId = req.body.sessionId ? String(req.body.sessionId) : undefined;
+    const agentId = req.body.agentId ? String(req.body.agentId) : undefined;
+
+    const loopResult = await runShoppingLoop(d, {
+      productId,
+      sessionId,
+      agentId,
+      channel3Client: o.channel3Client,
+    });
+    res.json(loopResult);
   });
   // PayPal webhook receiver (PAYMENT.CAPTURE.REFUNDED, CUSTOMER.DISPUTE.CREATED)
   api.post('/webhooks/paypal', async (req, res) => {

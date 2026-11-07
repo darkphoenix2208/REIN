@@ -15,6 +15,12 @@ export interface Mandate {
   payoutHardMaxCents?: number; // largest single payout ever allowed
   payoutAllowlist?: string[]; // allowed payee emails; empty = all escalate as new payees
   payoutEscalateNewPayee?: boolean; // require approval for first-time payees (default true)
+  // Buyer-side purchase limits
+  perPurchaseCapCents?: number; // largest single purchase the agent may make alone
+  agentDailyBudgetCents?: number; // rolling 24h total purchase budget per agent
+  purchaseHardMaxCents?: number; // largest single purchase ever allowed
+  productBlocklist?: string[]; // blocked product categories or IDs (e.g. gift_cards, crypto)
+  productAllowlist?: string[]; // allowed product categories or IDs; if set and non-empty, others blocked
 }
 
 export type Status = 'allowed' | 'blocked' | 'pending_approval';
@@ -59,4 +65,18 @@ export interface CheckInput {
   payeeEmail?: string;
   note?: string;
   agentId?: string;
+  // Purchase-specific fields
+  productId?: string;
+  productCategory?: string;
 }
+
+export interface PurchasePolicyState {
+  amountCents: number;
+  agentDailySpendCents: number;
+  productId: string;
+  productCategory?: string;
+  lookupFailed?: boolean;
+  now: number;
+  approved?: boolean;
+}
+

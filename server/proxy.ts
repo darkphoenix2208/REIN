@@ -4,9 +4,9 @@
 import { randomUUID } from 'node:crypto';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
-import { runRefund, runPayout, runSubscriptionCancel, runDisputeHandle, type GateDeps, type GateOutcome } from './gate.ts';
+import { runRefund, runPayout, runSubscriptionCancel, runDisputeHandle, runPurchase, type GateDeps, type GateOutcome } from './gate.ts';
 import { toCents } from './paypal.ts';
-import { checkPrice } from './channel3.ts';
+import { checkPrice, searchProducts } from './channel3.ts';
 import { getPriceMatchAdjustment } from './price-match.ts';
 
 const reply = (obj: object, isError = false) => ({ content: [{ type: 'text' as const, text: JSON.stringify(obj) }], isError });
@@ -20,9 +20,19 @@ const FALLBACK_SESSION_ID = `proxy-${randomUUID()}`;
 // the retry is still checked, so it can only ever refund items the order data says are refundable and the mandate allows.
 const NEXT_BLOCKED = 'Nothing was refunded. Do not retry the same request. If the customer reported specific faulty items, call get_order and refund_items for ONLY those items; anything beyond that needs a human, so tell the customer it has been passed on.';
 
-const present = (o: GateOutcome) => {
+const present = (o: GateOutcome & { orderId?: string; captureId?: string; product?: any }) => {
   switch (o.status) {
-    case 'executed': return reply({ status: 'executed', refund_id: o.refundId, amount: (o.amountCents / 100).toFixed(2), rule_id: o.ruleId, action_id: o.actionId, mode: o.mode });
+    case 'executed':
+      return reply({
+        status: 'executed',
+        ...(o.refundId ? { refund_id: o.refundId } : {}),
+        ...(o.orderId ? { order_id: o.orderId } : {}),
+        ...(o.captureId ? { capture_id: o.captureId } : {}),
+        amount: (o.amountCents / 100).toFixed(2),
+        rule_id: o.ruleId,
+        action_id: o.actionId,
+        mode: o.mode,
+      });
     case 'blocked': return reply({ status: 'blocked', rule_id: o.ruleId, reason: o.reason, action_id: o.actionId, doc_url: `docs/Backend/POLICY_REFERENCE.md#${o.ruleId.toLowerCase()}`, next: NEXT_BLOCKED }, true);
     case 'pending_approval': return reply({ status: 'pending_approval', rule_id: o.ruleId, reason: o.reason, approval_url: o.approvalUrl, next: 'A human must approve at the link, then call the same tool again with the same arguments.' }, true);
     case 'execution_failed': return reply({ status: 'execution_failed', reason: o.reason, ...(o.debugId ? { paypal_debug_id: o.debugId } : {}), action_id: o.actionId }, true);
@@ -249,6 +259,54 @@ export function createProxy(d: GateDeps, o: ProxyOptions = {}): McpServer {
         stage: dispute.disputeLifeCycleStage,
       }, false);
     });
+
+  server.tool(
+    'search_products',
+    'Search for products in the catalog via Channel3. Returns product list, pricing, and competitors.',
+    {
+      query: z.string().default(''),
+      category: z.string().optional(),
+      max_price_cents: z.number().int().optional(),
+    },
+    async ({ query, category, max_price_cents }) => {
+      const res = await searchProducts(query, { category, maxPriceCents: max_price_cents });
+      return reply({
+        query,
+        count: res.products.length,
+        source: res.source,
+        products: res.products.map((p) => ({
+          id: p.id,
+          name: p.name,
+          category: p.category,
+          price: (p.priceCents / 100).toFixed(2),
+          price_cents: p.priceCents,
+          description: p.description,
+          in_stock: p.inStock,
+          competitors: p.competitors?.map((c) => ({ store: c.store, price: (c.priceCents / 100).toFixed(2) })),
+        })),
+      });
+    }
+  );
+
+  server.tool(
+    'purchase_item',
+    'Purchase a product under policy caps and spend limits. Purchases above threshold escalate to a single-use approval link; budget violations are blocked.',
+    {
+      item_id: z.string().min(1).max(64),
+      qty: z.number().int().min(1).max(100).default(1),
+      agent_id: z.string().optional(),
+    },
+    async ({ item_id, qty, agent_id }, extra) => {
+      const sid = sessionOf(extra);
+      const outcome = await runPurchase(d, {
+        productId: item_id,
+        qty,
+        sessionId: sid,
+        agentId: agent_id ?? sid,
+      });
+      return present(outcome);
+    }
+  );
 
   return server;
 }
