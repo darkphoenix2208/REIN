@@ -3,7 +3,7 @@
 // Live PayPal state (disputes, capture date) is read by the caller BEFORE check() and passed in as `ext`.
 import { randomBytes, randomUUID, createHash, timingSafeEqual } from 'node:crypto';
 import { tx, type Db } from './db.ts';
-import { decide, resolveItems, decidePayout, type ItemRow, type PayoutPolicyState } from './policy.ts';
+import { decide, resolveItems, decidePayout, decideSubscriptionCancel, decideDisputeHandle, type ItemRow, type PayoutPolicyState, type SubscriptionPolicyState, type DisputePolicyState } from './policy.ts';
 import { hashArgs, ledger, sha } from './ledger.ts';
 import { sendTelegramApproval, getTelegramConfig } from './telegram.ts';
 import type { CheckInput, CheckResult, Decision, ExternalState, Mandate, PayRow } from './types.ts';
@@ -319,4 +319,93 @@ export function preventedLoss(db: Db): { wouldBlockCents: number; wouldEscalateC
     if (r.decision !== 'allowed') out.byRule[r.rule_id] = (out.byRule[r.rule_id] ?? 0) + r.amount_cents;
   }
   return out;
+}
+
+export function checkSubscription(
+  db: Db,
+  m: Mandate,
+  a: { actionId: string; sessionId: string; tool: string; subscriptionId: string; subscriptionStatus: string; subscriptionValue: number },
+  now: number,
+  mode: 'sim' | 'live'
+): CheckResult {
+
+  // Check for existing grant
+  const argsHash = hashArgs(a.tool, a.subscriptionId, a.subscriptionValue, undefined);
+  const grant = db.one<{ id: string }>('SELECT id FROM grants WHERE args_hash=? AND session_id=? AND used=0 AND expires_at>?', argsHash, a.sessionId, now);
+
+  const state: SubscriptionPolicyState = {
+    subscriptionStatus: a.subscriptionStatus,
+    subscriptionValue: a.subscriptionValue,
+    now,
+    approved: !!grant,
+  };
+
+  const d = decideSubscriptionCancel(a.subscriptionId, m, state);
+
+  if (grant) db.run('UPDATE grants SET used=1 WHERE id=?', grant.id);
+
+  return tx(db, () => {
+    const status = d.status;
+    db.run(
+      `INSERT INTO actions(id,session_id,tool,capture_id,amount_cents,currency,decision,rule_id,reason,status,created_at,updated_at,action_type)
+       VALUES (?,?,?,NULL,?,?,?,?,?,?,?,?,'subscription')`,
+      a.actionId, a.sessionId, a.tool, a.subscriptionValue, 'USD', status, d.ruleId, d.reason, status, now, now
+    );
+
+    let approvalUrl: string | undefined;
+    let token: string | undefined;
+    if (status === 'pending_approval') {
+      token = randomBytes(16).toString('hex');
+      db.run('INSERT INTO approvals(action_id, token_hash, expires_at, status) VALUES (?,?,?,?)', a.actionId, sha(token), now + 15 * 60_000, 'pending');
+      approvalUrl = `${process.env.REIN_PUBLIC_URL ?? 'http://127.0.0.1:4317'}/approve/${a.actionId}#t=${token}`;
+    }
+
+    ledger(db, a.actionId, status, { mode, ruleId: d.ruleId, amountCents: a.subscriptionValue }, now);
+    return { ...d, actionId: a.actionId, ...(approvalUrl ? { approvalUrl } : {}), ...(token ? { token } : {}) };
+  });
+}
+
+export function checkDispute(
+  db: Db,
+  m: Mandate,
+  a: { actionId: string; sessionId: string; tool: string; disputeId: string; disputeAction: string; disputeReason: string; disputeAmountCents: number },
+  now: number,
+  mode: 'sim' | 'live'
+): CheckResult {
+
+  // Check for existing grant
+  const argsHash = hashArgs(a.tool, a.disputeId, a.disputeAmountCents, undefined);
+  const grant = db.one<{ id: string }>('SELECT id FROM grants WHERE args_hash=? AND session_id=? AND used=0 AND expires_at>?', argsHash, a.sessionId, now);
+
+  const state: DisputePolicyState = {
+    disputeReason: a.disputeReason,
+    disputeAction: a.disputeAction as 'accept' | 'provide_evidence',
+    disputeAmountCents: a.disputeAmountCents,
+    now,
+    approved: !!grant,
+  };
+
+  const d = decideDisputeHandle(a.disputeId, m, state);
+
+  if (grant) db.run('UPDATE grants SET used=1 WHERE id=?', grant.id);
+
+  return tx(db, () => {
+    const status = d.status;
+    db.run(
+      `INSERT INTO actions(id,session_id,tool,capture_id,amount_cents,currency,decision,rule_id,reason,status,created_at,updated_at,action_type)
+       VALUES (?,?,?,NULL,?,?,?,?,?,?,?,?,'dispute')`,
+      a.actionId, a.sessionId, a.tool, a.disputeAmountCents, 'USD', status, d.ruleId, d.reason, status, now, now
+    );
+
+    let approvalUrl: string | undefined;
+    let token: string | undefined;
+    if (status === 'pending_approval') {
+      token = randomBytes(16).toString('hex');
+      db.run('INSERT INTO approvals(action_id, token_hash, expires_at, status) VALUES (?,?,?,?)', a.actionId, sha(token), now + 15 * 60_000, 'pending');
+      approvalUrl = `${process.env.REIN_PUBLIC_URL ?? 'http://127.0.0.1:4317'}/approve/${a.actionId}#t=${token}`;
+    }
+
+    ledger(db, a.actionId, status, { mode, ruleId: d.ruleId, amountCents: a.disputeAmountCents }, now);
+    return { ...d, actionId: a.actionId, ...(approvalUrl ? { approvalUrl } : {}), ...(token ? { token } : {}) };
+  });
 }

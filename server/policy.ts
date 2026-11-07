@@ -195,3 +195,43 @@ export function decideSubscriptionCancel(
 
   return r('allowed', 'R-ALLOW', 'Within the mandate.');
 }
+
+// ---- Dispute handling policy ----
+export interface DisputePolicyState {
+  disputeReason: string;
+  disputeAction: 'accept' | 'provide_evidence';
+  disputeAmountCents: number;
+  now: number;
+  approved?: boolean;
+}
+
+export function decideDisputeHandle(
+  disputeId: string,
+  m: Mandate,
+  s: DisputePolicyState
+): Decision {
+  // Hard rules
+  if (s.now > m.expiresAt) return r('blocked', 'R-MANDATE-EXPIRED', 'The mandate has expired.');
+
+  // Providing evidence is always allowed (doesn't cost money)
+  if (s.disputeAction === 'provide_evidence') {
+    return r('allowed', 'R-ALLOW', 'Providing evidence to dispute is allowed.');
+  }
+
+  // Accepting a claim is money-losing and must be gated
+  // Approval waives soft rules
+  if (s.approved) return r('allowed', 'R-APPROVED', 'A human approved accepting this dispute claim.');
+
+  // Soft rules - high-value or certain dispute reasons require approval
+  const highValueThreshold = m.perActionCapCents ?? 5000;
+  if (s.disputeAmountCents > highValueThreshold) {
+    return r('pending_approval', 'R-DISPUTE-HIGH-VALUE', `Dispute amount ${usd(s.disputeAmountCents)} exceeds ${usd(highValueThreshold)} threshold for accepting claims.`);
+  }
+
+  // Unauthorized/fraud claims are high-risk - always escalate
+  if (s.disputeReason.toLowerCase().includes('unauthorized') || s.disputeReason.toLowerCase().includes('fraud')) {
+    return r('pending_approval', 'R-DISPUTE-FRAUD', 'Unauthorized transaction or fraud claims require human review before accepting.');
+  }
+
+  return r('allowed', 'R-ALLOW', 'Within the mandate.');
+}

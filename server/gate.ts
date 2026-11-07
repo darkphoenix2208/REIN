@@ -173,3 +173,231 @@ async function execute(d: GateDeps, actionId: string, captureId: string, row: { 
     return { outcome: 'unknown' };
   }
 }
+
+export async function runSubscriptionCancel(
+  d: GateDeps,
+  input: { subscriptionId: string; reason?: string; sessionId: string; actionId?: string }
+): Promise<GateOutcome> {
+  const now = d.now ?? Date.now;
+  const actionId = input.actionId ?? `sub_${randomUUID()}`;
+
+  // Get subscription details first
+  let subscriptionDetails: any = null;
+  let subscriptionValue = 0;
+  let subscriptionStatus = 'ACTIVE'; // Default to ACTIVE for sim mode
+
+  if (d.paypal) {
+    const { getSubscription } = await import('./subscriptions.ts');
+    subscriptionDetails = await getSubscription(d.paypal, input.subscriptionId);
+
+    if (!subscriptionDetails) {
+      return { status: 'unavailable', reason: 'Subscription not found or lookup failed.' };
+    }
+
+    subscriptionStatus = subscriptionDetails.status;
+    // Estimate monthly value from last payment
+    if (subscriptionDetails.billingInfo?.lastPayment?.amount?.value) {
+      const { toCents } = await import('./paypal.ts');
+      subscriptionValue = toCents(subscriptionDetails.billingInfo.lastPayment.amount.value) ?? 0;
+    }
+  } else {
+    // Simulated mode: use reasonable defaults
+    subscriptionValue = 1500; // $15/month default
+  }
+
+  // Check through dispatch
+  const { checkSubscription } = await import('./dispatch.ts');
+  let cr: CheckResult;
+
+  try {
+    cr = checkSubscription(d.db, d.mandate, {
+      actionId,
+      sessionId: input.sessionId,
+      tool: 'cancel_subscription',
+      subscriptionId: input.subscriptionId,
+      subscriptionStatus,
+      subscriptionValue,
+    }, now(), d.paypal ? 'live' : 'sim');
+  } catch (e) {
+    if (e instanceof ReinBusyError) {
+      return { status: 'unavailable', reason: 'Rein is busy; nothing was cancelled. Retry in a moment.' };
+    }
+    return { status: 'unavailable', reason: 'Rein could not record the decision, so nothing was cancelled (failing closed).' };
+  }
+
+  if (cr.status === 'pending_approval') {
+    return {
+      status: 'pending_approval',
+      actionId,
+      ruleId: cr.ruleId,
+      reason: cr.reason,
+      approvalUrl: cr.approvalUrl!.replace(/^https?:\/\/[^/]+/, d.publicUrl ?? 'http://127.0.0.1:4317')
+    };
+  }
+
+  if (cr.status === 'blocked') {
+    return { status: 'blocked', actionId, ruleId: cr.ruleId, reason: cr.reason };
+  }
+
+  // Execute cancellation
+  if (!d.paypal) {
+    // Simulated mode
+    result(d.db, { actionId, outcome: 'executed' }, now(), 'sim');
+    return {
+      status: 'executed',
+      actionId,
+      ruleId: cr.ruleId,
+      amountCents: subscriptionValue,
+      mode: 'sim'
+    };
+  }
+
+  const { cancelSubscription } = await import('./subscriptions.ts');
+  const cancelResult = await cancelSubscription(d.paypal, input.subscriptionId, input.reason);
+
+  if (cancelResult.success) {
+    result(d.db, { actionId, outcome: 'executed' }, now(), 'live');
+    return {
+      status: 'executed',
+      actionId,
+      ruleId: cr.ruleId,
+      amountCents: subscriptionValue,
+      mode: 'live'
+    };
+  } else {
+    result(d.db, { actionId, outcome: 'failed' }, now(), 'live');
+    return {
+      status: 'execution_failed',
+      actionId,
+      reason: cancelResult.error || 'Subscription cancellation failed.'
+    };
+  }
+}
+
+export async function runDisputeHandle(
+  d: GateDeps,
+  input: { disputeId: string; captureId: string; sessionId: string; actionId?: string }
+): Promise<GateOutcome> {
+  const now = d.now ?? Date.now;
+  const actionId = input.actionId ?? `dispute_${randomUUID()}`;
+
+  // Generate dispute response from ledger
+  const { generateDisputeResponse, getDispute, acceptDisputeClaim, provideEvidence } = await import('./disputes.ts');
+
+  let disputeDetails: any = null;
+  let disputeAmountCents = 0;
+
+  if (d.paypal) {
+    disputeDetails = await getDispute(d.paypal, input.disputeId);
+    if (!disputeDetails) {
+      return { status: 'unavailable', reason: 'Dispute not found or lookup failed.' };
+    }
+
+    const { toCents } = await import('./paypal.ts');
+    disputeAmountCents = toCents(disputeDetails.disputeAmount?.value ?? '0') ?? 0;
+  } else {
+    // Simulated mode: use default dispute amount
+    disputeAmountCents = 5000; // $50 default
+  }
+
+  const response = generateDisputeResponse(d.db, input.captureId, disputeDetails?.reason ?? 'ITEM_NOT_RECEIVED');
+
+  // Providing evidence doesn't cost money, so allow it without gating
+  if (response.suggestedAction === 'provide_evidence') {
+    if (!d.paypal) {
+      return {
+        status: 'executed',
+        actionId,
+        ruleId: 'R-ALLOW',
+        amountCents: 0,
+        mode: 'sim'
+      };
+    }
+
+    const evidenceResult = await provideEvidence(d.paypal, input.disputeId, response.evidence!);
+    if (evidenceResult.success) {
+      // Record in ledger but with 0 amount since no money moved
+      result(d.db, { actionId, outcome: 'executed' }, now(), 'live');
+      return {
+        status: 'executed',
+        actionId,
+        ruleId: 'R-ALLOW',
+        amountCents: 0,
+        mode: 'live'
+      };
+    } else {
+      return {
+        status: 'execution_failed',
+        actionId,
+        reason: evidenceResult.error || 'Failed to provide evidence.'
+      };
+    }
+  }
+
+  // Accepting claim costs money - must go through gate
+  const { checkDispute } = await import('./dispatch.ts');
+  let cr: CheckResult;
+
+  try {
+    cr = checkDispute(d.db, d.mandate, {
+      actionId,
+      sessionId: input.sessionId,
+      tool: 'handle_dispute',
+      disputeId: input.disputeId,
+      disputeAction: 'accept',
+      disputeReason: disputeDetails?.reason ?? 'UNKNOWN',
+      disputeAmountCents,
+    }, now(), d.paypal ? 'live' : 'sim');
+  } catch (e) {
+    if (e instanceof ReinBusyError) {
+      return { status: 'unavailable', reason: 'Rein is busy; nothing was done. Retry in a moment.' };
+    }
+    return { status: 'unavailable', reason: 'Rein could not record the decision, so nothing was done (failing closed).' };
+  }
+
+  if (cr.status === 'pending_approval') {
+    return {
+      status: 'pending_approval',
+      actionId,
+      ruleId: cr.ruleId,
+      reason: cr.reason,
+      approvalUrl: cr.approvalUrl!.replace(/^https?:\/\/[^/]+/, d.publicUrl ?? 'http://127.0.0.1:4317')
+    };
+  }
+
+  if (cr.status === 'blocked') {
+    return { status: 'blocked', actionId, ruleId: cr.ruleId, reason: cr.reason };
+  }
+
+  // Execute acceptance
+  if (!d.paypal) {
+    result(d.db, { actionId, outcome: 'executed' }, now(), 'sim');
+    return {
+      status: 'executed',
+      actionId,
+      ruleId: cr.ruleId,
+      amountCents: disputeAmountCents,
+      mode: 'sim'
+    };
+  }
+
+  const acceptResult = await acceptDisputeClaim(d.paypal, input.disputeId, response.reasoning);
+
+  if (acceptResult.success) {
+    result(d.db, { actionId, outcome: 'executed' }, now(), 'live');
+    return {
+      status: 'executed',
+      actionId,
+      ruleId: cr.ruleId,
+      amountCents: disputeAmountCents,
+      mode: 'live'
+    };
+  } else {
+    result(d.db, { actionId, outcome: 'failed' }, now(), 'live');
+    return {
+      status: 'execution_failed',
+      actionId,
+      reason: acceptResult.error || 'Dispute claim acceptance failed.'
+    };
+  }
+}

@@ -4,7 +4,7 @@
 import { randomUUID } from 'node:crypto';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
-import { runRefund, runPayout, type GateDeps, type GateOutcome } from './gate.ts';
+import { runRefund, runPayout, runSubscriptionCancel, runDisputeHandle, type GateDeps, type GateOutcome } from './gate.ts';
 import { toCents } from './paypal.ts';
 import { checkPrice } from './channel3.ts';
 import { getPriceMatchAdjustment } from './price-match.ts';
@@ -170,28 +170,14 @@ export function createProxy(d: GateDeps, o: ProxyOptions = {}): McpServer {
 
   server.tool('cancel_subscription', 'Cancel a PayPal subscription. High-value subscriptions may require approval. Returns success or escalation for approval.',
     { subscription_id: z.string().min(5).max(64), reason: z.string().max(255).optional() },
-    async ({ subscription_id, reason }) => {
-      if (!d.paypal) {
-        return reply({ status: 'sim', message: 'Subscription cancelled (SIMULATED)', subscription_id }, false);
-      }
+    async ({ subscription_id, reason }, extra) => {
+      const outcome = await runSubscriptionCancel(d, {
+        subscriptionId: subscription_id,
+        reason,
+        sessionId: sessionOf(extra),
+      });
 
-      // Get subscription details first
-      const { getSubscription } = await import('./subscriptions.ts');
-      const subscription = await getSubscription(d.paypal, subscription_id);
-
-      if (!subscription) {
-        return reply({ status: 'error', message: 'Subscription not found' }, true);
-      }
-
-      // For now, auto-allow (policy integration would go through gate)
-      const { cancelSubscription } = await import('./subscriptions.ts');
-      const result = await cancelSubscription(d.paypal, subscription_id, reason);
-
-      if (result.success) {
-        return reply({ status: 'cancelled', subscription_id, message: 'Subscription cancelled successfully' }, false);
-      } else {
-        return reply({ status: 'error', message: result.error || 'Cancellation failed' }, true);
-      }
+      return present(outcome);
     });
 
   server.tool('get_subscription', 'Get details about a PayPal subscription including status, billing info, and customer details.',
@@ -223,57 +209,16 @@ export function createProxy(d: GateDeps, o: ProxyOptions = {}): McpServer {
       }, false);
     });
 
-  server.tool('handle_dispute', 'Automatically handle a PayPal dispute using ledger history. Suggests accepting claim or providing evidence based on past refunds.',
+  server.tool('handle_dispute', 'Automatically handle a PayPal dispute using ledger history. Accepting claims requires gate approval. Providing evidence is always allowed.',
     { dispute_id: z.string().min(5).max(64), capture_id: z.string().min(5).max(64) },
-    async ({ dispute_id, capture_id }) => {
-      const { generateDisputeResponse, getDispute, acceptDisputeClaim, provideEvidence } = await import('./disputes.ts');
+    async ({ dispute_id, capture_id }, extra) => {
+      const outcome = await runDisputeHandle(d, {
+        disputeId: dispute_id,
+        captureId: capture_id,
+        sessionId: sessionOf(extra),
+      });
 
-      if (!d.paypal) {
-        const response = generateDisputeResponse(d.db, capture_id, 'SIMULATED');
-        return reply({
-          status: 'sim',
-          dispute_id,
-          suggested_action: response.suggestedAction,
-          reasoning: response.reasoning,
-          message: 'Dispute handling (SIMULATED)',
-        }, false);
-      }
-
-      // Get dispute details
-      const dispute = await getDispute(d.paypal, dispute_id);
-      if (!dispute) {
-        return reply({ status: 'error', message: 'Dispute not found' }, true);
-      }
-
-      // Generate response based on ledger
-      const response = generateDisputeResponse(d.db, capture_id, dispute.reason);
-
-      if (response.suggestedAction === 'accept') {
-        const result = await acceptDisputeClaim(d.paypal, dispute_id, response.reasoning);
-        if (result.success) {
-          return reply({
-            status: 'accepted',
-            dispute_id,
-            reasoning: response.reasoning,
-            message: 'Claim accepted',
-          }, false);
-        } else {
-          return reply({ status: 'error', message: result.error }, true);
-        }
-      } else if (response.evidence) {
-        const result = await provideEvidence(d.paypal, dispute_id, response.evidence);
-        if (result.success) {
-          return reply({
-            status: 'evidence_provided',
-            dispute_id,
-            evidence: response.evidence,
-            reasoning: response.reasoning,
-            message: 'Evidence submitted',
-          }, false);
-        } else {
-          return reply({ status: 'error', message: result.error }, true);
-        }
-      }
+      return present(outcome);
 
       return reply({ status: 'error', message: 'Unable to determine dispute action' }, true);
     });

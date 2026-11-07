@@ -13,6 +13,8 @@ import { rateLimit } from './ratelimit.ts';
 import { compilePolicy, FIELDS } from './compiler.ts';
 import { askGemini } from './llm.ts';
 import { readFileSync } from 'node:fs';
+import { signCheckpoint, storeCheckpoint, getLatestCheckpoint, verifyCheckpoint } from './checkpoint.ts';
+import { getLeaderboard, initChallengeSchema, checkRateLimit, getTotalSpent, recordAttempt, getRecordedAttempt, isKillSwitchActive, hasApiKey } from './beat-the-gate.ts';
 
 const eq = (a: string, b: string): boolean => {
   const x = Buffer.from(a), y = Buffer.from(b);
@@ -104,7 +106,6 @@ export function createApp(d: GateDeps, o: AppOptions = {}): express.Express {
   });
 
   api.get('/ledger/checkpoint', (req, res) => {
-    const { signCheckpoint, storeCheckpoint, getLatestCheckpoint } = require('./checkpoint.ts');
     const checkpoint = signCheckpoint(d.db);
     if (!checkpoint) {
       return void res.status(503).json({ error: 'signing_unavailable', reason: 'ED25519_PRIVATE_KEY not configured' });
@@ -114,7 +115,6 @@ export function createApp(d: GateDeps, o: AppOptions = {}): express.Express {
   });
 
   api.get('/ledger/verify', (req, res) => {
-    const { getLatestCheckpoint, verifyCheckpoint } = require('./checkpoint.ts');
     const checkpoint = getLatestCheckpoint(d.db);
     if (!checkpoint) {
       return void res.status(404).json({ error: 'no_checkpoint', reason: 'No checkpoint has been created yet' });
@@ -272,14 +272,11 @@ export function createApp(d: GateDeps, o: AppOptions = {}): express.Express {
 
   // Beat the Gate challenge
   api.get('/challenge/leaderboard', (req, res) => {
-    const { getLeaderboard, initChallengeSchema } = require('./beat-the-gate.ts');
     initChallengeSchema(d.db);
     res.json(getLeaderboard(d.db, 50));
   });
 
   api.post('/challenge/attempt', rateLimit(10), async (req, res) => {
-    const { checkRateLimit, getTotalSpent, recordAttempt, getRecordedAttempt, isKillSwitchActive, hasApiKey, initChallengeSchema } = require('./beat-the-gate.ts');
-
     initChallengeSchema(d.db);
 
     if (isKillSwitchActive()) {
