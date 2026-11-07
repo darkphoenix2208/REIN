@@ -1,5 +1,0 @@
-
-> rein@0.1.0 start
-> node --experimental-strip-types --disable-warning=ExperimentalWarning server/index.ts
-
-Rein on http://127.0.0.1:4321 (SIMULATED)
