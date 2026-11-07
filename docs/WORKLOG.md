@@ -1,12 +1,14 @@
 # Worklog
 
 ## F0 FIXES
-- [ ] Fix 3 failing tests in tests/new-features.test.ts
-- [ ] Fix webhook reconcile test
-- [ ] Wire computePriceMatchAdjustment into price_match_refund tool
-- [ ] Replace repetitive Attack Lab vectors with distinct ones
-- [ ] Delete REIN_*.md, PROJECT_INDEX.md, rename --paypal-dark-blue to --navy
-- [ ] Gitignore node_modules, check AG Grid license warnings
+- [x] Fix 3 failing tests in tests/new-features.test.ts (ALREADY PASSING)
+- [ ] Fix contention test flake (database locked on Windows)
+- [x] Wire computePriceMatchAdjustment into price_match_refund tool (ALREADY DONE)
+- [x] Replace repetitive Attack Lab vectors with distinct ones (ALREADY DISTINCT)
+- [x] Delete REIN_*.md, PROJECT_INDEX.md (ALREADY DONE)
+- [x] Rename --paypal-dark-blue to --navy (ALREADY --navy in CSS)
+- [x] Gitignore node_modules (ALREADY IN .gitignore)
+- [ ] Check AG Grid license warnings in browser console
 
 ## F1 ROBUSTNESS
 - [ ] fast-check property tests
