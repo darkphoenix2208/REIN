@@ -126,13 +126,13 @@ Start by calling get_order to see what they ordered, then help them based on the
     });
 
     // Extract text response
-    const textBlocks = completion.content.filter(block => block.type === 'text');
+    const textBlocks = completion.content.filter((block: any) => block.type === 'text');
     if (textBlocks.length > 0) {
       response = textBlocks.map((block: any) => block.text).join('\n');
     }
 
     // Check for tool use
-    const toolUseBlocks = completion.content.filter(block => block.type === 'tool_use');
+    const toolUseBlocks = completion.content.filter((block: any) => block.type === 'tool_use');
 
     if (toolUseBlocks.length === 0) {
       // Agent finished without more tool calls

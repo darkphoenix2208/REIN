@@ -1,0 +1,12 @@
+{
+  "publishedAt": "2026-11-07T17:46:13.503Z",
+  "algorithm": "Ed25519",
+  "checkpoint": {
+    "seq": 1,
+    "head": "996ae615f46493bd5e72df4e1f8b72ee41653153078cd4aa94b8adaf763c8ed9",
+    "timestamp": 1794073573500,
+    "signature": "bOJWcnUGtlbtDQNKQFWUnt4ibLXlQ4DPskg2iWYZhVZ+ptdzxm/1tBzGPby8YKjW2EcN+C+Z7OXuATXqJasJCA==",
+    "publicKey": "DKQ2Y18Lppl3PnjtfLQpFTd20ZZiqPZ+vl6Pe+/xPUc="
+  },
+  "honestBoundary": "Checkpoints detect post-publication tampering. They do not prevent a malicious database administrator with keys from modifying history prior to publication."
+}

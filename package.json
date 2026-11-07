@@ -24,7 +24,8 @@
     "compile-policy": "node --disable-warning=ExperimentalWarning scripts/compile-policy.mjs",
     "ledger-head": "node --disable-warning=ExperimentalWarning scripts/ledger-head.mjs",
     "demo:agent": "node --disable-warning=ExperimentalWarning scripts/demo-agent.mjs",
-    "reseed": "node scripts/reseed.mjs"
+    "reseed": "node scripts/reseed.mjs",
+    "checkpoint-publish": "node --experimental-strip-types scripts/checkpoint-publish.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.6.0",

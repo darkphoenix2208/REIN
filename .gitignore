@@ -5,6 +5,7 @@
 *.pem
 .seed/
 rein-seal.json
+.checkpoint-key.json
 
 # local databases and build output
 *.db

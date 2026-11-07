@@ -13,9 +13,11 @@ import { rateLimit } from './ratelimit.ts';
 import { compilePolicy, FIELDS } from './compiler.ts';
 import { askGemini } from './llm.ts';
 import { readFileSync } from 'node:fs';
-import { signCheckpoint, storeCheckpoint, getLatestCheckpoint, verifyCheckpoint } from './checkpoint.ts';
+import { signCheckpoint, storeCheckpoint, getLatestCheckpoint, verifyCheckpoint, getPublicKeyInfo } from './checkpoint.ts';
 import { getLeaderboard, initChallengeSchema, checkRateLimit, getTotalSpent, recordAttempt, getRecordedAttempt, isKillSwitchActive, hasApiKey } from './beat-the-gate.ts';
 import { backtestMandate } from './backtest.ts';
+import { generateEvidencePackPdf } from './evidence-pdf.ts';
+import { listMandateVersions, getCurrentMandateVersion, mandateHash } from './mandate-version.ts';
 
 const eq = (a: string, b: string): boolean => {
   const x = Buffer.from(a), y = Buffer.from(b);
@@ -107,6 +109,14 @@ export function createApp(d: GateDeps, o: AppOptions = {}): express.Express {
     res.json({ rows, total: d.db.val<number>('SELECT COUNT(*) FROM ledger') ?? 0, chain: verifyChain(d.db), mode: d.paypal ? 'LIVE-FIRE' : 'SIMULATED' });
   });
 
+  api.get('/ledger/pubkey', (_req, res) => {
+    const info = getPublicKeyInfo();
+    if (!info) {
+      return void res.status(503).json({ error: 'no_key', reason: 'No checkpoint key configured' });
+    }
+    res.json(info);
+  });
+
   api.get('/ledger/checkpoint', (req, res) => {
     const checkpoint = signCheckpoint(d.db);
     if (!checkpoint) {
@@ -114,6 +124,83 @@ export function createApp(d: GateDeps, o: AppOptions = {}): express.Express {
     }
     storeCheckpoint(d.db, checkpoint);
     res.json(checkpoint);
+  });
+
+  api.post('/ledger/checkpoint', (_req, res) => {
+    const checkpoint = signCheckpoint(d.db, { allowGenerateKey: true });
+    if (!checkpoint) {
+      return void res.status(503).json({ error: 'signing_unavailable', reason: 'Checkpoint key not available' });
+    }
+    storeCheckpoint(d.db, checkpoint);
+    res.json(checkpoint);
+  });
+
+  api.get('/ledger/checkpoint/latest', (_req, res) => {
+    const checkpoint = getLatestCheckpoint(d.db);
+    if (!checkpoint) {
+      return void res.status(404).json({ error: 'no_checkpoint', reason: 'No checkpoint has been created yet' });
+    }
+    res.json(checkpoint);
+  });
+
+  api.get('/ledger/evidence-pack', (req, res) => {
+    const format = String(req.query.format ?? 'pdf').toLowerCase();
+    const chain = verifyChain(d.db);
+    const checkpoint = getLatestCheckpoint(d.db);
+    const rows = d.db.all<any>(
+      'SELECT l.seq, l.created_at, l.event, l.action_id, l.prev_hash, l.hash, l.mandate_version, l.agent_id, a.rule_id, a.amount_cents FROM ledger l LEFT JOIN actions a ON a.id=l.action_id ORDER BY l.seq ASC'
+    );
+    const mandateVersions = listMandateVersions(d.db);
+    const currentMv = getCurrentMandateVersion(d.db);
+
+    if (format === 'csv') {
+      const headers = ['seq', 'created_at', 'event', 'action_id', 'rule_id', 'amount_cents', 'hash', 'prev_hash', 'mandate_version', 'agent_id'];
+      const csvLines = [headers.join(',')];
+      for (const r of rows) {
+        csvLines.push(headers.map((h) => {
+          const v = h === 'created_at' ? new Date(r[h]).toISOString() : r[h] ?? '';
+          return typeof v === 'string' && v.includes(',') ? `"${v}"` : String(v);
+        }).join(','));
+      }
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', `attachment; filename="rein-ledger-${Date.now()}.csv"`);
+      return void res.send(csvLines.join('\n'));
+    }
+
+    const packData = {
+      generatedAt: new Date().toISOString(),
+      mode: (d.paypal ? 'LIVE-FIRE' : 'SIMULATED') as 'LIVE-FIRE' | 'SIMULATED',
+      chain,
+      checkpoint,
+      mandate: {
+        version: currentMv?.hash ?? mandateHash(d.mandate),
+        perActionCapCents: d.mandate.perActionCapCents,
+        hardMaxCents: d.mandate.hardMaxCents,
+        dailyCapCents: d.mandate.dailyCapCents,
+        hardDailyCapCents: d.mandate.hardDailyCapCents,
+        rulesCount: (d.mandate as any).rules?.length ?? 0,
+      },
+      mandateVersions: mandateVersions.map((v) => ({
+        id: String(v.id),
+        version_hash: v.hash,
+        created_at: v.activatedAt,
+        created_by: v.activatedBy || 'system',
+        description: v.notes || '',
+        is_active: currentMv?.id === v.id ? 1 : 0,
+      })),
+      rows,
+    };
+
+    if (format === 'json') {
+      res.setHeader('Content-Type', 'application/json');
+      res.setHeader('Content-Disposition', `attachment; filename="rein-evidence-pack-${Date.now()}.json"`);
+      return void res.json(packData);
+    }
+
+    const pdfBuf = generateEvidencePackPdf(packData);
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="rein-evidence-pack-${Date.now()}.pdf"`);
+    res.send(pdfBuf);
   });
 
   api.get('/ledger/verify', (req, res) => {
@@ -135,22 +222,25 @@ export function createApp(d: GateDeps, o: AppOptions = {}): express.Express {
   });
 
   api.post('/ledger/verify', (req, res) => {
-    const { seq, head, timestamp, signature, publicKey } = req.body;
-    if (!seq || !head || !timestamp || !signature || !publicKey) {
+    const b = req.body?.checkpoint ?? req.body ?? {};
+    const { seq, head, timestamp, signature, publicKey } = b;
+    if (seq === undefined || !head || !timestamp || !signature || !publicKey) {
       return void res.status(400).json({ error: 'invalid_checkpoint', reason: 'Missing required checkpoint fields' });
     }
-    const checkpoint = { seq, head, timestamp, signature, publicKey };
+    const checkpoint = { seq: Number(seq), head: String(head), timestamp: Number(timestamp), signature: String(signature), publicKey: String(publicKey) };
     const verification = verifyCheckpoint(d.db, checkpoint);
     const currentHead = d.db.val<string>('SELECT hash FROM ledger ORDER BY seq DESC LIMIT 1') || '';
-    const chainValid = verifyChain(d.db);
     res.json({
-      valid: verification.signatureValid && (head === currentHead || verification.chainValid),
+      valid: verification.signatureValid && verification.chainValid,
       checkpoint,
       ledgerHead: currentHead,
-      chainValid,
+      chainValid: verification.chainValid,
       signatureValid: verification.signatureValid,
+      error: verification.error,
       message: verification.signatureValid ?
-        (head === currentHead ? 'Checkpoint matches current ledger state' : 'Checkpoint is from an older ledger state, but signature is valid') :
+        (verification.chainValid ?
+          (head === currentHead ? 'Checkpoint matches current ledger state' : 'Checkpoint is from an older ledger state, but signature is valid') :
+          `Tampering detected: ${verification.error || 'Chain invalid'}`) :
         'Checkpoint signature is invalid'
     });
   });

@@ -36,6 +36,14 @@ export function Ledger() {
     URL.revokeObjectURL(url);
   };
 
+  const exportPdf = () => {
+    window.open('/v1/ledger/evidence-pack?format=pdf', '_blank');
+  };
+
+  const exportJsonPack = () => {
+    window.open('/v1/ledger/evidence-pack?format=json', '_blank');
+  };
+
   const mode = data?.mode ?? '';
   const grouped = useMemo(() => {
     if (!data?.rows || groupBy === 'none') return data?.rows ?? [];
@@ -93,6 +101,12 @@ export function Ledger() {
             </label>
             <button className="btn secondary" onClick={exportCSV} disabled={!data?.rows?.length}>
               Export CSV
+            </button>
+            <button className="btn secondary" onClick={exportPdf} disabled={!data?.rows?.length} title="Download printable PDF evidence pack with signed checkpoint and chain status">
+              Auditor Pack (PDF)
+            </button>
+            <button className="btn secondary" onClick={exportJsonPack} disabled={!data?.rows?.length} title="Download complete JSON evidence pack">
+              Auditor Pack (JSON)
             </button>
           </div>
         </div>
