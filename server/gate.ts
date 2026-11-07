@@ -4,6 +4,7 @@ import { randomUUID } from 'node:crypto';
 import { ReinBusyError, type Db } from './db.ts';
 import { check, result, type Outcome } from './dispatch.ts';
 import { PayPalError, type PayPalClient } from './paypal.ts';
+import { sendPayout } from './payouts.ts';
 import type { CheckInput, CheckResult, ExternalState, Mandate } from './types.ts';
 
 export interface GateDeps {
@@ -15,9 +16,9 @@ export interface GateDeps {
 }
 
 export type GateOutcome =
-  | { status: 'executed'; actionId: string; ruleId: string; refundId: string; amountCents: number; mode: 'live' | 'sim' }
+  | { status: 'executed'; actionId: string; ruleId: string; refundId?: string; payoutId?: string; amountCents: number; mode: 'live' | 'sim' }
   | { status: 'blocked'; actionId: string; ruleId: string; reason: string }
-  | { status: 'pending_approval'; actionId: string; ruleId: string; reason: string; approvalUrl: string }
+  | { status: 'pending_approval'; actionId: string; ruleId: string; reason: string; approvalUrl?: string }
   | { status: 'execution_failed'; actionId: string; reason: string; debugId?: string }
   | { status: 'unknown_outcome'; actionId: string; reason: string }
   | { status: 'shadow'; actionId: string; wouldHave: { status: string; ruleId: string; reason: string }; refundId?: string; mode: 'live' | 'sim' }
@@ -54,6 +55,96 @@ export async function runRefund(d: GateDeps, input: Omit<CheckInput, 'actionId'>
   if (exec.outcome === 'executed') return { status: 'executed', actionId, ruleId: cr.ruleId, refundId: exec.refundId!, amountCents: row!.amt, mode: d.paypal ? 'live' : 'sim' };
   if (exec.outcome === 'failed') return { status: 'execution_failed', actionId, reason: exec.reason ?? 'PayPal rejected the refund. No money moved; the reservation was released.', ...(exec.debugId ? { debugId: exec.debugId } : {}) };
   return { status: 'unknown_outcome', actionId, reason: 'No confirmed result from PayPal. The amount stays reserved until reconciled; do not retry blindly.' };
+}
+
+export async function runPayout(d: GateDeps, input: Omit<CheckInput, 'actionId'> & { actionId?: string }): Promise<GateOutcome> {
+  const now = d.now ?? Date.now;
+  const actionId = input.actionId ?? `payout_${randomUUID()}`;
+  let cr: CheckResult;
+
+  try {
+    cr = check(d.db, d.mandate, { ...input, actionId }, now(), undefined, d.paypal ? 'live' : 'sim');
+  } catch (e) {
+    if (e instanceof ReinBusyError) return { status: 'unavailable', reason: 'Rein is busy; nothing was sent. Retry in a moment.' };
+    return { status: 'unavailable', reason: 'Rein could not record the decision, so nothing was sent (failing closed).' };
+  }
+
+  if (cr.status === 'pending_approval') {
+    return {
+      status: 'pending_approval',
+      actionId,
+      ruleId: cr.ruleId,
+      reason: cr.reason,
+      approvalUrl: cr.approvalUrl!.replace(/^https?:\/\/[^/]+/, d.publicUrl ?? 'http://127.0.0.1:4317')
+    };
+  }
+
+  if (cr.status === 'blocked') {
+    return { status: 'blocked', actionId, ruleId: cr.ruleId, reason: cr.reason };
+  }
+
+  // Execute the payout
+  const exec = await executePayout(d, actionId, input.payeeEmail!, input.amountCents!, input.currency ?? 'USD', input.note);
+
+  if (exec.outcome === 'executed') {
+    return {
+      status: 'executed',
+      actionId,
+      ruleId: cr.ruleId,
+      payoutId: exec.payoutId!,
+      amountCents: input.amountCents!,
+      mode: d.paypal ? 'live' : 'sim'
+    };
+  }
+
+  if (exec.outcome === 'failed') {
+    return {
+      status: 'execution_failed',
+      actionId,
+      reason: exec.reason ?? 'PayPal rejected the payout. No money moved; the reservation was released.'
+    };
+  }
+
+  return {
+    status: 'unknown_outcome',
+    actionId,
+    reason: 'No confirmed result from PayPal. The amount stays reserved until reconciled; do not retry blindly.'
+  };
+}
+
+async function executePayout(d: GateDeps, actionId: string, payeeEmail: string, amountCents: number, currency: string, note?: string): Promise<{ outcome: Outcome; payoutId?: string; reason?: string }> {
+  const mode = d.paypal ? 'live' : 'sim';
+
+  if (!d.paypal) {
+    // SIMULATED: stub for demo
+    const payoutId = `SIM-PAYOUT-${actionId.slice(-8).toUpperCase()}`;
+    result(d.db, { actionId, outcome: 'executed', refundId: payoutId }, Date.now(), mode);
+    return { outcome: 'executed', payoutId };
+  }
+
+  try {
+    const payoutResult = await sendPayout(d.paypal, {
+      payeeEmail,
+      amountCents,
+      currency,
+      note
+    }, actionId);
+
+    if (payoutResult.status === 'SUCCESS' || payoutResult.status === 'PENDING') {
+      result(d.db, { actionId, outcome: 'executed', refundId: payoutResult.payoutItemId }, Date.now(), mode);
+      return { outcome: 'executed', payoutId: payoutResult.payoutItemId };
+    }
+
+    result(d.db, { actionId, outcome: 'unknown' }, Date.now(), mode);
+    return { outcome: 'unknown' };
+  } catch (e) {
+    if (e instanceof PayPalError && e.status >= 400 && e.status < 500) {
+      result(d.db, { actionId, outcome: 'failed' }, Date.now(), mode);
+      return { outcome: 'failed', reason: `PayPal rejected the payout (HTTP ${e.status}: ${e.message}). No money moved; the reservation was released.` };
+    }
+    result(d.db, { actionId, outcome: 'unknown' }, Date.now(), mode);
+    return { outcome: 'unknown' };
+  }
 }
 
 async function execute(d: GateDeps, actionId: string, captureId: string, row: { amt: number; cur: string } | undefined, shadow: boolean, note?: string): Promise<{ outcome: Outcome; refundId?: string; reason?: string; debugId?: string }> {

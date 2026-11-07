@@ -4,7 +4,7 @@
 import { randomUUID } from 'node:crypto';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
-import { runRefund, type GateDeps, type GateOutcome } from './gate.ts';
+import { runRefund, runPayout, type GateDeps, type GateOutcome } from './gate.ts';
 import { toCents } from './paypal.ts';
 import { checkPrice } from './channel3.ts';
 import { getPriceMatchAdjustment } from './price-match.ts';
@@ -156,15 +156,16 @@ export function createProxy(d: GateDeps, o: ProxyOptions = {}): McpServer {
       const cents = toCents(amount.value);
       if (cents === null) return reply({ status: 'rejected_invalid', reason: 'amount.value must be a decimal string like "50.00".' }, true);
 
-      // Payout will be handled through gate (to be implemented in gate.ts)
-      // For now, return a placeholder response
-      return reply({
-        status: 'payout_tool_ready',
-        note: 'Payout tool is configured. Integration with gate.ts pending.',
-        payee_email,
-        amount: amount.value,
-        cents
+      const outcome = await runPayout(d, {
+        sessionId: sessionOf(extra),
+        tool: 'create_payout',
+        payeeEmail: payee_email,
+        amountCents: cents,
+        currency: amount.currency_code,
+        note
       });
+
+      return present(outcome);
     });
 
   return server;

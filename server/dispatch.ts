@@ -3,7 +3,7 @@
 // Live PayPal state (disputes, capture date) is read by the caller BEFORE check() and passed in as `ext`.
 import { randomBytes, randomUUID, createHash, timingSafeEqual } from 'node:crypto';
 import { tx, type Db } from './db.ts';
-import { decide, resolveItems, type ItemRow } from './policy.ts';
+import { decide, resolveItems, decidePayout, type ItemRow, type PayoutPolicyState } from './policy.ts';
 import { hashArgs, ledger, sha } from './ledger.ts';
 import type { CheckInput, CheckResult, Decision, ExternalState, Mandate, PayRow } from './types.ts';
 
@@ -32,6 +32,70 @@ const releaseItems = (db: Db, actionId: string, executed: boolean): void => {
   }
 };
 
+function checkPayout(db: Db, m: Mandate, a: CheckInput, now: number, mode: 'sim' | 'live'): CheckResult {
+  const payeeEmail = a.payeeEmail!;
+  const amountCents = a.amountCents!;
+
+  // Calculate payout window sums
+  const totalWindowSum = db.val<number>(
+    `SELECT COALESCE(SUM(amount_cents),0) FROM actions
+     WHERE tool='create_payout' AND created_at>=? AND id<>? AND status IN ${COUNTS}`,
+    now - DAY_MS, a.actionId
+  ) ?? 0;
+
+  const payeeWindowSum = db.val<number>(
+    `SELECT COALESCE(SUM(amount_cents),0) FROM actions
+     WHERE tool='create_payout' AND payee_email=? AND created_at>=? AND id<>? AND status IN ${COUNTS}`,
+    payeeEmail, now - DAY_MS, a.actionId
+  ) ?? 0;
+
+  // Check if payee is new (never received before)
+  const existingPayout = db.one(`SELECT 1 FROM actions WHERE tool='create_payout' AND payee_email=? AND status IN ${COUNTS} LIMIT 1`, payeeEmail);
+  const isNewPayee = !existingPayout;
+
+  // Check if payee is allowlisted
+  const isAllowlisted = m.payoutAllowlist ? m.payoutAllowlist.includes(payeeEmail) : false;
+
+  // Check for existing grant
+  const argsHash = hashArgs(a.tool, undefined, amountCents, undefined);
+  const grant = db.one<{ id: string }>('SELECT id FROM grants WHERE args_hash=? AND session_id=? AND used=0 AND expires_at>?', argsHash, a.sessionId, now);
+
+  const state: PayoutPolicyState = {
+    payeeWindowSum,
+    totalWindowSum,
+    isNewPayee,
+    isAllowlisted,
+    now,
+    approved: !!grant,
+  };
+
+  const d = decidePayout(payeeEmail, amountCents, a.currency ?? 'USD', m, state);
+
+  if (grant) db.run('UPDATE grants SET used=1 WHERE id=?', grant.id);
+
+  return finishPayout(db, a, now, d, amountCents, payeeEmail, m, mode);
+}
+
+function finishPayout(db: Db, a: CheckInput, now: number, d: Decision, amountCents: number, payeeEmail: string, m: Mandate, mode: 'sim' | 'live'): CheckResult {
+  const status = d.status === 'allowed' ? 'reserved' : d.status;
+
+  db.run(
+    'INSERT INTO actions(id,session_id,tool,capture_id,amount_cents,decision,rule_id,reason,status,created_at,updated_at,action_type,payee_email) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)',
+    a.actionId, a.sessionId, a.tool, null, amountCents, d.status, d.ruleId, d.reason, status, now, now, 'payout', payeeEmail
+  );
+
+  ledger(db, a.actionId, 'decided', { decision: d.status, rule: d.ruleId, reason: d.reason, amountCents, payeeEmail, mode }, now);
+
+  if (d.status === 'pending_approval') {
+    const token = randomBytes(16).toString('hex');
+    db.run('INSERT INTO approvals(action_id, token_hash, expires_at, status) VALUES (?,?,?,?)', a.actionId, sha(token), now + 15 * 60_000, 'pending');
+    const approvalUrl = `${process.env.REIN_PUBLIC_URL ?? 'http://127.0.0.1:4317'}/approve/${a.actionId}#t=${token}`;
+    return { status: 'pending_approval', ruleId: d.ruleId, reason: d.reason, actionId: a.actionId, approvalUrl, token };
+  }
+
+  return { status: d.status, ruleId: d.ruleId, reason: d.reason, actionId: a.actionId };
+}
+
 export function check(db: Db, m: Mandate, a: CheckInput, now = Date.now(), ext?: ExternalState, mode: 'sim' | 'live' = 'sim'): CheckResult {
   return tx(db, () => {
     const prior = db.one<{ status: string; ruleId: string; reason: string }>('SELECT status, rule_id ruleId, reason FROM actions WHERE id=?', a.actionId);
@@ -40,6 +104,12 @@ export function check(db: Db, m: Mandate, a: CheckInput, now = Date.now(), ext?:
       const status = prior.status === 'reserved' ? 'allowed' : prior.status === 'pending_approval' ? 'pending_approval' : 'blocked';
       return { status, ruleId: prior.ruleId, reason: prior.reason, actionId: a.actionId };
     }
+
+    // Handle payout actions separately
+    if (a.tool === 'create_payout' && a.payeeEmail) {
+      return checkPayout(db, m, a, now, mode);
+    }
+
     const pay = a.captureId ? payOf(db, a.captureId) : undefined;
 
     // ---- item-scoped path: the amount comes from trusted order data resolved by CAPTURE ID (agent-supplied order ids are never used)
