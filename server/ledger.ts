@@ -11,8 +11,8 @@ export const canon = (v: unknown): string =>
       : x,
   );
 
-export const hashArgs = (tool: string, cap: string, cents: number, items?: { itemId: string; qty: number }[]): string =>
-  sha(canon({ tool, cap, cents, items: items ? [...items].sort((a, b) => (a.itemId < b.itemId ? -1 : 1)) : undefined }));
+export const hashArgs = (tool: string, cap: string | undefined, cents: number, items?: { itemId: string; qty: number }[]): string =>
+  sha(canon({ tool, cap: cap ?? '', cents, items: items ? [...items].sort((a, b) => (a.itemId < b.itemId ? -1 : 1)) : undefined }));
 
 export const GENESIS = '0'.repeat(64);
 

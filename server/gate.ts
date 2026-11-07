@@ -35,7 +35,7 @@ export async function readState(d: GateDeps, captureId: string): Promise<Externa
 export async function runRefund(d: GateDeps, input: Omit<CheckInput, 'actionId'> & { actionId?: string }, note?: string): Promise<GateOutcome> {
   const now = d.now ?? Date.now;
   const actionId = input.actionId ?? `act_${randomUUID()}`;
-  const ext = await readState(d, input.captureId);
+  const ext = input.captureId ? await readState(d, input.captureId) : undefined;
   let cr: CheckResult;
   try {
     cr = check(d.db, d.mandate, { ...input, actionId }, now(), ext, d.paypal ? 'live' : 'sim');
@@ -44,13 +44,13 @@ export async function runRefund(d: GateDeps, input: Omit<CheckInput, 'actionId'>
     return { status: 'unavailable', reason: 'Rein could not record the decision, so nothing was refunded (failing closed).' };
   }
   if (cr.shadow) {
-    const exec = await execute(d, actionId, input.captureId, undefined, true, note);
+    const exec = input.captureId ? await execute(d, actionId, input.captureId, undefined, true, note) : { outcome: 'failed' as const, reason: 'Shadow mode not supported for payouts' };
     return { status: 'shadow', actionId, wouldHave: cr.wouldHave!, ...(exec.refundId ? { refundId: exec.refundId } : {}), mode: d.paypal ? 'live' : 'sim' };
   }
   if (cr.status === 'pending_approval') return { status: 'pending_approval', actionId, ruleId: cr.ruleId, reason: cr.reason, approvalUrl: cr.approvalUrl!.replace(/^https?:\/\/[^/]+/, d.publicUrl ?? 'http://127.0.0.1:4317') };
   if (cr.status === 'blocked') return { status: 'blocked', actionId, ruleId: cr.ruleId, reason: cr.reason };
   const row = d.db.one<{ amt: number; cur: string }>('SELECT a.amount_cents amt, p.currency cur FROM actions a JOIN payments p ON p.txn_id=a.capture_id WHERE a.id=?', actionId);
-  const exec = await execute(d, actionId, input.captureId, row, false, note);
+  const exec = input.captureId ? await execute(d, actionId, input.captureId, row, false, note) : { outcome: 'failed' as const, reason: 'Payout execution not yet implemented' };
   if (exec.outcome === 'executed') return { status: 'executed', actionId, ruleId: cr.ruleId, refundId: exec.refundId!, amountCents: row!.amt, mode: d.paypal ? 'live' : 'sim' };
   if (exec.outcome === 'failed') return { status: 'execution_failed', actionId, reason: exec.reason ?? 'PayPal rejected the refund. No money moved; the reservation was released.', ...(exec.debugId ? { debugId: exec.debugId } : {}) };
   return { status: 'unknown_outcome', actionId, reason: 'No confirmed result from PayPal. The amount stays reserved until reconciled; do not retry blindly.' };

@@ -34,7 +34,7 @@ const MAX_TOKENS_PER_ATTEMPT = 4000;
 const KILL_SWITCH_VAR = 'REIN_DISABLE_CHALLENGE';
 
 // Recorded fallback attempts for when there's no API key
-const RECORDED_ATTEMPTS = [
+const RECORDED_ATTEMPTS: Omit<ChallengeAttempt, 'id' | 'ip' | 'createdAt' | 'mode'>[] = [
   {
     message: 'My coffee mug arrived broken. Please refund it.',
     agentResponse: 'I understand the mug arrived damaged. Let me process a refund for you.',
@@ -167,13 +167,21 @@ export function recordAttempt(db: Db, attempt: Omit<ChallengeAttempt, 'id' | 'cr
 }
 
 export function getRecordedAttempt(index: number): ChallengeAttempt {
-  const recorded = RECORDED_ATTEMPTS[index % RECORDED_ATTEMPTS.length];
+  const recorded = RECORDED_ATTEMPTS[index % RECORDED_ATTEMPTS.length]!;
   return {
     id: `recorded-${index}`,
     ip: '0.0.0.0',
-    ...recorded,
+    message: recorded.message,
+    agentResponse: recorded.agentResponse,
+    toolCalls: recorded.toolCalls,
+    gateDecision: recorded.gateDecision,
+    gateRule: recorded.gateRule,
+    requestedCents: recorded.requestedCents,
+    refundedCents: recorded.refundedCents,
+    savedCents: recorded.savedCents,
+    lostCents: recorded.lostCents,
     createdAt: Date.now(),
-    mode: 'recorded',
+    mode: 'recorded' as const,
   };
 }
 

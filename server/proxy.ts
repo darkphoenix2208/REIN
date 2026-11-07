@@ -132,7 +132,7 @@ export function createProxy(d: GateDeps, o: ProxyOptions = {}): McpServer {
 
       // Add Channel3 evidence to the response
       const baseResult = present(outcome);
-      const baseData = baseResult.content[0].text ? JSON.parse(baseResult.content[0].text) : {};
+      const baseData = baseResult.content[0]?.text ? JSON.parse(baseResult.content[0].text) : {};
 
       return reply({
         ...baseData,

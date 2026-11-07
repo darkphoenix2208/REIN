@@ -40,7 +40,7 @@ export function check(db: Db, m: Mandate, a: CheckInput, now = Date.now(), ext?:
       const status = prior.status === 'reserved' ? 'allowed' : prior.status === 'pending_approval' ? 'pending_approval' : 'blocked';
       return { status, ruleId: prior.ruleId, reason: prior.reason, actionId: a.actionId };
     }
-    const pay = payOf(db, a.captureId);
+    const pay = a.captureId ? payOf(db, a.captureId) : undefined;
 
     // ---- item-scoped path: the amount comes from trusted order data resolved by CAPTURE ID (agent-supplied order ids are never used)
     let amountCents = a.amountCents;
@@ -76,7 +76,7 @@ export function check(db: Db, m: Mandate, a: CheckInput, now = Date.now(), ext?:
     let d: Decision = decide({ amountCents, currency: a.currency }, m, {
       pay,
       windowSum: windowSum(db, a.sessionId, now, a.actionId),
-      dup: isDup(db, a.sessionId, a.captureId, amountCents, now, a.actionId, m.dupWindowMs),
+      dup: a.captureId ? isDup(db, a.sessionId, a.captureId, amountCents, now, a.actionId, m.dupWindowMs) : false,
       now,
       approved: !!grant,
       ...(ext ? { ext } : {}),

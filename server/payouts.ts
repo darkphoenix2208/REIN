@@ -19,9 +19,6 @@ export async function sendPayout(
   request: PayoutRequest,
   senderItemId: string
 ): Promise<PayoutResult> {
-  const token = await client.getToken();
-  const url = `${client.baseUrl}/v1/payments/payouts`;
-
   const body = {
     sender_batch_header: {
       sender_batch_id: senderItemId,
@@ -42,21 +39,7 @@ export async function sendPayout(
     ],
   };
 
-  const response = await client.fetchImpl(url, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify(body),
-  });
-
-  const text = await response.text();
-  if (!response.ok) {
-    throw new Error(`PayPal payout failed: ${response.status} ${text}`);
-  }
-
-  const data = JSON.parse(text);
+  const data = await client.request<any>('POST', '/v1/payments/payouts', { body, requestId: senderItemId });
   return {
     payoutId: data.batch_header?.payout_batch_id || 'UNKNOWN',
     payoutItemId: data.items?.[0]?.payout_item_id || 'UNKNOWN',
