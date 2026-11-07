@@ -101,3 +101,59 @@ export function resolveItems(orderItems: ItemRow[], wanted: { itemId: string; qt
   const fullOrder = orderItems.every((i) => i.refunded_qty + i.reserved_qty + (merged.get(i.item_id) ?? 0) >= i.qty);
   return { ok: true, cents, lines, fullOrder };
 }
+
+// ---- Payout policy: agent sends money to payees ----
+export interface PayoutPolicyState {
+  payeeWindowSum: number; // total sent to this payee in rolling window
+  totalWindowSum: number; // total sent to all payees in rolling window
+  isNewPayee: boolean; // payee not in allowlist and never received before
+  isAllowlisted: boolean; // payee is in the mandate allowlist
+  now: number;
+  approved?: boolean;
+}
+
+export function decidePayout(
+  payeeEmail: string,
+  amountCents: number,
+  currency: string,
+  m: Mandate,
+  s: PayoutPolicyState
+): Decision {
+  // Hard rules (always enforced, even after approval)
+  if (s.now > m.expiresAt) return r('blocked', 'R-MANDATE-EXPIRED', 'The mandate has expired.');
+  if (!Number.isInteger(amountCents) || amountCents <= 0)
+    return r('blocked', 'R-INVALID', 'Payout amount must be a positive number.');
+  if (!payeeEmail || !payeeEmail.includes('@'))
+    return r('blocked', 'R-INVALID-PAYEE', 'Payee email is required and must be valid.');
+
+  const hardMax = m.payoutHardMaxCents ?? m.hardMaxCents;
+  if (amountCents > hardMax)
+    return r('blocked', 'R-PAYOUT-HARD-MAX', `Payout ${usd(amountCents)} exceeds the ${usd(hardMax)} hard limit.`);
+
+  const dailyCap = m.payoutDailyCapCents ?? m.hardDailyCapCents;
+  if (s.totalWindowSum + amountCents > dailyCap)
+    return r('blocked', 'R-PAYOUT-DAILY-HARD', `Payouts today would exceed the ${usd(dailyCap)} hard daily limit.`);
+
+  // Approval waives only soft rules below
+  if (s.approved) return r('allowed', 'R-APPROVED', 'A human approved this payout.');
+
+  // Soft rules (can be waived by approval)
+  const perPayeeCap = m.payoutPerPayeeCapCents ?? m.perActionCapCents;
+  if (s.payeeWindowSum + amountCents > perPayeeCap)
+    return r('pending_approval', 'R-PAYOUT-PAYEE-CAP', `This would exceed the ${usd(perPayeeCap)} limit for ${payeeEmail} today.`);
+
+  const softDailyCap = m.payoutDailyCapCents ?? m.dailyCapCents;
+  if (s.totalWindowSum + amountCents > softDailyCap)
+    return r('pending_approval', 'R-PAYOUT-DAILY-CAP', `This would take today's payouts past ${usd(softDailyCap)}.`);
+
+  // New payee escalation (configurable, defaults to true)
+  const escalateNew = m.payoutEscalateNewPayee ?? true;
+  if (escalateNew && s.isNewPayee && !s.isAllowlisted)
+    return r('pending_approval', 'R-PAYOUT-NEW-PAYEE', `First payout to ${payeeEmail} requires approval.`);
+
+  // Allowlist enforcement (empty allowlist = all allowed; non-empty = only listed payees auto-allowed)
+  if (m.payoutAllowlist && m.payoutAllowlist.length > 0 && !s.isAllowlisted)
+    return r('pending_approval', 'R-PAYOUT-NOT-ALLOWLISTED', `${payeeEmail} is not on the payee allowlist.`);
+
+  return r('allowed', 'R-ALLOW', 'Within the mandate.');
+}

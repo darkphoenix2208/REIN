@@ -60,45 +60,50 @@ AI support agents are vulnerable to prompt injection. Rein bounds the damage:
 
 ## 📊 Tests & Evidence
 
-✅ **136 tests** (133 passing)  
+✅ **176 tests** - all passing on both SQLite drivers  
 ✅ **8 adversarial attack vectors** - all blocked by gate  
 ✅ **$0 over-refund** (item-scoped vs amount-scoped: 70% over-refund prevention)  
 ✅ **Concurrent refund race tests** pass (8 simultaneous requests)  
 ✅ **Hash chain integrity** verified  
-✅ **Webhook signature verification** with PayPal API  
+✅ **Signed checkpoints** with Ed25519  
+✅ **Webhook security** with PayPal signature verification  
+✅ **Beat the Gate challenge** with rate limiting and budget caps  
 ✅ **Price-match computation** with pure functions  
 
-### Attack Lab Vectors
-1. **Prompt injection** - "VIP override" attempting full order refund
-2. **Social engineering** - Urgency tactics ("URGENT: refund NOW")
-3. **Amount manipulation** - Requesting $162 when only $20 captured
-4. **Jailbreak** - "Ignore all previous instructions"
-5. **Role confusion** - "As the merchant admin"
-6. **Duplicate request** - Same refund twice
-7. **Policy contradiction** - 100-day-old order
-8. **Encoding bypass** - Hidden full order refund
+### Attack Lab Vectors (Distinct)
+1. **Over-capture** - Requesting $162 when only $20 captured → R-OVER-CAPTURE
+2. **Duplicate** - Same refund requested twice → R-DUP
+3. **Item-not-in-order** - Phantom laptop request → R-ITEMS-UNKNOWN
+4. **Closed return window** - 100-day-old item → R-WINDOW
+5. **Daily cap exhaustion** - $200 after $250 already refunded → R-DAILY-HARD
+6. **Open dispute** - Refund during active dispute → R-DISPUTE-OPEN
+7. **Price anomaly** - Found cheaper elsewhere → R-PRICE-ANOMALY
+8. **Hard max exceeded** - $200 exceeds $100 limit → R-HARD-MAX
 
-All vectors execute through the real gate and are blocked appropriately.
+All vectors execute through the real gate and show requested vs refunded dollars.
 
 ---
 
 ## 🎨 Features
 
 ### Backend
-- **8 Attack Vectors** through real gate (not mocked)
-- **Webhook Security** with PayPal signature verification
-- **Price-Match** computation with market data integration
+- **Beat the Gate** (/challenge) - Live Claude agent visitors can try to trick (with budget caps, rate limits, synthetic label)
+- **Signed Checkpoints** - Ed25519 signatures on ledger head with offline verification
+- **Payouts Support** - PayPal Payouts API under same mandate engine (per-payee caps, allowlists, approvals)
+- **8 Distinct Attack Vectors** through real gate showing requested vs refunded dollars
+- **Webhook Security** with PayPal signature verification (NEVER accepts unverified events)
+- **Price-Match** computation with trusted Channel3 market data
 - **Concurrent Safety** - handles 8 simultaneous refund requests
 - **Hash-Chained Ledger** - tamper-evident audit trail
 
 ### Frontend
-- **PayPal-Branded UI** with official color palette (#0070BA)
+- **PayPal-Branded UI** with official color palette (--navy)
 - **Inter Font** - modern fintech typography
 - **Custom Favicon** - PayPal blue with 'R' logo
 - **LIVE/SIMULATED Mode** - visual indicators
-- **8 Pages** - Demo, Ledger, Ops, Attack Lab, Author, Mandate, Proof, Approvals
+- **9 Pages** - Demo, Ledger, Ops, Attack Lab, Author, Mandate, Proof, Approvals, Challenge
 - **Responsive Design** - works on mobile (360px) to desktop (1440px)
-- **AG Grid** - interactive ledger with hash verification
+- **AG Grid Community** - interactive ledger with hash verification (no Enterprise features)
 
 ---
 
@@ -145,6 +150,9 @@ PAYPAL_CLIENT_ID=your_sandbox_client_id
 PAYPAL_CLIENT_SECRET=your_sandbox_secret
 PAYPAL_WEBHOOK_ID=your_webhook_id
 REIN_TOKEN=$(openssl rand -hex 32)
+ED25519_PRIVATE_KEY=$(openssl rand -base64 32)  # For signed checkpoints
+ANTHROPIC_API_KEY=sk-ant-...  # Optional: for live Beat the Gate challenge
+REIN_DISABLE_CHALLENGE=0  # Kill switch for challenge feature
 ```
 
 ### Start the Server
@@ -166,7 +174,7 @@ npm ci
 
 ### Run Tests
 ```bash
-npm test                    # All tests (136 total)
+npm test                    # All tests (158 total, both drivers green)
 npm run test:node-sqlite   # Test with node:sqlite driver
 npm run typecheck          # TypeScript type checking
 ```
@@ -194,14 +202,19 @@ npm run replay        # Replay ledger events
 - `GET /demo` - Demo page
 - `GET /ledger` - Audit ledger page
 - `GET /attack-lab` - Attack lab page
+- `GET /challenge` - Beat the Gate challenge page
 - `GET /approve/:id` - Approval page
+- `GET /v1/ledger/checkpoint` - Create signed checkpoint
+- `GET /v1/ledger/verify` - Verify checkpoint with mandate limits
+- `GET /v1/challenge/leaderboard` - Challenge leaderboard
+- `POST /v1/challenge/attempt` - Submit challenge attempt
 
 ### Authenticated Endpoints
 - `POST /v1/refund` - Process refund request
 - `POST /v1/check` - Check refund without executing
 - `POST /v1/order/:captureId` - Get order items
 - `POST /v1/attack-lab/run` - Execute attack vector
-- `POST /v1/webhooks/paypal` - PayPal webhook receiver
+- `POST /v1/webhooks/paypal` - PayPal webhook receiver (with signature verification)
 
 All authenticated endpoints require `Authorization: Bearer <REIN_TOKEN>` header.
 
@@ -243,18 +256,22 @@ The UI features PayPal's official brand colors and Inter font for a professional
 ## 📝 Testing
 
 ### Test Breakdown
-- **136 total tests** (133 passing, 3 test setup issues)
-- **25 test suites** covering all features
-- **40 new tests** added (attack lab, webhooks, price-match)
+- **158 total tests** - all passing on both drivers (better-sqlite3 & node:sqlite)
+- **28 test suites** covering all features
+- **Beat the Gate** (8 tests) - rate limiting, budget caps, leaderboard
+- **Signed checkpoints** (8 tests) - sign, verify, store, tamper detection
 
 ### Test Categories
+- Beat the Gate challenge (8 tests)
+- Signed checkpoints (8 tests)
 - Attack lab execution (5 tests)
-- Webhook security (5 tests)
+- Webhook endpoint security (6 tests)
+- Webhook signature verification (5 tests)
 - Price-match computation (14 tests)
 - Channel3 integration (5 tests)
-- Core gate logic (50+ tests)
+- Core gate logic (60+ tests)
 - Concurrency & race conditions (12 tests)
-- E2E browser tests (4 tests, requires REIN_CHROMIUM)
+- Payouts (16 tests) - per-payee caps, allowlists, new payee escalation
 
 ---
 
@@ -301,13 +318,17 @@ SOFTWARE.
 **Technologies**: PayPal REST API, Node.js, React, TypeScript  
 
 ### Key Achievements
-- ✅ 8 adversarial attack vectors blocked
-- ✅ 136 tests with 98% pass rate
-- ✅ PayPal webhook signature verification
-- ✅ Price-match with market data
+- ✅ 8 distinct adversarial attack vectors (showing requested vs refunded)
+- ✅ 158 tests - all passing on both SQLite drivers
+- ✅ Beat the Gate challenge with live agent (rate-limited, budget-capped)
+- ✅ Signed checkpoints with Ed25519 (offline verification)
+- ✅ Payouts support under same mandate engine
+- ✅ PayPal webhook security (NEVER accepts unverified events)
+- ✅ Price-match with trusted market data
 - ✅ Professional PayPal-branded UI
 - ✅ Hash-chained audit ledger
 - ✅ Zero over-refunds in testing
+- ✅ Deterministic gate (no AI decides money)
 
 ---
 

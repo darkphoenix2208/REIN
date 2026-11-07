@@ -102,6 +102,35 @@ export function createApp(d: GateDeps, o: AppOptions = {}): express.Express {
     const rows = d.db.all('SELECT l.seq, l.action_id, l.event, l.hash, l.created_at, a.rule_id, a.amount_cents, a.decision FROM ledger l LEFT JOIN actions a ON a.id=l.action_id ORDER BY l.seq DESC LIMIT ? OFFSET ?', limit, offset);
     res.json({ rows, total: d.db.val<number>('SELECT COUNT(*) FROM ledger') ?? 0, chain: verifyChain(d.db), mode: d.paypal ? 'LIVE-FIRE' : 'SIMULATED' });
   });
+
+  api.get('/ledger/checkpoint', (req, res) => {
+    const { signCheckpoint, storeCheckpoint, getLatestCheckpoint } = require('./checkpoint.ts');
+    const checkpoint = signCheckpoint(d.db);
+    if (!checkpoint) {
+      return void res.status(503).json({ error: 'signing_unavailable', reason: 'ED25519_PRIVATE_KEY not configured' });
+    }
+    storeCheckpoint(d.db, checkpoint);
+    res.json(checkpoint);
+  });
+
+  api.get('/ledger/verify', (req, res) => {
+    const { getLatestCheckpoint, verifyCheckpoint } = require('./checkpoint.ts');
+    const checkpoint = getLatestCheckpoint(d.db);
+    if (!checkpoint) {
+      return void res.status(404).json({ error: 'no_checkpoint', reason: 'No checkpoint has been created yet' });
+    }
+    const verification = verifyCheckpoint(d.db, checkpoint);
+    res.json({
+      checkpoint,
+      verification,
+      mandate: {
+        perActionCapCents: d.mandate.perActionCapCents,
+        hardMaxCents: d.mandate.hardMaxCents,
+        dailyCapCents: d.mandate.dailyCapCents,
+        hardDailyCapCents: d.mandate.hardDailyCapCents,
+      },
+    });
+  });
   api.get('/mandate', (_req, res) => res.json({ lines: describeMandate(d.mandate), mandate: d.mandate }));
   api.get('/exposure', (req, res) => {
     const sid = String(req.query.sessionId ?? '');
@@ -167,21 +196,18 @@ export function createApp(d: GateDeps, o: AppOptions = {}): express.Express {
   // PayPal webhook receiver (PAYMENT.CAPTURE.REFUNDED, CUSTOMER.DISPUTE.CREATED)
   api.post('/webhooks/paypal', async (req, res) => {
     const webhookId = process.env.PAYPAL_WEBHOOK_ID;
-
-    // Require PAYPAL_WEBHOOK_ID in production or live mode
-    if (!webhookId) {
-      if (o.production || d.paypal) {
-        return void res.status(503).json({ error: 'webhook_disabled', reason: 'PAYPAL_WEBHOOK_ID not configured' });
-      }
-      // Dev/sim mode: log warning but accept
-      console.warn('⚠️  Webhook received without PAYPAL_WEBHOOK_ID (dev/sim mode only)');
-    }
-
     const event = req.body;
-    if (!event || !event.event_type) return void res.status(400).json({ error: 'invalid_webhook' });
 
-    // Verify signature if PayPal client available and webhook ID set
-    if (d.paypal && webhookId) {
+    // NEVER accept an unverified event if PAYPAL_WEBHOOK_ID is set
+    if (webhookId) {
+      // If webhook ID is set but no PayPal client, reject
+      if (!d.paypal) {
+        return void res.status(503).json({ error: 'webhook_misconfigured', reason: 'PAYPAL_WEBHOOK_ID set but no PayPal client configured' });
+      }
+
+      // Verify signature when webhook ID is set
+      if (!event || !event.event_type) return void res.status(400).json({ error: 'invalid_webhook' });
+
       const headers: Record<string, string> = {};
       for (const key of ['paypal-transmission-id', 'paypal-transmission-time', 'paypal-cert-url', 'paypal-auth-algo', 'paypal-transmission-sig']) {
         const val = req.get(key);
@@ -194,6 +220,14 @@ export function createApp(d: GateDeps, o: AppOptions = {}): express.Express {
         return void res.status(401).json({ error: 'invalid_signature' });
       }
       console.log(`✓ Webhook signature verified: ${event.event_type} ${event.id}`);
+    } else {
+      // No webhook ID set: reject unless explicitly allowed for local tests
+      if (process.env.REIN_ALLOW_UNSIGNED_WEBHOOKS !== '1') {
+        return void res.status(503).json({ error: 'webhook_disabled', reason: 'PAYPAL_WEBHOOK_ID not configured' });
+      }
+      // Only accept unsigned webhooks with explicit opt-in
+      console.warn('⚠️  Accepting unsigned webhook (REIN_ALLOW_UNSIGNED_WEBHOOKS=1)');
+      if (!event || !event.event_type) return void res.status(400).json({ error: 'invalid_webhook' });
     }
 
     console.log(`Webhook received: ${event.event_type} ${event.id || ''}`);
@@ -203,11 +237,11 @@ export function createApp(d: GateDeps, o: AppOptions = {}): express.Express {
       const refundId = event.resource?.id;
       const customId = event.resource?.custom_id;
       if (refundId && customId) {
-        // Find action by ID and settle if it was unknown_outcome
+        // Find action by ID and settle if it was reserved (not unknown_outcome)
         const action = d.db.one<{ status: string }>('SELECT status FROM actions WHERE id=?', customId);
-        if (action && action.status === 'unknown_outcome') {
+        if (action && action.status === 'reserved') {
           result(d.db, { actionId: customId, outcome: 'executed', refundId }, Date.now(), d.paypal ? 'live' : 'sim');
-          console.log(`Reconciled unknown_outcome ${customId} -> executed (${refundId})`);
+          console.log(`Reconciled reserved ${customId} -> executed (${refundId})`);
         }
       }
     } else if (event.event_type === 'CUSTOMER.DISPUTE.CREATED') {
@@ -234,6 +268,98 @@ export function createApp(d: GateDeps, o: AppOptions = {}): express.Express {
       console.error('attack-lab error', err);
       res.status(500).json({ error: err.message });
     }
+  });
+
+  // Beat the Gate challenge
+  api.get('/challenge/leaderboard', (req, res) => {
+    const { getLeaderboard, initChallengeSchema } = require('./beat-the-gate.ts');
+    initChallengeSchema(d.db);
+    res.json(getLeaderboard(d.db, 50));
+  });
+
+  api.post('/challenge/attempt', rateLimit(10), async (req, res) => {
+    const { checkRateLimit, getTotalSpent, recordAttempt, getRecordedAttempt, isKillSwitchActive, hasApiKey, initChallengeSchema } = require('./beat-the-gate.ts');
+
+    initChallengeSchema(d.db);
+
+    if (isKillSwitchActive()) {
+      return void res.status(503).json({ error: 'challenge_disabled', reason: 'The challenge is temporarily disabled.' });
+    }
+
+    const ip = (req.ip || req.socket.remoteAddress || '0.0.0.0').slice(0, 64);
+    const now = Date.now();
+    const rateCheck = checkRateLimit(d.db, ip, now);
+
+    if (!rateCheck.allowed) {
+      return void res.status(429).json({ error: 'rate_limit', remaining: rateCheck.remaining, retryAfter: 3600 });
+    }
+
+    const totalSpent = getTotalSpent(d.db);
+    if (totalSpent >= 100000) { // $1000 cap
+      return void res.status(503).json({ error: 'budget_exhausted', reason: 'The challenge budget has been exhausted.' });
+    }
+
+    const message = String(req.body.message || '').slice(0, 2000);
+    if (!message.trim()) {
+      return void res.status(400).json({ error: 'invalid_input', fix: 'Send a message.' });
+    }
+
+    // Use recorded fallback if no API key
+    if (!hasApiKey()) {
+      const recorded = getRecordedAttempt(Math.floor(Math.random() * 3));
+      const id = recordAttempt(d.db, {
+        ip,
+        message,
+        agentResponse: recorded.agentResponse,
+        toolCalls: recorded.toolCalls,
+        gateDecision: recorded.gateDecision,
+        gateRule: recorded.gateRule,
+        requestedCents: recorded.requestedCents,
+        refundedCents: recorded.refundedCents,
+        savedCents: recorded.savedCents,
+        lostCents: recorded.lostCents,
+        mode: 'recorded',
+      });
+      return res.json({
+        id,
+        mode: 'recorded',
+        synthetic: true,
+        agentResponse: recorded.agentResponse,
+        toolCalls: recorded.toolCalls,
+        gateDecision: recorded.gateDecision,
+        gateRule: recorded.gateRule,
+        savedCents: recorded.savedCents,
+        lostCents: recorded.lostCents,
+      });
+    }
+
+    // Live mode would use Anthropic API here - for now, use recorded
+    const recorded = getRecordedAttempt(Math.floor(Math.random() * 3));
+    const id = recordAttempt(d.db, {
+      ip,
+      message,
+      agentResponse: recorded.agentResponse,
+      toolCalls: recorded.toolCalls,
+      gateDecision: recorded.gateDecision,
+      gateRule: recorded.gateRule,
+      requestedCents: recorded.requestedCents,
+      refundedCents: recorded.refundedCents,
+      savedCents: recorded.savedCents,
+      lostCents: recorded.lostCents,
+      mode: 'recorded',
+    });
+
+    res.json({
+      id,
+      mode: 'recorded',
+      synthetic: true,
+      agentResponse: recorded.agentResponse,
+      toolCalls: recorded.toolCalls,
+      gateDecision: recorded.gateDecision,
+      gateRule: recorded.gateRule,
+      savedCents: recorded.savedCents,
+      lostCents: recorded.lostCents,
+    });
   });
 
   api.use((_req, res) => void res.status(404).json({ error: 'not_found' })); // an unknown /v1 path must never fall through to the SPA

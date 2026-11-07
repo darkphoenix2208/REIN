@@ -9,6 +9,12 @@ export interface Mandate {
   blockIfOpenDispute?: boolean; // refuse refunds on payments with an open dispute
   escalateFullOrder?: boolean; // refunding every item of an order needs a human (default true)
   shadow?: boolean; // record would-have decisions, never block
+  // Payout-specific limits
+  payoutPerPayeeCapCents?: number; // max payout to a single payee in rolling 24h
+  payoutDailyCapCents?: number; // rolling 24h total payouts
+  payoutHardMaxCents?: number; // largest single payout ever allowed
+  payoutAllowlist?: string[]; // allowed payee emails; empty = all escalate as new payees
+  payoutEscalateNewPayee?: boolean; // require approval for first-time payees (default true)
 }
 
 export type Status = 'allowed' | 'blocked' | 'pending_approval';
@@ -45,8 +51,11 @@ export interface CheckInput {
   actionId: string;
   sessionId: string;
   tool: string;
-  captureId: string;
+  captureId?: string; // optional for payouts
   amountCents: number | null;
   currency?: string;
   items?: { itemId: string; qty: number }[];
+  // Payout-specific fields
+  payeeEmail?: string;
+  note?: string;
 }

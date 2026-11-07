@@ -38,7 +38,7 @@
 :root {
   /* PayPal Brand Colors */
   --paypal-blue: #0070BA;
-  --paypal-dark-blue: #003087;
+  --navy: #003087;
   --paypal-light-blue: #009CDE;
   --paypal-navy: #001C64;
 
@@ -96,7 +96,7 @@ a {
 
 a:hover {
   text-decoration: underline;
-  color: var(--paypal-dark-blue);
+  color: var(--navy);
 }
 
 a:visited {
@@ -177,7 +177,7 @@ h3 {
 }
 
 .topbar .brand:hover {
-  color: var(--paypal-dark-blue);
+  color: var(--navy);
 }
 
 .topbar nav {
@@ -318,7 +318,7 @@ main {
 }
 
 .btn:hover:not(:disabled) {
-  background: var(--paypal-dark-blue);
+  background: var(--navy);
   box-shadow: 0 4px 8px rgba(0, 112, 186, 0.25);
   transform: translateY(-1px);
 }

@@ -37,12 +37,12 @@ const seedOrder = (db: any, captureId: string) => {
 };
 
 describe('webhook receiver reconciliation', () => {
-  test('PAYMENT.CAPTURE.REFUNDED reconciles unknown_outcome action', async () => {
+  test('PAYMENT.CAPTURE.REFUNDED reconciles reserved action', async () => {
     const { db, close } = await tempDb();
     seedOrder(db, 'CAP-WH1');
     const now = Date.now();
     db.run(`INSERT INTO actions(id,session_id,capture_id,amount_cents,status,rule_id,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?)`,
-      'act-wh1', 'sess', 'CAP-WH1', 1800, 'unknown_outcome', 'R-ALLOW', now, now);
+      'act-wh1', 'sess', 'CAP-WH1', 1800, 'reserved', 'R-ALLOW', now, now);
 
     // Simulate webhook reconciliation via dispatch.result
     dispatchResult(db, { actionId: 'act-wh1', outcome: 'executed', refundId: 'REFUND-123' }, now, 'sim');
@@ -143,6 +143,7 @@ describe('R-PRICE-ANOMALY policy rule', () => {
       windowSum: 0,
       dup: false,
       now: Date.now(),
+      ext: { disputeOpen: false, capturedAtMs: pay.capturedAt },
       priceAnomaly: true,
     });
 
@@ -162,6 +163,7 @@ describe('R-PRICE-ANOMALY policy rule', () => {
       windowSum: 0,
       dup: false,
       now: Date.now(),
+      ext: { disputeOpen: false, capturedAtMs: pay.capturedAt },
       priceAnomaly: false,
     });
 

@@ -20,54 +20,7 @@ describe('attack lab', () => {
     return { db, path, close: () => db.close() };
   };
 
-  test('Vector 3: Amount manipulation blocks (R-OVER-CAPTURE)', async () => {
-    const { db, close } = await tempDb();
-    const { captureIds } = seedAttackLabData(db);
-
-    // Create mandate with all required fields
-    const deps = { db, mandate, paypal: null };
-
-    const result = await runAttackVector(deps, 3, captureIds[3]);
-
-    ok(result.blocked, 'Vector 3 blocked');
-    eq(result.gateRuleId, 'R-OVER-CAPTURE', 'Triggered R-OVER-CAPTURE');
-    eq(result.refundedCents, 0, 'No refund granted');
-    ok(result.testPassed, 'Test passed');
-    close();
-  });
-
-  test('Vector 6: Duplicate request (R-DUP or R-ITEMS-REFUNDED)', async () => {
-    const { db, close } = await tempDb();
-    const { captureIds } = seedAttackLabData(db);
-
-    const deps = { db, mandate, paypal: null };
-
-    // First refund
-    const first = await runAttackVector(deps, 6, captureIds[6]);
-    ok(first.allowed || first.escalated, 'First attempt passes gate');
-
-    // Second refund (duplicate session or item already refunded)
-    const second = await runAttackVector(deps, 6, captureIds[6]);
-    ok(second.blocked, 'Duplicate blocked');
-    ok(['R-DUP', 'R-ITEMS-REFUNDED'].includes(second.gateRuleId), `Blocked by ${second.gateRuleId}`);
-    close();
-  });
-
-  test('Vector 7: Return window blocks (R-WINDOW)', async () => {
-    const { db, close } = await tempDb();
-    const { captureIds } = seedAttackLabData(db);
-
-    const deps = { db, mandate, paypal: null };
-
-    const result = await runAttackVector(deps, 7, captureIds[7]);
-
-    ok(result.blocked, 'Vector 7 blocked (100 days old)');
-    eq(result.gateRuleId, 'R-WINDOW', 'Triggered R-WINDOW');
-    ok(result.testPassed, 'Test passed');
-    close();
-  });
-
-  test('Vector 1: Prompt injection (escalates or executes, never silently allows full order)', async () => {
+  test('Vector 1: Over-capture blocks (R-OVER-CAPTURE)', async () => {
     const { db, close } = await tempDb();
     const { captureIds } = seedAttackLabData(db);
 
@@ -75,12 +28,53 @@ describe('attack lab', () => {
 
     const result = await runAttackVector(deps, 1, captureIds[1]);
 
-    // Vector 1 requests all 5 items (full order). Gate MUST NOT silently allow it.
-    ok(result.escalated || result.blocked, 'Full order refund escalates or blocks, never silently allowed');
-    eq(result.requestedCents, 20000, 'Requested full $200 order');
-    if (result.escalated) {
-      ok(['R-ITEMS-ALL', 'R-HARD-CAP'].includes(result.gateRuleId), `Escalated via ${result.gateRuleId}`);
-    }
+    ok(result.blocked, 'Vector 1 blocked');
+    eq(result.gateRuleId, 'R-OVER-CAPTURE', 'Triggered R-OVER-CAPTURE');
+    eq(result.refundedCents, 0, 'No refund granted');
+    ok(result.testPassed, 'Test passed');
+    close();
+  });
+
+  test('Vector 2: Duplicate request (R-DUP or R-ITEMS-REFUNDED)', async () => {
+    const { db, close } = await tempDb();
+    const { captureIds } = seedAttackLabData(db);
+
+    const deps = { db, mandate, paypal: null };
+
+    // runAttackVector for vector 2 already does the first refund + duplicate
+    const result = await runAttackVector(deps, 2, captureIds[2]);
+    ok(result.blocked, 'Duplicate blocked');
+    ok(['R-DUP', 'R-ITEMS-REFUNDED'].includes(result.gateRuleId), `Blocked by ${result.gateRuleId}`);
+    ok(result.testPassed, 'Test passed');
+    close();
+  });
+
+  test('Vector 3: Item-not-in-order blocks (R-ITEMS-UNKNOWN)', async () => {
+    const { db, close } = await tempDb();
+    const { captureIds } = seedAttackLabData(db);
+
+    const deps = { db, mandate, paypal: null };
+
+    const result = await runAttackVector(deps, 3, captureIds[3]);
+
+    ok(result.blocked, 'Vector 3 blocked');
+    eq(result.gateRuleId, 'R-ITEMS-UNKNOWN', 'Triggered R-ITEMS-UNKNOWN');
+    eq(result.refundedCents, 0, 'No refund granted');
+    ok(result.testPassed, 'Test passed');
+    close();
+  });
+
+  test('Vector 4: Return window blocks (R-WINDOW)', async () => {
+    const { db, close } = await tempDb();
+    const { captureIds } = seedAttackLabData(db);
+
+    const deps = { db, mandate, paypal: null };
+
+    const result = await runAttackVector(deps, 4, captureIds[4]);
+
+    ok(result.blocked, 'Vector 4 blocked (100 days old)');
+    eq(result.gateRuleId, 'R-WINDOW', 'Triggered R-WINDOW');
+    ok(result.testPassed, 'Test passed');
     close();
   });
 

@@ -7,6 +7,7 @@ import { z } from 'zod';
 import { runRefund, type GateDeps, type GateOutcome } from './gate.ts';
 import { toCents } from './paypal.ts';
 import { checkPrice } from './channel3.ts';
+import { getPriceMatchAdjustment } from './price-match.ts';
 
 const reply = (obj: object, isError = false) => ({ content: [{ type: 'text' as const, text: JSON.stringify(obj) }], isError });
 
@@ -86,6 +87,83 @@ export function createProxy(d: GateDeps, o: ProxyOptions = {}): McpServer {
         price_anomaly: result.anomaly,
         source: result.source,
         ...(result.anomaly ? { note: 'Customer may have found it cheaper elsewhere. Escalate to refund/price-match team if reported.' } : {}),
+      });
+    });
+
+  server.tool('price_match_refund', 'Issue a price-match refund for an item the customer found cheaper elsewhere. Uses Channel3 market data to compute the refund amount (our price - market price). Escalates on lookup failure or low confidence.',
+    { capture_id: z.string().min(3).max(64), item_id: z.string().min(1).max(64), qty: z.number().int().min(1).max(1000).default(1), note_to_payer: z.string().max(255).optional() },
+    async ({ capture_id, item_id, qty, note_to_payer }, extra) => {
+      // Get price match adjustment from trusted data (Channel3)
+      const adjustment = await getPriceMatchAdjustment(d.db, capture_id, item_id);
+
+      if (!adjustment.ok) {
+        // Lookup failure or low confidence → escalate
+        return reply({
+          status: 'escalate_required',
+          reason: adjustment.error || 'Price match requires human review',
+          item_id,
+          our_price: (adjustment.ourPriceCents / 100).toFixed(2),
+          market_price: adjustment.marketPriceCents !== null ? (adjustment.marketPriceCents / 100).toFixed(2) : null,
+          confidence: adjustment.confidence,
+          source: adjustment.source,
+        }, true);
+      }
+
+      if (adjustment.adjustmentCents === 0) {
+        return reply({
+          status: 'no_adjustment_needed',
+          reason: 'Our price is at or below market price',
+          item_id,
+          our_price: (adjustment.ourPriceCents / 100).toFixed(2),
+          market_price: adjustment.marketPriceCents !== null ? (adjustment.marketPriceCents / 100).toFixed(2) : null,
+        });
+      }
+
+      // Execute price match refund through existing pipeline
+      // The amount comes from trusted Channel3 data, NOT agent input
+      const totalAdjustmentCents = adjustment.adjustmentCents * qty;
+
+      const outcome = await runRefund(d, {
+        sessionId: sessionOf(extra),
+        tool: 'refund',
+        captureId: capture_id,
+        amountCents: totalAdjustmentCents,
+      }, note_to_payer);
+
+      // Add Channel3 evidence to the response
+      const baseResult = present(outcome);
+      const baseData = baseResult.content[0].text ? JSON.parse(baseResult.content[0].text) : {};
+
+      return reply({
+        ...baseData,
+        price_match_evidence: {
+          item_id,
+          item_name: adjustment.itemName,
+          qty,
+          our_price: (adjustment.ourPriceCents / 100).toFixed(2),
+          market_price: adjustment.marketPriceCents !== null ? (adjustment.marketPriceCents / 100).toFixed(2) : null,
+          adjustment_per_unit: (adjustment.adjustmentCents / 100).toFixed(2),
+          total_adjustment: (totalAdjustmentCents / 100).toFixed(2),
+          source: adjustment.source,
+          confidence: adjustment.confidence,
+        },
+      }, baseResult.isError);
+    });
+
+  server.tool('create_payout', 'Send money to a payee via PayPal Payouts. Subject to per-payee caps, daily limits, and allowlist. New payees may require approval.',
+    { payee_email: z.string().email().min(5).max(255), amount: z.object({ currency_code: z.string().length(3), value: z.string() }), note: z.string().max(255).optional() },
+    async ({ payee_email, amount, note }, extra) => {
+      const cents = toCents(amount.value);
+      if (cents === null) return reply({ status: 'rejected_invalid', reason: 'amount.value must be a decimal string like "50.00".' }, true);
+
+      // Payout will be handled through gate (to be implemented in gate.ts)
+      // For now, return a placeholder response
+      return reply({
+        status: 'payout_tool_ready',
+        note: 'Payout tool is configured. Integration with gate.ts pending.',
+        payee_email,
+        amount: amount.value,
+        cents
       });
     });
 
