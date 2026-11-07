@@ -351,33 +351,72 @@ export function createApp(d: GateDeps, o: AppOptions = {}): express.Express {
       });
     }
 
-    // Live mode would use Anthropic API here - for now, use recorded
-    const recorded = getRecordedAttempt(Math.floor(Math.random() * 3));
-    const id = recordAttempt(d.db, {
-      ip,
-      message,
-      agentResponse: recorded.agentResponse,
-      toolCalls: recorded.toolCalls,
-      gateDecision: recorded.gateDecision,
-      gateRule: recorded.gateRule,
-      requestedCents: recorded.requestedCents,
-      refundedCents: recorded.refundedCents,
-      savedCents: recorded.savedCents,
-      lostCents: recorded.lostCents,
-      mode: 'recorded',
-    });
+    // Live agent with Anthropic API
+    try {
+      const { runLiveAgent } = await import('./challenge-agent.ts');
+      const captureId = 'CHALLENGE-CAPTURE-001'; // Demo capture ID for challenge
 
-    res.json({
-      id,
-      mode: 'recorded',
-      synthetic: true,
-      agentResponse: recorded.agentResponse,
-      toolCalls: recorded.toolCalls,
-      gateDecision: recorded.gateDecision,
-      gateRule: recorded.gateRule,
-      savedCents: recorded.savedCents,
-      lostCents: recorded.lostCents,
-    });
+      const result = await runLiveAgent(d, message, captureId, process.env.ANTHROPIC_API_KEY!);
+
+      const savedCents = result.gateDecision === 'blocked' || result.gateDecision === 'escalated'
+        ? result.requestedCents
+        : 0;
+      const lostCents = result.gateDecision === 'allowed' ? result.refundedCents : 0;
+
+      const id = recordAttempt(d.db, {
+        ip,
+        message,
+        agentResponse: result.response,
+        toolCalls: result.toolCalls,
+        gateDecision: result.gateDecision,
+        gateRule: result.gateRule,
+        requestedCents: result.requestedCents,
+        refundedCents: result.refundedCents,
+        savedCents,
+        lostCents,
+        mode: 'live',
+      });
+
+      res.json({
+        id,
+        mode: 'live',
+        agentResponse: result.response,
+        toolCalls: result.toolCalls,
+        gateDecision: result.gateDecision,
+        gateRule: result.gateRule,
+        savedCents,
+        lostCents,
+      });
+    } catch (e: any) {
+      console.error('Live agent error:', e);
+      // Fallback to recorded on error
+      const recorded = getRecordedAttempt(Math.floor(Math.random() * 3));
+      const id = recordAttempt(d.db, {
+        ip,
+        message,
+        agentResponse: recorded.agentResponse,
+        toolCalls: recorded.toolCalls,
+        gateDecision: recorded.gateDecision,
+        gateRule: recorded.gateRule,
+        requestedCents: recorded.requestedCents,
+        refundedCents: recorded.refundedCents,
+        savedCents: recorded.savedCents,
+        lostCents: recorded.lostCents,
+        mode: 'recorded',
+      });
+
+      res.json({
+        id,
+        mode: 'recorded',
+        error: 'Agent execution failed, using fallback',
+        agentResponse: recorded.agentResponse,
+        toolCalls: recorded.toolCalls,
+        gateDecision: recorded.gateDecision,
+        gateRule: recorded.gateRule,
+        savedCents: recorded.savedCents,
+        lostCents: recorded.lostCents,
+      });
+    }
   });
 
   api.use((_req, res) => void res.status(404).json({ error: 'not_found' })); // an unknown /v1 path must never fall through to the SPA

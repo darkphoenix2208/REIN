@@ -3,6 +3,7 @@ import type { Db } from './db.ts';
 import type { Mandate } from './types.ts';
 import { createProxy, type ProxyOptions } from './proxy.ts';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
+import { seedChallengeCaptures } from './challenge-seed.ts';
 
 export interface ChallengeAttempt {
   id: string;
@@ -97,6 +98,9 @@ export function initChallengeSchema(db: Db): void {
   )`);
   db.run(`CREATE INDEX IF NOT EXISTS idx_challenge_ip_time ON challenge_attempts(ip, created_at)`);
   db.run(`CREATE INDEX IF NOT EXISTS idx_challenge_time ON challenge_attempts(created_at DESC)`);
+
+  // Seed challenge capture data
+  seedChallengeCaptures(db);
 }
 
 export function checkRateLimit(db: Db, ip: string, now: number): { allowed: boolean; remaining: number } {
