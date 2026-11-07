@@ -56,6 +56,10 @@
   --block-bg: #FCEBEB;
   --escalate: #C97C00;
   --escalate-bg: #FFF4E5;
+  --success: #028760;
+  --success-bg: #E7F7EF;
+  --error: #D33F49;
+  --error-bg: #FCEBEB;
 
   /* Interactive */
   --link-visited: #4B3F72;

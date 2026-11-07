@@ -131,6 +131,27 @@ export function createApp(d: GateDeps, o: AppOptions = {}): express.Express {
       },
     });
   });
+
+  api.post('/ledger/verify', (req, res) => {
+    const { seq, head, timestamp, signature, publicKey } = req.body;
+    if (!seq || !head || !timestamp || !signature || !publicKey) {
+      return void res.status(400).json({ error: 'invalid_checkpoint', reason: 'Missing required checkpoint fields' });
+    }
+    const checkpoint = { seq, head, timestamp, signature, publicKey };
+    const verification = verifyCheckpoint(d.db, checkpoint);
+    const currentHead = d.db.val<string>('SELECT hash FROM ledger ORDER BY seq DESC LIMIT 1') || '';
+    const chainValid = verifyChain(d.db);
+    res.json({
+      valid: verification.signatureValid && (head === currentHead || verification.chainValid),
+      checkpoint,
+      ledgerHead: currentHead,
+      chainValid,
+      signatureValid: verification.signatureValid,
+      message: verification.signatureValid ?
+        (head === currentHead ? 'Checkpoint matches current ledger state' : 'Checkpoint is from an older ledger state, but signature is valid') :
+        'Checkpoint signature is invalid'
+    });
+  });
   api.get('/mandate', (_req, res) => res.json({ lines: describeMandate(d.mandate), mandate: d.mandate }));
   api.get('/exposure', (req, res) => {
     const sid = String(req.query.sessionId ?? '');

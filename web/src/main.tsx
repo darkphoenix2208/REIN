@@ -13,6 +13,7 @@ import { Author } from './Author';
 import { Proof } from './Proof';
 import { AttackLab } from './AttackLab';
 import { Ops } from './Ops';
+import { Verify } from './Verify';
 import { ModeChip } from './ui';
 
 function App() {
@@ -30,6 +31,7 @@ function App() {
   else if (p === '/mandate') page = <Mandate />;
   else if (p === '/author') page = <Author />;
   else if (p === '/proof') page = <Proof />;
+  else if (p === '/verify') page = <Verify />;
   else if (p === '/attack-lab') page = <AttackLab />;
   else if (p === '/ops') page = <Ops />;
   else page = <Demo />;
@@ -42,6 +44,7 @@ function App() {
           <a href="/ledger" aria-current={cur('/ledger')} onClick={go('/ledger')}>Ledger</a>
           <a href="/ops" aria-current={cur('/ops')} onClick={go('/ops')}>Ops</a>
           <a href="/attack-lab" aria-current={cur('/attack-lab')} onClick={go('/attack-lab')}>Attack Lab</a>
+          <a href="/verify" aria-current={cur('/verify')} onClick={go('/verify')}>Verify</a>
           <a href="/author" aria-current={cur('/author')} onClick={go('/author')}>Author</a>
           <a href="/mandate" aria-current={cur('/mandate')} onClick={go('/mandate')}>Mandate</a>
           <a href="/proof" aria-current={cur('/proof')} onClick={go('/proof')}>Proof</a>
