@@ -30,7 +30,8 @@ export interface AppOptions {
   demoRunsPerMin?: number;
   fetchImpl?: typeof fetch; // tests
   askImpl?: (prompt: string) => Promise<string>; // tests
-  lockOperatorEndpoints?: boolean; // REIN_LOCK_OPERATOR_ENDPOINTS=1: require the bearer token on /ledger and /exposure too.
+  lockOperatorEndpoints?: boolean;
+  challengeClient?: any; // REIN_LOCK_OPERATOR_ENDPOINTS=1: require the bearer token on /ledger and /exposure too.
   // Off by default so the public demo's own transparency feature (anyone can watch the hash chain) keeps working unauthenticated.
   // /approval/:id and POST /approve stay public regardless: that flow is designed for a human clicking an emailed link with no login,
   // and its secret is the per-action token, not a service-wide bearer.
@@ -343,7 +344,7 @@ export function createApp(d: GateDeps, o: AppOptions = {}): express.Express {
     }
 
     // Use recorded fallback if no API key
-    if (!hasApiKey()) {
+    if (!hasApiKey() && !o.challengeClient) {
       const recorded = getRecordedAttempt(Math.floor(Math.random() * 3));
       const id = recordAttempt(d.db, {
         ip,
@@ -366,6 +367,8 @@ export function createApp(d: GateDeps, o: AppOptions = {}): express.Express {
         toolCalls: recorded.toolCalls,
         gateDecision: recorded.gateDecision,
         gateRule: recorded.gateRule,
+        requestedCents: recorded.requestedCents,
+        refundedCents: recorded.refundedCents,
         savedCents: recorded.savedCents,
         lostCents: recorded.lostCents,
       });
@@ -374,9 +377,10 @@ export function createApp(d: GateDeps, o: AppOptions = {}): express.Express {
     // Live agent with Anthropic API
     try {
       const { runLiveAgent } = await import('./challenge-agent.ts');
-      const captureId = 'CHALLENGE-CAPTURE-001'; // Demo capture ID for challenge
+      const { createFreshChallengeCapture } = await import('./challenge-seed.ts');
+      const captureId = createFreshChallengeCapture(d.db);
 
-      const result = await runLiveAgent(d, message, captureId, process.env.ANTHROPIC_API_KEY!);
+      const result = await runLiveAgent(d, message, captureId, process.env.ANTHROPIC_API_KEY, { client: o.challengeClient });
 
       const savedCents = result.gateDecision === 'blocked' || result.gateDecision === 'escalated'
         ? result.requestedCents
@@ -404,6 +408,8 @@ export function createApp(d: GateDeps, o: AppOptions = {}): express.Express {
         toolCalls: result.toolCalls,
         gateDecision: result.gateDecision,
         gateRule: result.gateRule,
+        requestedCents: result.requestedCents,
+        refundedCents: result.refundedCents,
         savedCents,
         lostCents,
       });

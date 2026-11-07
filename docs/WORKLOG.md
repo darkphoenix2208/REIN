@@ -10,7 +10,7 @@
 
 ## STAGE 2: HEADLINE FEATURES
 
-- [ ] A. Real Beat the Gate (live Claude agent through gate)
+- [x] A. Real Beat the Gate (live Claude agent through gate)
 - [ ] B. Signed checkpoints / /verify page end-to-end
 - [ ] C. Backtest and shadow diff on /mandate
 - [ ] D. Buyer-side purchases (buy → price-match → refund loop)
