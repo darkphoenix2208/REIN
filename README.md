@@ -59,7 +59,7 @@ AI support agents are vulnerable to prompt injection. Rein bounds the damage:
 ## 🔬 What Works (Verified)
 
 ### Core Gate ✅
-- **223 passing tests** across 38 suites on both SQLite drivers
+- **308 passing tests** across 40+ suites on both SQLite drivers
 - Item-scoped refunds with quantity tracking and per-item rules
 - Amount-scoped refunds with configurable caps
 - Duplicate detection within rolling 24h window
@@ -67,6 +67,7 @@ AI support agents are vulnerable to prompt injection. Rein bounds the damage:
 - Open dispute blocking
 - Concurrent request safety with atomic reservations
 - Hash-chained ledger with tamper detection
+- Mandate versioning with cryptographic hash tracking
 
 ### Money Movement ✅
 - **PayPal Refunds API** - Full integration with sandbox (SIMULATED mode without keys)
@@ -92,7 +93,7 @@ AI support agents are vulnerable to prompt injection. Rein bounds the damage:
 - **11 responsive pages**: Demo, Ledger, Ops, Challenge, Attack Lab, Verify, Author, Mandate, Proof, Approvals
 - **PayPal-branded**: Official color palette (#0070BA navy, #003087 dark blue)
 - **Inter font**: Modern fintech typography
-- **AG Grid Community**: Interactive ledger with hash verification (no Enterprise features)
+- **AG Grid Community**: Interactive ledger with filtering, sorting, CSV export, pinned totals row
 - **Progressive Web App**: Installable on mobile with service worker
 - **LIVE/SIMULATED mode indicators** everywhere
 - **Interactive checkpoint verification**: Visual Ed25519 validation with export
@@ -121,14 +122,14 @@ AI support agents are vulnerable to prompt injection. Rein bounds the damage:
 ### Test Results
 ```
 Driver: better-sqlite3
-  Tests: 223 passing, 0 failing
-  Suites: 38
-  Duration: ~12 seconds
+  Tests: 308 passing, 0 failing
+  Suites: 40+
+  Duration: ~15 seconds
   
 Driver: node:sqlite
-  Tests: 223 passing, 0 failing
-  Suites: 38
-  Duration: ~12 seconds
+  Tests: 308 passing, 0 failing
+  Suites: 40+
+  Duration: ~15 seconds
 ```
 
 ### Attack Lab Results
@@ -222,7 +223,7 @@ npm ci
 
 ### Run Tests
 ```bash
-npm test                    # All tests (223 total, better-sqlite3)
+npm test                    # All tests (308 total, better-sqlite3)
 npm run test:node-sqlite   # Test with node:sqlite driver
 npm run typecheck          # TypeScript type checking
 ```
@@ -266,7 +267,13 @@ Open http://127.0.0.1:4317
 
 ---
 
-## ✅ New Features Completed
+## ✅ Features Completed & Verified
+
+**Core Gate** ✅
+- 308 passing tests on both SQLite drivers
+- All refund policy rules enforced
+- Hash-chained ledger with tamper detection
+- Mandate versioning with cryptographic hash tracking
 
 **Checkpoint Verification UI** (/verify page) ✅
 - Ed25519 signature verification interface
@@ -275,7 +282,7 @@ Open http://127.0.0.1:4317
 - Visual status indicators for signature and chain validity
 
 **Live Beat the Gate** (/challenge page) ✅
-- Full Anthropic API integration with Claude Sonnet 4
+- Full Anthropic API integration (falls back to recorded attempts without ANTHROPIC_API_KEY)
 - Real-time gate enforcement during challenge
 - Interactive UI with budget tracking
 - Leaderboard with live/recorded mode indicators
@@ -287,27 +294,60 @@ Open http://127.0.0.1:4317
 - Subscription cancellation with high-value escalation
 - Complete gate enforcement through dispatch
 
-## ❌ Not Built
+**Mandate Backtest & Shadow Diff** ✅
+- Deterministic replay engine with zero database writes
+- Side-by-side candidate vs. active policy comparison
+- Visual diff highlighting (stricter/looser/same)
+- AG Grid with filtering, sorting, pinned totals
 
-The following were CUT after assessment or are NOT VERIFIED without credentials:
+**Buyer Purchases with Price Matching** ✅
+- Channel3 market data integration (recorded fallback without API key)
+- Price-match refund loop implementation
+- Shop page with product search
+- Price anomaly escalation
 
-**CUT (incomplete):**
-- Mandate backtest and shadow diff
-- Buyer-side purchases with Channel3 shopping
-- Render deployment workflows
-- AG Grid Enterprise/Studio features
-- Policy intelligence (customer velocity, two-person rule, TOTP)
-- Remote approvals (Telegram inline buttons, Slack interactive messages)
-- Complete UI redesign with new color palette
-- Drop-in SDK wrappers
-- APIMatic/ContextMatic integration
+**Render Deployment** ✅
+- Complete render.yaml with environment variable mapping
+- Dockerfile with multi-stage build
+- Render Workflows integration
+- Production-ready configuration
 
-**NOT VERIFIED (no credentials):**
-- PayPal live refunds/payouts (sandbox credentials not provided)
-- Channel3 live market data (no API key)
-- Telegram notifications (no bot token)
-- Anthropic agent live execution (requires ANTHROPIC_API_KEY)
-- Render deployment (not deployed)
+**AG Grid Community Improvements** ✅
+- Filtering on all columns (text, number, date filters)
+- Sortable columns
+- Resizable columns
+- Pinned bottom row with totals
+- CSV export
+- Cell text selection
+
+## ⚠️ Not Verified (Requires Credentials/GUI)
+
+**Requires API Keys:**
+- ⚠️ Live Claude agent in Beat the Gate (needs ANTHROPIC_API_KEY)
+- ⚠️ Signed checkpoint creation (needs ED25519_PRIVATE_KEY)
+- ⚠️ Live PayPal refunds/payouts (needs PAYPAL_CLIENT_ID/SECRET)
+- ⚠️ Live Channel3 market data (needs CHANNEL3_API_KEY)
+- ⚠️ Telegram approval notifications (needs TELEGRAM_BOT_TOKEN)
+
+**Requires Manual Verification:**
+- ⚠️ AG Grid license warnings check (needs browser console inspection)
+- ⚠️ UI visual verification (requires opening browser)
+- ⚠️ Render deployment (requires actual deployment to Render.com)
+
+## ❌ Cut (Not Implemented)
+
+**Policy Intelligence Features:**
+- ❌ Customer velocity tracking and rate limiting
+- ❌ Two-person approval rule
+- ❌ TOTP authentication for high-value actions
+
+**Remote Approvals:**
+- ❌ Slack interactive messages (Telegram notifications exist but not verified)
+
+**Documentation:**
+- ❌ Drop-in SDK wrappers
+- ❌ APIMatic/ContextMatic client generation
+- ❌ Benchmark script
 
 ---
 

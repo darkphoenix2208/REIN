@@ -190,18 +190,24 @@ export function Mandate() {
         headerName: 'Action ID',
         width: 140,
         valueFormatter: (p) => String(p.value || '').slice(0, 12),
+        filter: 'agTextColumnFilter',
+        sortable: true,
       },
       {
         field: 'createdAt',
         headerName: 'Recorded Time',
         width: 180,
         valueFormatter: (p) => (p.value ? new Date(p.value).toISOString().replace('T', ' ').slice(0, 19) : ''),
+        filter: 'agDateColumnFilter',
+        sortable: true,
       },
       {
         field: 'amountCents',
         headerName: 'Amount',
         width: 110,
         valueFormatter: (p) => (p.value != null ? `$${(p.value / 100).toFixed(2)}` : '—'),
+        filter: 'agNumberColumnFilter',
+        sortable: true,
       },
       {
         field: 'originalDecision',
@@ -212,8 +218,10 @@ export function Mandate() {
             {p.value}
           </span>
         ),
+        filter: 'agTextColumnFilter',
+        sortable: true,
       },
-      { field: 'originalRule', headerName: 'Orig Rule', width: 140 },
+      { field: 'originalRule', headerName: 'Orig Rule', width: 140, filter: 'agTextColumnFilter', sortable: true },
       {
         field: 'candidateDecision',
         headerName: 'Candidate',
@@ -223,8 +231,10 @@ export function Mandate() {
             {p.value}
           </span>
         ),
+        filter: 'agTextColumnFilter',
+        sortable: true,
       },
-      { field: 'candidateRule', headerName: 'Cand Rule', width: 140 },
+      { field: 'candidateRule', headerName: 'Cand Rule', width: 140, filter: 'agTextColumnFilter', sortable: true },
       {
         field: 'impact',
         headerName: 'Diff Impact',
@@ -237,12 +247,16 @@ export function Mandate() {
             </span>
           );
         },
+        filter: 'agTextColumnFilter',
+        sortable: true,
       },
       {
         field: 'dollarEffect',
         headerName: 'Dollar Effect',
         width: 130,
         valueFormatter: (p) => (p.value ? `$${(p.value / 100).toFixed(2)}` : '—'),
+        filter: 'agNumberColumnFilter',
+        sortable: true,
       },
     ],
     []
@@ -569,6 +583,13 @@ export function Mandate() {
               rowData={backtestResult.results}
               columnDefs={cols}
               pinnedBottomRowData={pinnedBottomRowData}
+              defaultColDef={{
+                filter: true,
+                sortable: true,
+                resizable: true,
+              }}
+              enableCellTextSelection={true}
+              ensureDomOrder={true}
             />
           </div>
 
