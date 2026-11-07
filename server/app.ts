@@ -15,6 +15,7 @@ import { askGemini } from './llm.ts';
 import { readFileSync } from 'node:fs';
 import { signCheckpoint, storeCheckpoint, getLatestCheckpoint, verifyCheckpoint } from './checkpoint.ts';
 import { getLeaderboard, initChallengeSchema, checkRateLimit, getTotalSpent, recordAttempt, getRecordedAttempt, isKillSwitchActive, hasApiKey } from './beat-the-gate.ts';
+import { backtestMandate } from './backtest.ts';
 
 const eq = (a: string, b: string): boolean => {
   const x = Buffer.from(a), y = Buffer.from(b);
@@ -153,6 +154,25 @@ export function createApp(d: GateDeps, o: AppOptions = {}): express.Express {
     });
   });
   api.get('/mandate', (_req, res) => res.json({ lines: describeMandate(d.mandate), mandate: d.mandate }));
+
+  api.post('/mandate/backtest', (req, res) => {
+    const testMandate = req.body.mandate;
+    if (!testMandate || typeof testMandate !== 'object') {
+      return void res.status(400).json({ error: 'invalid_mandate', reason: 'Request body must contain a mandate object' });
+    }
+
+    // Merge test mandate with current mandate (allows partial overrides)
+    const fullMandate = { ...d.mandate, ...testMandate };
+
+    const options = {
+      startDate: req.body.startDate ? Number(req.body.startDate) : undefined,
+      endDate: req.body.endDate ? Number(req.body.endDate) : undefined,
+      limit: req.body.limit ? Math.min(Number(req.body.limit), 500) : 100,
+    };
+
+    const result = backtestMandate(d.db, fullMandate, options);
+    res.json(result);
+  });
   api.get('/exposure', (req, res) => {
     const sid = String(req.query.sessionId ?? '');
     const spent = d.db.val<number>(`SELECT COALESCE(SUM(amount_cents),0) FROM actions WHERE session_id=? AND created_at>=? AND status IN ('reserved','executed','approved_executed','unknown_outcome')`, sid, Date.now() - 86_400_000) ?? 0;
