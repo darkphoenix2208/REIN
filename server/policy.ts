@@ -157,3 +157,41 @@ export function decidePayout(
 
   return r('allowed', 'R-ALLOW', 'Within the mandate.');
 }
+
+
+// ---- Subscription cancellation policy ----
+export interface SubscriptionPolicyState {
+  subscriptionStatus: string; // ACTIVE, SUSPENDED, CANCELLED, etc.
+  subscriptionValue: number; // Monthly value in cents
+  customerEmail?: string;
+  now: number;
+  approved?: boolean;
+}
+
+export function decideSubscriptionCancel(
+  subscriptionId: string,
+  m: Mandate,
+  s: SubscriptionPolicyState
+): Decision {
+  // Hard rules
+  if (s.now > m.expiresAt) return r('blocked', 'R-MANDATE-EXPIRED', 'The mandate has expired.');
+
+  if (s.subscriptionStatus === 'CANCELLED') {
+    return r('blocked', 'R-SUBSCRIPTION-ALREADY-CANCELLED', 'This subscription is already cancelled.');
+  }
+
+  if (s.subscriptionStatus !== 'ACTIVE' && s.subscriptionStatus !== 'SUSPENDED') {
+    return r('blocked', 'R-SUBSCRIPTION-INVALID-STATE', `Cannot cancel subscription in ${s.subscriptionStatus} state.`);
+  }
+
+  // Approval waives soft rules below
+  if (s.approved) return r('allowed', 'R-APPROVED', 'A human approved this cancellation.');
+
+  // Soft rules - high-value subscriptions require approval
+  const highValueThreshold = m.dailyCapCents ?? 20000; // Use daily cap as threshold
+  if (s.subscriptionValue > highValueThreshold) {
+    return r('pending_approval', 'R-SUBSCRIPTION-HIGH-VALUE', `Subscription value ${usd(s.subscriptionValue)}/month exceeds ${usd(highValueThreshold)} threshold.`);
+  }
+
+  return r('allowed', 'R-ALLOW', 'Within the mandate.');
+}

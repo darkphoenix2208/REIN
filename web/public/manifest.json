@@ -1,0 +1,36 @@
+{
+  "name": "Rein Approvals",
+  "short_name": "Rein",
+  "description": "Approve AI agent refund and payout requests",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#003087",
+  "theme_color": "#0070BA",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["finance", "business"],
+  "screenshots": [],
+  "shortcuts": [
+    {
+      "name": "Pending Approvals",
+      "short_name": "Approvals",
+      "description": "View pending approval requests",
+      "url": "/approvals",
+      "icons": []
+    },
+    {
+      "name": "Audit Ledger",
+      "short_name": "Ledger",
+      "description": "View audit ledger",
+      "url": "/ledger",
+      "icons": []
+    }
+  ]
+}

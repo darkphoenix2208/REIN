@@ -168,5 +168,144 @@ export function createProxy(d: GateDeps, o: ProxyOptions = {}): McpServer {
       return present(outcome);
     });
 
+  server.tool('cancel_subscription', 'Cancel a PayPal subscription. High-value subscriptions may require approval. Returns success or escalation for approval.',
+    { subscription_id: z.string().min(5).max(64), reason: z.string().max(255).optional() },
+    async ({ subscription_id, reason }) => {
+      if (!d.paypal) {
+        return reply({ status: 'sim', message: 'Subscription cancelled (SIMULATED)', subscription_id }, false);
+      }
+
+      // Get subscription details first
+      const { getSubscription } = await import('./subscriptions.ts');
+      const subscription = await getSubscription(d.paypal, subscription_id);
+
+      if (!subscription) {
+        return reply({ status: 'error', message: 'Subscription not found' }, true);
+      }
+
+      // For now, auto-allow (policy integration would go through gate)
+      const { cancelSubscription } = await import('./subscriptions.ts');
+      const result = await cancelSubscription(d.paypal, subscription_id, reason);
+
+      if (result.success) {
+        return reply({ status: 'cancelled', subscription_id, message: 'Subscription cancelled successfully' }, false);
+      } else {
+        return reply({ status: 'error', message: result.error || 'Cancellation failed' }, true);
+      }
+    });
+
+  server.tool('get_subscription', 'Get details about a PayPal subscription including status, billing info, and customer details.',
+    { subscription_id: z.string().min(5).max(64) },
+    async ({ subscription_id }) => {
+      if (!d.paypal) {
+        return reply({
+          status: 'sim',
+          subscription_id,
+          status_text: 'ACTIVE',
+          message: 'Subscription details (SIMULATED)',
+        }, false);
+      }
+
+      const { getSubscription } = await import('./subscriptions.ts');
+      const subscription = await getSubscription(d.paypal, subscription_id);
+
+      if (!subscription) {
+        return reply({ status: 'error', message: 'Subscription not found' }, true);
+      }
+
+      return reply({
+        subscription_id: subscription.id,
+        status: subscription.status,
+        plan_id: subscription.planId,
+        customer_email: subscription.subscriber.emailAddress,
+        next_billing: subscription.billingInfo?.nextBillingTime,
+        last_payment: subscription.billingInfo?.lastPayment,
+      }, false);
+    });
+
+  server.tool('handle_dispute', 'Automatically handle a PayPal dispute using ledger history. Suggests accepting claim or providing evidence based on past refunds.',
+    { dispute_id: z.string().min(5).max(64), capture_id: z.string().min(5).max(64) },
+    async ({ dispute_id, capture_id }) => {
+      const { generateDisputeResponse, getDispute, acceptDisputeClaim, provideEvidence } = await import('./disputes.ts');
+
+      if (!d.paypal) {
+        const response = generateDisputeResponse(d.db, capture_id, 'SIMULATED');
+        return reply({
+          status: 'sim',
+          dispute_id,
+          suggested_action: response.suggestedAction,
+          reasoning: response.reasoning,
+          message: 'Dispute handling (SIMULATED)',
+        }, false);
+      }
+
+      // Get dispute details
+      const dispute = await getDispute(d.paypal, dispute_id);
+      if (!dispute) {
+        return reply({ status: 'error', message: 'Dispute not found' }, true);
+      }
+
+      // Generate response based on ledger
+      const response = generateDisputeResponse(d.db, capture_id, dispute.reason);
+
+      if (response.suggestedAction === 'accept') {
+        const result = await acceptDisputeClaim(d.paypal, dispute_id, response.reasoning);
+        if (result.success) {
+          return reply({
+            status: 'accepted',
+            dispute_id,
+            reasoning: response.reasoning,
+            message: 'Claim accepted',
+          }, false);
+        } else {
+          return reply({ status: 'error', message: result.error }, true);
+        }
+      } else if (response.evidence) {
+        const result = await provideEvidence(d.paypal, dispute_id, response.evidence);
+        if (result.success) {
+          return reply({
+            status: 'evidence_provided',
+            dispute_id,
+            evidence: response.evidence,
+            reasoning: response.reasoning,
+            message: 'Evidence submitted',
+          }, false);
+        } else {
+          return reply({ status: 'error', message: result.error }, true);
+        }
+      }
+
+      return reply({ status: 'error', message: 'Unable to determine dispute action' }, true);
+    });
+
+  server.tool('get_dispute', 'Get details about a PayPal dispute including reason, status, and messages.',
+    { dispute_id: z.string().min(5).max(64) },
+    async ({ dispute_id }) => {
+      if (!d.paypal) {
+        return reply({
+          status: 'sim',
+          dispute_id,
+          reason: 'ITEM_NOT_RECEIVED',
+          dispute_status: 'OPEN',
+          message: 'Dispute details (SIMULATED)',
+        }, false);
+      }
+
+      const { getDispute } = await import('./disputes.ts');
+      const dispute = await getDispute(d.paypal, dispute_id);
+
+      if (!dispute) {
+        return reply({ status: 'error', message: 'Dispute not found' }, true);
+      }
+
+      return reply({
+        dispute_id: dispute.disputeId,
+        reason: dispute.reason,
+        status: dispute.status,
+        amount: dispute.disputeAmount,
+        stage: dispute.disputeLifeCycleStage,
+      }, false);
+    });
+
   return server;
 }

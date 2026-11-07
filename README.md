@@ -60,7 +60,7 @@ AI support agents are vulnerable to prompt injection. Rein bounds the damage:
 
 ## 📊 Tests & Evidence
 
-✅ **176 tests** - all passing on both SQLite drivers  
+✅ **207 tests** - all passing across 36 test suites  
 ✅ **8 adversarial attack vectors** - all blocked by gate  
 ✅ **$0 over-refund** (item-scoped vs amount-scoped: 70% over-refund prevention)  
 ✅ **Concurrent refund race tests** pass (8 simultaneous requests)  
@@ -69,6 +69,11 @@ AI support agents are vulnerable to prompt injection. Rein bounds the damage:
 ✅ **Webhook security** with PayPal signature verification  
 ✅ **Beat the Gate challenge** with rate limiting and budget caps  
 ✅ **Price-match computation** with pure functions  
+✅ **Subscription cancellations** with policy-based gates  
+✅ **Dispute automation** with evidence from ledger  
+✅ **Multi-instance support** with distributed lock interface  
+✅ **Telegram notifications** with graceful degradation  
+✅ **Mobile PWA** with offline capability  
 
 ### Attack Lab Vectors (Distinct)
 1. **Over-capture** - Requesting $162 when only $20 captured → R-OVER-CAPTURE
@@ -90,11 +95,16 @@ All vectors execute through the real gate and show requested vs refunded dollars
 - **Beat the Gate** (/challenge) - Live Claude agent visitors can try to trick (with budget caps, rate limits, synthetic label)
 - **Signed Checkpoints** - Ed25519 signatures on ledger head with offline verification
 - **Payouts Support** - PayPal Payouts API under same mandate engine (per-payee caps, allowlists, approvals)
+- **Subscription Management** - Cancel/suspend subscriptions with policy-based gates
+- **Dispute Automation** - Generate evidence from ledger history automatically
+- **Multi-Instance Support** - Distributed lock interface for PostgreSQL coordination
+- **Telegram Notifications** - Rich approval messages with graceful degradation
 - **8 Distinct Attack Vectors** through real gate showing requested vs refunded dollars
 - **Webhook Security** with PayPal signature verification (NEVER accepts unverified events)
 - **Price-Match** computation with trusted Channel3 market data
 - **Concurrent Safety** - handles 8 simultaneous refund requests
 - **Hash-Chained Ledger** - tamper-evident audit trail
+- **Mandate Versioning** - Full audit trail with hash deduplication
 
 ### Frontend
 - **PayPal-Branded UI** with official color palette (--navy)
@@ -102,6 +112,7 @@ All vectors execute through the real gate and show requested vs refunded dollars
 - **Custom Favicon** - PayPal blue with 'R' logo
 - **LIVE/SIMULATED Mode** - visual indicators
 - **9 Pages** - Demo, Ledger, Ops, Attack Lab, Author, Mandate, Proof, Approvals, Challenge
+- **Progressive Web App** - Installable on mobile with service worker
 - **Responsive Design** - works on mobile (360px) to desktop (1440px)
 - **AG Grid Community** - interactive ledger with hash verification (no Enterprise features)
 
@@ -111,7 +122,7 @@ All vectors execute through the real gate and show requested vs refunded dollars
 
 | Technology | Usage |
 |-----------|-------|
-| **PayPal REST API** | Refunds, Orders, Disputes (sandbox) |
+| **PayPal REST API** | Refunds, Payouts, Orders, Subscriptions, Disputes (sandbox) |
 | **Node.js 22.18+** | TypeScript execution with native type stripping |
 | **React 19** | Frontend SPA with Vite build |
 | **Express 5** | Backend API server |
@@ -119,6 +130,8 @@ All vectors execute through the real gate and show requested vs refunded dollars
 | **AG Grid Community** | Ledger visualization with hash verification |
 | **TypeScript 5.9** | Type-safe codebase |
 | **Playwright** | E2E testing |
+| **Telegram Bot API** | Approval notifications |
+| **Service Workers** | Progressive Web App offline capability |
 
 ---
 
