@@ -16,10 +16,48 @@ export const hashArgs = (tool: string, cap: string | undefined, cents: number, i
 
 export const GENESIS = '0'.repeat(64);
 
-export function ledger(db: Db, actionId: string, event: string, payload: object, ts: number): void {
+export function ledger(
+  db: Db,
+  actionId: string,
+  event: string,
+  payload: object,
+  ts: number,
+  mandateVersion?: string,
+  agentId?: string,
+): void {
+  let mv = mandateVersion;
+  let ag = agentId;
+  if (!mv || !ag) {
+    try {
+      const act = db.one<{ mandate_version?: string; agent_id?: string }>(
+        'SELECT mandate_version, agent_id FROM actions WHERE id=?',
+        actionId,
+      );
+      if (act) {
+        if (!mv && act.mandate_version) mv = act.mandate_version;
+        if (!ag && act.agent_id) ag = act.agent_id;
+      }
+    } catch {}
+  }
+
+  const fullPayload = {
+    ...payload,
+    ...(mv ? { mandate_version: mv } : {}),
+    ...(ag ? { agent_id: ag } : {}),
+  };
   const prev = db.val<string>('SELECT hash FROM ledger ORDER BY seq DESC LIMIT 1') ?? GENESIS;
-  const hash = sha(prev + canon({ actionId, event, payload, ts }));
-  db.run('INSERT INTO ledger(action_id,event,payload_json,prev_hash,hash,created_at) VALUES (?,?,?,?,?,?)', actionId, event, canon(payload), prev, hash, ts);
+  const hash = sha(prev + canon({ actionId, event, payload: fullPayload, ts }));
+  db.run(
+    'INSERT INTO ledger(action_id,event,payload_json,prev_hash,hash,created_at,mandate_version,agent_id) VALUES (?,?,?,?,?,?,?,?)',
+    actionId,
+    event,
+    canon(fullPayload),
+    prev,
+    hash,
+    ts,
+    mv ?? null,
+    ag ?? null,
+  );
 }
 
 export type ChainResult = { ok: true; rows: number; head: string } | { ok: false; brokenAt: number };

@@ -6,6 +6,7 @@ import { tx, type Db } from './db.ts';
 import { decide, resolveItems, decidePayout, decideSubscriptionCancel, decideDisputeHandle, type ItemRow, type PayoutPolicyState, type SubscriptionPolicyState, type DisputePolicyState } from './policy.ts';
 import { hashArgs, ledger, sha } from './ledger.ts';
 import { sendTelegramApproval, getTelegramConfig } from './telegram.ts';
+import { mandateHash, saveMandateVersion } from './mandate-version.ts';
 import type { CheckInput, CheckResult, Decision, ExternalState, Mandate, PayRow } from './types.ts';
 
 // statuses that SPEND the cap (blocked, denied, expired, failed and shadow do not)
@@ -102,13 +103,16 @@ async function sendTelegramNotification(actionId: string, tool: string, amountCe
 
 function finishPayout(db: Db, a: CheckInput, now: number, d: Decision, amountCents: number, payeeEmail: string, m: Mandate, mode: 'sim' | 'live'): CheckResult {
   const status = d.status === 'allowed' ? 'reserved' : d.status;
+  const mHash = mandateHash(m);
+  saveMandateVersion(db, m);
+  const agentId = a.agentId ?? a.sessionId;
 
   db.run(
-    'INSERT INTO actions(id,session_id,tool,capture_id,amount_cents,decision,rule_id,reason,status,created_at,updated_at,action_type,payee_email) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)',
-    a.actionId, a.sessionId, a.tool, null, amountCents, d.status, d.ruleId, d.reason, status, now, now, 'payout', payeeEmail
+    'INSERT INTO actions(id,session_id,tool,capture_id,amount_cents,decision,rule_id,reason,status,created_at,updated_at,action_type,payee_email,mandate_version,agent_id) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
+    a.actionId, a.sessionId, a.tool, null, amountCents, d.status, d.ruleId, d.reason, status, now, now, 'payout', payeeEmail, mHash, agentId
   );
 
-  ledger(db, a.actionId, 'decided', { decision: d.status, rule: d.ruleId, reason: d.reason, amountCents, payeeEmail, mode }, now);
+  ledger(db, a.actionId, 'decided', { decision: d.status, rule: d.ruleId, reason: d.reason, amountCents, payeeEmail, mode }, now, mHash, agentId);
 
   if (d.status === 'pending_approval') {
     const token = randomBytes(16).toString('hex');
@@ -189,13 +193,16 @@ export function check(db: Db, m: Mandate, a: CheckInput, now = Date.now(), ext?:
 
 /** Persist the decision. SHADOW mode records the would-have decision and never reserves, escalates or blocks. */
 function finish(db: Db, a: CheckInput, now: number, d: Decision, amountCents: number, lines: { itemId: string; name: string; qty: number; cents: number }[] | undefined, orderId: string | undefined, m: Mandate, mode: 'sim' | 'live'): CheckResult {
+  const mHash = mandateHash(m);
+  saveMandateVersion(db, m);
+  const agentId = a.agentId ?? a.sessionId;
   if (m.shadow) {
-    db.run('INSERT INTO actions(id,session_id,tool,capture_id,amount_cents,decision,rule_id,reason,status,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?)', a.actionId, a.sessionId, a.tool, a.captureId, amountCents, d.status, d.ruleId, d.reason, 'shadow', now, now);
-    ledger(db, a.actionId, 'shadow', { mode, wouldHave: d.status, ruleId: d.ruleId, amountCents, captureId: a.captureId, items: lines }, now);
+    db.run('INSERT INTO actions(id,session_id,tool,capture_id,amount_cents,decision,rule_id,reason,status,created_at,updated_at,mandate_version,agent_id) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)', a.actionId, a.sessionId, a.tool, a.captureId, amountCents, d.status, d.ruleId, d.reason, 'shadow', now, now, mHash, agentId);
+    ledger(db, a.actionId, 'shadow', { mode, wouldHave: d.status, ruleId: d.ruleId, amountCents, captureId: a.captureId, items: lines }, now, mHash, agentId);
     return { status: 'allowed', ruleId: 'R-SHADOW', reason: 'Shadow mode: recorded only, nothing was enforced.', actionId: a.actionId, shadow: true, wouldHave: d };
   }
   const status = d.status === 'allowed' ? 'reserved' : d.status === 'blocked' ? 'blocked' : 'pending_approval';
-  db.run('INSERT INTO actions(id,session_id,tool,capture_id,amount_cents,decision,rule_id,reason,status,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?)', a.actionId, a.sessionId, a.tool, a.captureId, amountCents, d.status, d.ruleId, d.reason, status, now, now);
+  db.run('INSERT INTO actions(id,session_id,tool,capture_id,amount_cents,decision,rule_id,reason,status,created_at,updated_at,mandate_version,agent_id) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)', a.actionId, a.sessionId, a.tool, a.captureId, amountCents, d.status, d.ruleId, d.reason, status, now, now, mHash, agentId);
   if (status === 'reserved') {
     db.run('UPDATE payments SET reserved_cents=reserved_cents+? WHERE txn_id=?', amountCents, a.captureId);
     if (lines && orderId)
@@ -215,7 +222,7 @@ function finish(db: Db, a: CheckInput, now: number, d: Decision, amountCents: nu
     // Send Telegram notification (async, non-blocking)
     sendTelegramNotification(a.actionId, a.tool, amountCents, d.ruleId, d.reason, approvalUrl, a.sessionId, a.captureId).catch(() => {});
   }
-  ledger(db, a.actionId, status, { mode, ruleId: d.ruleId, amountCents, captureId: a.captureId, items: lines }, now);
+  ledger(db, a.actionId, status, { mode, ruleId: d.ruleId, amountCents, captureId: a.captureId, items: lines }, now, mHash, agentId);
   return { ...d, actionId: a.actionId, ...(approvalUrl ? { approvalUrl } : {}), ...(token ? { token } : {}) };
 }
 
@@ -344,12 +351,16 @@ export function checkSubscription(
 
   if (grant) db.run('UPDATE grants SET used=1 WHERE id=?', grant.id);
 
+  const mHash = mandateHash(m);
+  saveMandateVersion(db, m);
+  const agentId = (a as any).agentId ?? a.sessionId;
+
   return tx(db, () => {
     const status = d.status;
     db.run(
-      `INSERT INTO actions(id,session_id,tool,capture_id,amount_cents,currency,decision,rule_id,reason,status,created_at,updated_at,action_type)
-       VALUES (?,?,?,NULL,?,?,?,?,?,?,?,?,'subscription')`,
-      a.actionId, a.sessionId, a.tool, a.subscriptionValue, 'USD', status, d.ruleId, d.reason, status, now, now
+      `INSERT INTO actions(id,session_id,tool,capture_id,amount_cents,decision,rule_id,reason,status,created_at,updated_at,action_type,mandate_version,agent_id)
+       VALUES (?,?,?,NULL,?,?,?,?,?,?,?,'subscription',?,?)`,
+      a.actionId, a.sessionId, a.tool, a.subscriptionValue, status, d.ruleId, d.reason, status, now, now, mHash, agentId
     );
 
     let approvalUrl: string | undefined;
@@ -360,7 +371,7 @@ export function checkSubscription(
       approvalUrl = `${process.env.REIN_PUBLIC_URL ?? 'http://127.0.0.1:4317'}/approve/${a.actionId}#t=${token}`;
     }
 
-    ledger(db, a.actionId, status, { mode, ruleId: d.ruleId, amountCents: a.subscriptionValue }, now);
+    ledger(db, a.actionId, status, { mode, ruleId: d.ruleId, amountCents: a.subscriptionValue }, now, mHash, agentId);
     return { ...d, actionId: a.actionId, ...(approvalUrl ? { approvalUrl } : {}), ...(token ? { token } : {}) };
   });
 }
@@ -368,7 +379,7 @@ export function checkSubscription(
 export function checkDispute(
   db: Db,
   m: Mandate,
-  a: { actionId: string; sessionId: string; tool: string; disputeId: string; disputeAction: string; disputeReason: string; disputeAmountCents: number },
+  a: { actionId: string; sessionId: string; tool: string; disputeId: string; disputeAction: string; disputeReason: string; disputeAmountCents: number; agentId?: string },
   now: number,
   mode: 'sim' | 'live'
 ): CheckResult {
@@ -389,12 +400,16 @@ export function checkDispute(
 
   if (grant) db.run('UPDATE grants SET used=1 WHERE id=?', grant.id);
 
+  const mHash = mandateHash(m);
+  saveMandateVersion(db, m);
+  const agentId = a.agentId ?? a.sessionId;
+
   return tx(db, () => {
     const status = d.status;
     db.run(
-      `INSERT INTO actions(id,session_id,tool,capture_id,amount_cents,currency,decision,rule_id,reason,status,created_at,updated_at,action_type)
-       VALUES (?,?,?,NULL,?,?,?,?,?,?,?,?,'dispute')`,
-      a.actionId, a.sessionId, a.tool, a.disputeAmountCents, 'USD', status, d.ruleId, d.reason, status, now, now
+      `INSERT INTO actions(id,session_id,tool,capture_id,amount_cents,decision,rule_id,reason,status,created_at,updated_at,action_type,mandate_version,agent_id)
+       VALUES (?,?,?,NULL,?,?,?,?,?,?,?,'dispute',?,?)`,
+      a.actionId, a.sessionId, a.tool, a.disputeAmountCents, status, d.ruleId, d.reason, status, now, now, mHash, agentId
     );
 
     let approvalUrl: string | undefined;
@@ -405,7 +420,7 @@ export function checkDispute(
       approvalUrl = `${process.env.REIN_PUBLIC_URL ?? 'http://127.0.0.1:4317'}/approve/${a.actionId}#t=${token}`;
     }
 
-    ledger(db, a.actionId, status, { mode, ruleId: d.ruleId, amountCents: a.disputeAmountCents }, now);
+    ledger(db, a.actionId, status, { mode, ruleId: d.ruleId, amountCents: a.disputeAmountCents }, now, mHash, agentId);
     return { ...d, actionId: a.actionId, ...(approvalUrl ? { approvalUrl } : {}), ...(token ? { token } : {}) };
   });
 }

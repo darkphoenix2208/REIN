@@ -219,8 +219,6 @@ export function createProxy(d: GateDeps, o: ProxyOptions = {}): McpServer {
       });
 
       return present(outcome);
-
-      return reply({ status: 'error', message: 'Unable to determine dispute action' }, true);
     });
 
   server.tool('get_dispute', 'Get details about a PayPal dispute including reason, status, and messages.',

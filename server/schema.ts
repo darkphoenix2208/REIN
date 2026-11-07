@@ -12,7 +12,8 @@ CREATE TABLE IF NOT EXISTS order_items(
   refundable INTEGER NOT NULL DEFAULT 1, flag TEXT, PRIMARY KEY(order_id, item_id));
 CREATE TABLE IF NOT EXISTS actions(
   id TEXT PRIMARY KEY, session_id TEXT NOT NULL, tool TEXT, capture_id TEXT, amount_cents INTEGER, decision TEXT, rule_id TEXT,
-  reason TEXT, status TEXT NOT NULL, created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL, action_type TEXT NOT NULL DEFAULT 'refund', payee_email TEXT);
+  reason TEXT, status TEXT NOT NULL, created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL, action_type TEXT NOT NULL DEFAULT 'refund', payee_email TEXT,
+  mandate_version TEXT, agent_id TEXT);
 CREATE INDEX IF NOT EXISTS actions_win ON actions(session_id, created_at);
 CREATE INDEX IF NOT EXISTS actions_payee ON actions(session_id, payee_email, created_at);
 CREATE TABLE IF NOT EXISTS action_items(action_id TEXT NOT NULL, order_id TEXT NOT NULL, item_id TEXT NOT NULL, qty INTEGER NOT NULL);
@@ -22,7 +23,8 @@ CREATE TABLE IF NOT EXISTS grants(
   used INTEGER NOT NULL DEFAULT 0, expires_at INTEGER NOT NULL);
 CREATE INDEX IF NOT EXISTS grants_lookup ON grants(args_hash, session_id, used);
 CREATE TABLE IF NOT EXISTS ledger(
-  seq INTEGER PRIMARY KEY AUTOINCREMENT, action_id TEXT, event TEXT, payload_json TEXT, prev_hash TEXT, hash TEXT, created_at INTEGER);
+  seq INTEGER PRIMARY KEY AUTOINCREMENT, action_id TEXT, event TEXT, payload_json TEXT, prev_hash TEXT, hash TEXT, created_at INTEGER,
+  mandate_version TEXT, agent_id TEXT);
 CREATE TABLE IF NOT EXISTS payee_allowlist(
   session_id TEXT NOT NULL, payee_email TEXT NOT NULL, added_at INTEGER NOT NULL, PRIMARY KEY(session_id, payee_email));
 CREATE TABLE IF NOT EXISTS mandate_versions(
@@ -34,4 +36,8 @@ CREATE TABLE IF NOT EXISTS mandate_versions(
   hash TEXT NOT NULL);
 CREATE INDEX IF NOT EXISTS mandate_versions_time ON mandate_versions(activated_at);
 `);
+  try { db.run('ALTER TABLE actions ADD COLUMN mandate_version TEXT'); } catch {}
+  try { db.run('ALTER TABLE actions ADD COLUMN agent_id TEXT'); } catch {}
+  try { db.run('ALTER TABLE ledger ADD COLUMN mandate_version TEXT'); } catch {}
+  try { db.run('ALTER TABLE ledger ADD COLUMN agent_id TEXT'); } catch {}
 }

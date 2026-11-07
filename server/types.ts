@@ -58,4 +58,5 @@ export interface CheckInput {
   // Payout-specific fields
   payeeEmail?: string;
   note?: string;
+  agentId?: string;
 }

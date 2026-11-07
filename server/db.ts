@@ -47,9 +47,14 @@ export async function openDb(path: string, o: OpenOptions = {}): Promise<Db> {
     raw = new DatabaseSync(path);
     driver = 'node:sqlite';
   }
-  raw.exec(
-    `PRAGMA journal_mode=WAL; PRAGMA synchronous=NORMAL; PRAGMA foreign_keys=ON; PRAGMA busy_timeout=${Number(o.busyTimeoutMs ?? 3000)};`,
-  );
+  const timeoutMs = Number(o.busyTimeoutMs ?? 5000);
+  raw.exec(`PRAGMA busy_timeout=${timeoutMs};`);
+  try {
+    raw.exec('PRAGMA journal_mode=WAL;');
+  } catch {
+    // Already in WAL or concurrent worker setting WAL
+  }
+  raw.exec('PRAGMA synchronous=NORMAL; PRAGMA foreign_keys=ON;');
 
   const cache = new Map<string, any>();
   const st = (sql: string) => {

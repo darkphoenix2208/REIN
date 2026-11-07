@@ -5,6 +5,7 @@ import { ReinBusyError, type Db } from './db.ts';
 import { check, result, type Outcome } from './dispatch.ts';
 import { PayPalError, type PayPalClient } from './paypal.ts';
 import { sendPayout } from './payouts.ts';
+import { mandateHash, saveMandateVersion } from './mandate-version.ts';
 import type { CheckInput, CheckResult, ExternalState, Mandate } from './types.ts';
 
 export interface GateDeps {
@@ -176,15 +177,15 @@ async function execute(d: GateDeps, actionId: string, captureId: string, row: { 
 
 export async function runSubscriptionCancel(
   d: GateDeps,
-  input: { subscriptionId: string; reason?: string; sessionId: string; actionId?: string }
+  input: { subscriptionId: string; reason?: string; sessionId: string; actionId?: string; subscriptionValue?: number; subscriptionStatus?: string }
 ): Promise<GateOutcome> {
   const now = d.now ?? Date.now;
   const actionId = input.actionId ?? `sub_${randomUUID()}`;
 
   // Get subscription details first
   let subscriptionDetails: any = null;
-  let subscriptionValue = 0;
-  let subscriptionStatus = 'ACTIVE'; // Default to ACTIVE for sim mode
+  let subscriptionValue = input.subscriptionValue ?? 0;
+  let subscriptionStatus = input.subscriptionStatus ?? 'ACTIVE'; // Default to ACTIVE for sim mode
 
   if (d.paypal) {
     const { getSubscription } = await import('./subscriptions.ts');
@@ -194,13 +195,13 @@ export async function runSubscriptionCancel(
       return { status: 'unavailable', reason: 'Subscription not found or lookup failed.' };
     }
 
-    subscriptionStatus = subscriptionDetails.status;
+    subscriptionStatus = input.subscriptionStatus ?? subscriptionDetails.status;
     // Estimate monthly value from last payment
     if (subscriptionDetails.billingInfo?.lastPayment?.amount?.value) {
       const { toCents } = await import('./paypal.ts');
-      subscriptionValue = toCents(subscriptionDetails.billingInfo.lastPayment.amount.value) ?? 0;
+      subscriptionValue = input.subscriptionValue ?? toCents(subscriptionDetails.billingInfo.lastPayment.amount.value) ?? 0;
     }
-  } else {
+  } else if (!subscriptionValue) {
     // Simulated mode: use reasonable defaults
     subscriptionValue = 1500; // $15/month default
   }
@@ -276,7 +277,15 @@ export async function runSubscriptionCancel(
 
 export async function runDisputeHandle(
   d: GateDeps,
-  input: { disputeId: string; captureId: string; sessionId: string; actionId?: string }
+  input: {
+    disputeId: string;
+    captureId: string;
+    sessionId: string;
+    actionId?: string;
+    disputeReason?: string;
+    disputeAmountCents?: number;
+    action?: 'accept' | 'provide_evidence';
+  }
 ): Promise<GateOutcome> {
   const now = d.now ?? Date.now;
   const actionId = input.actionId ?? `dispute_${randomUUID()}`;
@@ -285,7 +294,7 @@ export async function runDisputeHandle(
   const { generateDisputeResponse, getDispute, acceptDisputeClaim, provideEvidence } = await import('./disputes.ts');
 
   let disputeDetails: any = null;
-  let disputeAmountCents = 0;
+  let disputeAmountCents = input.disputeAmountCents ?? 0;
 
   if (d.paypal) {
     disputeDetails = await getDispute(d.paypal, input.disputeId);
@@ -294,17 +303,47 @@ export async function runDisputeHandle(
     }
 
     const { toCents } = await import('./paypal.ts');
-    disputeAmountCents = toCents(disputeDetails.disputeAmount?.value ?? '0') ?? 0;
-  } else {
+    disputeAmountCents = input.disputeAmountCents ?? toCents(disputeDetails.disputeAmount?.value ?? '0') ?? 0;
+  } else if (!disputeAmountCents) {
     // Simulated mode: use default dispute amount
     disputeAmountCents = 5000; // $50 default
   }
 
-  const response = generateDisputeResponse(d.db, input.captureId, disputeDetails?.reason ?? 'ITEM_NOT_RECEIVED');
+  const disputeReason = input.disputeReason ?? disputeDetails?.reason ?? 'ITEM_NOT_RECEIVED';
+  const response = generateDisputeResponse(d.db, input.captureId, disputeReason);
+  const suggestedAction = input.action ?? response.suggestedAction;
 
-  // Providing evidence doesn't cost money, so allow it without gating
-  if (response.suggestedAction === 'provide_evidence') {
+  // Providing evidence is a zero-cost action allowed within rules, but hard rules (mandate expiry) still apply.
+  if (suggestedAction === 'provide_evidence') {
+    // Hard rule: mandate expiry is checked even for evidence actions
+    const ts = now();
+    const mHash = mandateHash(d.mandate);
+    saveMandateVersion(d.db, d.mandate);
+    const agentId = input.sessionId;
+
+    if (ts > d.mandate.expiresAt) {
+      // Record in actions + ledger so it appears in the audit trail
+      d.db.run(
+        `INSERT INTO actions(id,session_id,tool,capture_id,amount_cents,decision,rule_id,reason,status,created_at,updated_at,action_type,mandate_version,agent_id)
+         VALUES (?,?,?,NULL,0,'blocked','R-MANDATE-EXPIRED','The mandate has expired.','blocked',?,?,'dispute',?,?)`,
+        actionId, input.sessionId, 'handle_dispute', ts, ts, mHash, agentId
+      );
+      const { ledger } = await import('./ledger.ts');
+      ledger(d.db, actionId, 'blocked', { mode: d.paypal ? 'live' : 'sim', ruleId: 'R-MANDATE-EXPIRED', amountCents: 0 }, ts, mHash, agentId);
+      return { status: 'blocked', actionId, ruleId: 'R-MANDATE-EXPIRED', reason: 'The mandate has expired.' };
+    }
+
+    const mode = d.paypal ? 'live' : 'sim';
+    // Record the evidence action in the actions table (amount=0)
+    d.db.run(
+      `INSERT INTO actions(id,session_id,tool,capture_id,amount_cents,decision,rule_id,reason,status,created_at,updated_at,action_type,mandate_version,agent_id)
+       VALUES (?,?,?,NULL,0,'allowed','R-ALLOW','Providing evidence to dispute is allowed.','reserved',?,?,'dispute',?,?)`,
+      actionId, input.sessionId, 'handle_dispute', now(), now(), mHash, agentId
+    );
+
     if (!d.paypal) {
+      // SIMULATED: mark executed immediately
+      result(d.db, { actionId, outcome: 'executed' }, now(), mode);
       return {
         status: 'executed',
         actionId,
@@ -316,8 +355,7 @@ export async function runDisputeHandle(
 
     const evidenceResult = await provideEvidence(d.paypal, input.disputeId, response.evidence!);
     if (evidenceResult.success) {
-      // Record in ledger but with 0 amount since no money moved
-      result(d.db, { actionId, outcome: 'executed' }, now(), 'live');
+      result(d.db, { actionId, outcome: 'executed' }, now(), mode);
       return {
         status: 'executed',
         actionId,
@@ -326,6 +364,7 @@ export async function runDisputeHandle(
         mode: 'live'
       };
     } else {
+      result(d.db, { actionId, outcome: 'failed' }, now(), mode);
       return {
         status: 'execution_failed',
         actionId,
@@ -345,7 +384,7 @@ export async function runDisputeHandle(
       tool: 'handle_dispute',
       disputeId: input.disputeId,
       disputeAction: 'accept',
-      disputeReason: disputeDetails?.reason ?? 'UNKNOWN',
+      disputeReason,
       disputeAmountCents,
     }, now(), d.paypal ? 'live' : 'sim');
   } catch (e) {

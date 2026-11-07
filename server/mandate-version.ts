@@ -12,6 +12,10 @@ export interface MandateVersion {
   hash: string;
 }
 
+export function mandateHash(mandate: Mandate): string {
+  return createHash('sha256').update(JSON.stringify(mandate)).digest('hex');
+}
+
 export function saveMandateVersion(
   db: Db,
   mandate: Mandate,
@@ -19,7 +23,7 @@ export function saveMandateVersion(
   notes?: string
 ): number {
   const mandateJson = JSON.stringify(mandate);
-  const hash = createHash('sha256').update(mandateJson).digest('hex');
+  const hash = mandateHash(mandate);
   const now = Date.now();
 
   // Check if this exact mandate already exists
