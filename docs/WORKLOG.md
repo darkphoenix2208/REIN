@@ -33,9 +33,9 @@
 - [CUT] E. Approvals platform + SDK + integrations - Basic approvals work, advanced features not critical
 
 ## F4 PRODUCT FINISH
-- [ ] UI redesign
-- [ ] Screenshots
-- [ ] render.yaml + DEPLOY_RENDER.md
+- [x] UI redesign - COMPLETE (PayPal colors, Inter font, responsive, 9 pages)
+- [x] Screenshots - EXIST (docs/assets/brand/, video/public/thumb/)
+- [x] render.yaml + DEPLOY_RENDER.md - COMPLETE (both files exist and documented)
 
 ## F5 FINAL
 - [ ] README rewrite
