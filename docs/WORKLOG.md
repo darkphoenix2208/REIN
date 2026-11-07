@@ -10,13 +10,13 @@
 - [x] Gitignore node_modules (ALREADY IN .gitignore)
 - [ ] Check AG Grid license warnings in browser console
 
-## F1 ROBUSTNESS
-- [ ] fast-check property tests
-- [ ] Failure tests
-- [ ] Security hardening
-- [ ] Ops improvements
-- [ ] Benchmark script
-- [ ] Update THREAT_MODEL.md
+## F1 ROBUSTNESS (FOCUSING ON CRITICAL ITEMS)
+- [ ] Security hardening (constant-time compare, rate limits, secret redaction)
+- [ ] Failure tests (crash recovery, double-click, concurrent races)
+- [ ] npm audit vulnerabilities
+- [CUT] fast-check property tests (time-intensive, not critical path)
+- [CUT] Benchmark script (nice-to-have)
+- [ ] Update THREAT_MODEL.md with current state
 
 ## F2 FOUNDATION
 - [ ] Generalize engine to generic money action
