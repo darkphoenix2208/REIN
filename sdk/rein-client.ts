@@ -102,7 +102,7 @@ export class ReinClient {
         throw new Error(`Rein API Error ${response.status}: ${JSON.stringify(error)}`);
       }
 
-      return await response.json();
+      return await response.json() as T;
     } finally {
       clearTimeout(timeoutId);
     }
@@ -162,15 +162,3 @@ export class ReinClient {
 export function createClient(config: ReinConfig): ReinClient {
   return new ReinClient(config);
 }
-
-// Re-export types
-export type {
-  ReinConfig,
-  CheckRequest,
-  CheckResponse,
-  ApprovalRequest,
-  LedgerRow,
-  Checkpoint,
-  ChallengeAttempt,
-  ChallengeResponse,
-};
