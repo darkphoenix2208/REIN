@@ -73,6 +73,7 @@ AI support agents are vulnerable to prompt injection. Rein bounds the damage:
 - **PayPal Refunds API** - Full integration with sandbox (SIMULATED mode without keys)
 - **PayPal Payouts API** - Per-payee caps, allowlists, new payee escalation
 - **Price matching** - Channel3 market data integration (pure functions, recorded fallback)
+- **Reconciler** - Looks up refunds via GET /v2/checkout/orders/{id} (⚠️ NOT VERIFIED with live sandbox)
 
 ### Security & Audit ✅
 - **Ed25519 signed checkpoints** - Cryptographic ledger signatures
