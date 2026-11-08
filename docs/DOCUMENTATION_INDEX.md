@@ -29,8 +29,7 @@ The documentation is organized by responsibility. Start with the seven implement
 ## Research and build records
 
 - [PayPal MCP audit](Backend/PAYPAL_MCP_AUDIT.md) records the tool and payload inspection behind the hook allowlist.
-- [Verification record](Operations/VERIFICATION_RECORD.md) records the live sandbox and integration checks.
-- Reproducible benchmark harnesses live in `scripts/reinbench/`; generated results are intentionally not committed.
+- Reproducible benchmark harness: `npm run benchmark` (generates live results, not committed).
 
 These research records are retained for reproducibility and provenance; they are not the primary operating documentation.
 

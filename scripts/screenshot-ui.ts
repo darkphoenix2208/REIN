@@ -3,7 +3,7 @@ import { mkdirSync } from 'fs';
 import { join } from 'path';
 
 const PAGES = [
-  { path: '/', name: 'demo' },
+  { path: '/demo', name: 'demo' },
   { path: '/shop', name: 'shop' },
   { path: '/challenge', name: 'challenge' },
   { path: '/attack-lab', name: 'attack-lab' },
@@ -22,7 +22,7 @@ const VIEWPORTS = [
 ];
 
 const BASE_URL = process.env.BASE_URL || 'http://localhost:4317';
-const OUTPUT_DIR = join(process.cwd(), 'screenshots');
+const OUTPUT_DIR = join(process.cwd(), 'docs', 'assets', 'screenshots');
 
 async function main() {
   // Create output directory

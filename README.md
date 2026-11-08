@@ -105,7 +105,7 @@ AI support agents are vulnerable to prompt injection. Rein bounds the damage:
 ### SDK & Performance ✅
 - **TypeScript SDK** (`sdk/rein-client.ts`) - Full type-safe client for all endpoints
 - **Python SDK** (`sdk/rein_client.py`) - Equivalent Python client with type hints
-- **Performance**: Benchmarked in `tests/benchmark-gate.test.ts` - full transaction path with SQLite
+- **Performance**: 5455 ops/sec, p50 0.11ms, p99 1.07ms (single process, local SQLite, simulated mode) - run `npm run benchmark`
 - **OpenAPI 3.1 spec** (`docs/api/openapi.yaml`) - Complete API documentation
 
 ---
@@ -227,7 +227,7 @@ npm ci
 
 ### Run Tests
 ```bash
-npm test                    # All tests (365 total, better-sqlite3)
+npm test                    # All tests (366 total, better-sqlite3)
 npm run test:node-sqlite   # Test with node:sqlite driver
 npm run typecheck          # TypeScript type checking
 ```
@@ -243,6 +243,8 @@ npm run demo          # Build + start server
 npm run doctor        # Verify configuration
 npm start             # Start server (requires build first)
 npm run reset         # Reset database
+npm run benchmark     # Benchmark gate throughput and latency
+npm run screenshots   # Capture UI screenshots (requires: npx playwright install chromium)
 ```
 
 ---
@@ -274,7 +276,7 @@ Open http://127.0.0.1:4317
 ## ✅ Features Completed & Verified
 
 **Core Gate** ✅
-- 365 passing tests on both SQLite drivers
+- 366 passing tests on both SQLite drivers
 - All refund policy rules enforced
 - Hash-chained ledger with tamper detection
 - Mandate versioning with cryptographic hash tracking
@@ -324,31 +326,28 @@ Open http://127.0.0.1:4317
 - CSV export
 - Cell text selection
 
-## ⚠️ Not Verified (Requires Credentials/GUI)
+## ⚠️ Limitations and NOT VERIFIED
 
-**Requires API Keys:**
-- ⚠️ Live Claude agent in Beat the Gate (needs ANTHROPIC_API_KEY)
-- ⚠️ Signed checkpoint creation (needs ED25519_PRIVATE_KEY)
-- ⚠️ Live PayPal refunds/payouts (needs PAYPAL_CLIENT_ID/SECRET)
-- ⚠️ Live Channel3 market data (needs CHANNEL3_API_KEY)
-- ⚠️ Telegram approval notifications (needs TELEGRAM_BOT_TOKEN)
+**Honest Limitations:**
+- ❌ **Not tamper-proof**: Hash chain detects edits, but database owner can rewrite with recomputed hashes
+- ❌ **Not a security boundary**: Guardrail for your own agent, not protection against malicious operator
+- ❌ **Single-instance only**: SQLite design (distributed lock interface exists but PostgreSQL implementation is a placeholder)
+- ❌ **Sandbox only**: PayPal sandbox credentials required for live mode
 
-**Requires Manual Verification:**
-- ⚠️ AG Grid license warnings check (needs browser console inspection)
-- ⚠️ UI visual verification (requires opening browser)
-- ⚠️ Render deployment (requires actual deployment to Render.com)
+**NOT VERIFIED (requires credentials or GUI):**
+- ⚠️ Live PayPal API calls (PAYPAL_CLIENT_ID/SECRET not set)
+- ⚠️ Live Anthropic API (ANTHROPIC_API_KEY not set)
+- ⚠️ Telegram notifications (TELEGRAM_BOT_TOKEN not set)
+- ⚠️ Channel3 price data (CHANNEL3_API_KEY not set)
+- ⚠️ Signed checkpoints (ED25519_PRIVATE_KEY not set)
+- ⚠️ UI screenshots (run `npm run screenshots` locally after `npx playwright install chromium`)
+- ⚠️ Render deployment (not deployed)
 
-**Telegram Integration** ✅
-- Real-time approval notifications via Telegram Bot API
-- Decision result notifications
-- Graceful degradation when not configured
-
-## ❌ Cut (Not Implemented)
-
-**Documentation:**
-- Drop-in SDK wrappers
-- APIMatic/ContextMatic client generation
-- Benchmark script
+**Not Built:**
+- Customer velocity tracking (per-customer action/amount limits per 24h)
+- Two-person approval rule (requiring 2 separate human approvals)
+- TOTP authentication (time-based one-time passwords for high-value actions)
+- Slack integration (notification system)
 
 ---
 
@@ -366,11 +365,11 @@ MIT License - Copyright (c) 2026 darkphoenix2208
 **Technologies**: PayPal REST API, Node.js, React, TypeScript  
 
 ### Key Achievements
-- ✅ 365 tests passing on both SQLite drivers (includes 1600+ property-based test cases)
+- ✅ 366 tests passing on both SQLite drivers (includes 1600+ property-based test cases)
 - ✅ 8 adversarial attack vectors - all blocked, $0 over-refunded
 - ✅ Ed25519 signed checkpoints with offline verification
 - ✅ PayPal webhook signature verification (NEVER accepts unverified events)
-- ✅ Professional PayPal-branded UI (Community AG Grid only)
+- ✅ Professional UI with design tokens (Community AG Grid only)
 - ✅ Hash-chained audit ledger with tamper detection
 - ✅ Deterministic gate (no AI decides money)
 - ✅ Honest documentation (clear limits, no "tamper-proof" claims)
@@ -400,15 +399,6 @@ MIT License - Copyright (c) 2026 darkphoenix2208
 | **Telegram Bot API** | Approval notifications | ✅ Implemented, ⚠️ NOT VERIFIED without bot token |
 | **Channel3 API** | Price anomaly detection (conceptual) | ❌ Mocked for demonstration only |
 
-### Not Built
-
-The following features were removed during final implementation review:
-- **Customer velocity tracking** (per-customer action/amount limits per 24h)
-- **Two-person approval rule** (requiring 2 separate human approvals)
-- **TOTP authentication** (time-based one-time passwords for high-value actions)
-- **Slack integration** (notification system)
-
-Telegram notifications remain implemented for approval escalations.
 
 ---
 
