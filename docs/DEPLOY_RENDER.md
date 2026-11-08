@@ -36,6 +36,7 @@ Rein is designed to run securely and reliably on Render as a single-instance ser
 | `PAYPAL_CLIENT_ID` | Optional | — | PayPal sandbox App Client ID (never live keys) |
 | `PAYPAL_CLIENT_SECRET` | Optional | — | PayPal sandbox Secret (never live keys) |
 | `REIN_DISABLE_CHALLENGE` | Optional | `0` | Kill switch (`1` disables challenge endpoint with 503) |
+| `REIN_CHALLENGE_DAILY_TOKENS` | Optional | `100000` | Daily Anthropic token budget for challenge attempts |
 | `RENDER_API_KEY` | Optional | — | For Render Workflows container dispatch |
 
 ---

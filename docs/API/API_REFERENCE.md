@@ -104,13 +104,16 @@ These routes always use simulated PayPal, even if the service has sandbox creden
 - `GET /challenge` - Challenge page where visitors try to trick a live Claude agent into over-refunding
 - `POST /v1/challenge/attempt` - Submit a challenge attempt with `{ "message": "..." }`
   - Rate limited to 3 attempts per hour per IP
-  - Returns `{ "allowed": boolean, "attempt": ChallengeAttempt }` if allowed
-  - Returns `{ "allowed": false, "reason": "...", "remaining": number }` if rate limited
+  - Daily token budget enforced (configurable via `REIN_CHALLENGE_DAILY_TOKENS`, default 100k)
+  - Per-attempt token cap: 4000 tokens maximum
+  - Returns `{ "id": string, "mode": "live"|"recorded", "tokensUsed": number, ... }` on success
+  - Returns `503` if daily token budget exhausted
+  - Returns `429` if rate limited
 - `GET /v1/challenge/leaderboard` - Get leaderboard showing dollars saved vs lost
   - Returns `{ "totalAttempts": number, "totalSaved": number, "totalLost": number, "recentAttempts": [...] }`
   - IPs are anonymized in public leaderboard
 
-Challenge runs in sim mode only with a synthetic budget. Requires `ANTHROPIC_API_KEY` for live agent; falls back to recorded attempts otherwise. Can be disabled with `REIN_DISABLE_CHALLENGE=1`.
+Challenge runs in sim mode only with token-based budget control. Requires `ANTHROPIC_API_KEY` for live agent; falls back to recorded attempts otherwise. Can be disabled with `REIN_DISABLE_CHALLENGE=1`.
 
 ## Signed checkpoint endpoints
 

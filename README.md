@@ -59,7 +59,7 @@ AI support agents are vulnerable to prompt injection. Rein bounds the damage:
 ## 🔬 What Works (Verified)
 
 ### Core Gate ✅
-- **361 passing tests** across 63 suites on both SQLite drivers
+- **363 passing tests** across 67 suites on both SQLite drivers
 - Item-scoped refunds with quantity tracking and per-item rules
 - Amount-scoped refunds with configurable caps
 - Duplicate detection within rolling 24h window
@@ -130,14 +130,14 @@ AI support agents are vulnerable to prompt injection. Rein bounds the damage:
 ### Test Results
 ```
 Driver: better-sqlite3
-  Tests: 361 passing, 0 failing
-  Suites: 63
-  Duration: ~29 seconds
+  Tests: 363 passing, 0 failing
+  Suites: 67
+  Duration: ~27 seconds
   
 Driver: node:sqlite
-  Tests: 361 passing, 0 failing
-  Suites: 63
-  Duration: ~29 seconds
+  Tests: 363 passing, 0 failing
+  Suites: 67
+  Duration: ~27 seconds
 ```
 
 ### Attack Lab Results
@@ -231,7 +231,7 @@ npm ci
 
 ### Run Tests
 ```bash
-npm test                    # All tests (327 total, better-sqlite3)
+npm test                    # All tests (363 total, better-sqlite3)
 npm run test:node-sqlite   # Test with node:sqlite driver
 npm run typecheck          # TypeScript type checking
 ```
