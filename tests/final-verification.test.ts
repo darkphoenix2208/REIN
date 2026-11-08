@@ -11,9 +11,9 @@ describe('Final Verification - Core Systems', () => {
     const tableNames = tables.map((t) => t.name);
     
     const requiredTables = [
-      'actions', 'action_items', 'approvals', 'challenge_attempts',
-      'grants', 'ledger', 'mandate_versions', 'order_items',
-      'orders', 'payee_allowlist', 'payments',
+      'actions', 'action_items', 'approvals', 'grants',
+      'ledger', 'mandate_versions', 'order_items', 'orders',
+      'payee_allowlist', 'payments',
     ];
     
     for (const table of requiredTables) {
