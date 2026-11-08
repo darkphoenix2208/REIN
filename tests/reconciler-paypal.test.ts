@@ -16,7 +16,7 @@ const MANDATE = {
   hardDailyCapCents: 100000,
   perActionCapCents: 10000,
   hardMaxCents: 20000,
-  expiresAt: '2099-12-31T23:59:59Z',
+  expiresAt: Date.parse('2099-12-31T23:59:59Z'),
 };
 
 function request(app: any, method: string, path: string, token?: string): Promise<{ status: number; body: any }> {
