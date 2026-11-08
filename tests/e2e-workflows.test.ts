@@ -169,13 +169,13 @@ describe('E2E Workflows', () => {
     
     // Create payment
     db.run(`INSERT INTO payments(txn_id,captured_cents,refunded_cents,reserved_cents,currency) VALUES (?,?,?,?,?)`,
-      'CAP-BLOCKED', 100000, 0, 0, 'USD');
+      'CAP-BLOCKED', 20000, 0, 0, 'USD');
     
-    // Try to refund more than hard max
+    // Try to refund more than hard max (default is $100 = 10000 cents)
     const checkRes = await check(db, {
       sessionId: 'blocked-session',
       tool: 'refund_items',
-      args: { captureId: 'CAP-BLOCKED', amount: 150000, items: [{ itemId: 'item1', qty: 1 }] },
+      args: { captureId: 'CAP-BLOCKED', amount: 15000, items: [{ itemId: 'item1', qty: 1 }] },
       mandate,
       timestamp: now,
     });
