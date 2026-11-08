@@ -7,9 +7,7 @@ Rein is a deterministic mandate gate for AI agents that process PayPal refunds. 
 **Built by:** darkphoenix2208  
 **PayPal sandbox only. No real money.**
 
-📖 **New here?** Start with [`QUICKSTART.md`](QUICKSTART.md) (5 minutes, no credentials needed)  
-📋 **Ready to deploy?** See [`DEPLOYMENT_CHECKLIST.md`](DEPLOYMENT_CHECKLIST.md)  
-⚠️ **See limitations?** Read [`FINAL_SUMMARY.md`](FINAL_SUMMARY.md) for what's fixed vs. documented
+📖 **New here?** Start with [`QUICKSTART.md`](QUICKSTART.md) (5 minutes, no credentials needed)
 
 ---
 
@@ -63,7 +61,7 @@ AI support agents are vulnerable to prompt injection. Rein bounds the damage:
 ## 🔬 What Works (Verified)
 
 ### Core Gate ✅
-- **365 passing tests** across 67 suites on both SQLite drivers
+- **366 passing tests** on both SQLite drivers
 - Item-scoped refunds with quantity tracking and per-item rules
 - Amount-scoped refunds with configurable caps
 - Duplicate detection within rolling 24h window
@@ -133,15 +131,9 @@ AI support agents are vulnerable to prompt injection. Rein bounds the damage:
 
 ### Test Results
 ```
-Driver: better-sqlite3
-  Tests: 365 passing, 0 failing
-  Suites: 67
-  Duration: ~27 seconds
-  
-Driver: node:sqlite
-  Tests: 365 passing, 0 failing
-  Suites: 67
-  Duration: ~27 seconds
+Tests: 366 passing, 0 failing
+Drivers: both better-sqlite3 and node:sqlite
+Duration: ~21 seconds
 ```
 
 ### Attack Lab Results
