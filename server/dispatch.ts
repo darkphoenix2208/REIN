@@ -19,9 +19,9 @@ const payOf = (db: Db, cap: string): PayRow | undefined =>
     cap,
   );
 
-// rolling 24h total; EXCLUDES the action's own id (guard against double counting)
+// rolling 24h total for REFUNDS only; EXCLUDES the action's own id (guard against double counting)
 const windowSum = (db: Db, sid: string, now: number, exceptId: string): number =>
-  db.val<number>(`SELECT COALESCE(SUM(amount_cents),0) FROM actions WHERE session_id=? AND created_at>=? AND id<>? AND status IN ${COUNTS}`, sid, now - DAY_MS, exceptId) ?? 0;
+  db.val<number>(`SELECT COALESCE(SUM(amount_cents),0) FROM actions WHERE session_id=? AND action_type='refund' AND created_at>=? AND id<>? AND status IN ${COUNTS}`, sid, now - DAY_MS, exceptId) ?? 0;
 
 const isDup = (db: Db, sid: string, cap: string, cents: number, now: number, exceptId: string, win = DAY_MS): boolean =>
   win > 0 &&
@@ -231,16 +231,21 @@ export type Outcome = 'executed' | 'failed' | 'unknown';
 /** PostToolUse / proxy result. Release the reservation ONLY on a clear failure; ambiguity keeps it held (conservative). */
 export function result(db: Db, i: { actionId: string; outcome: Outcome; refundId?: string | undefined }, now = Date.now(), mode: 'sim' | 'live' = 'sim'): void {
   tx(db, () => {
-    const row = db.one<{ status: string; amt: number; cap: string }>('SELECT status, amount_cents amt, capture_id cap FROM actions WHERE id=?', i.actionId);
+    const row = db.one<{ status: string; amt: number; cap: string | null; atype: string }>('SELECT status, amount_cents amt, capture_id cap, action_type atype FROM actions WHERE id=?', i.actionId);
     if (!row || row.status !== 'reserved') return; // idempotent; blocked and escalated calls never executed
-    if (i.outcome === 'executed') {
-      db.run('UPDATE payments SET reserved_cents=reserved_cents-?, refunded_cents=refunded_cents+? WHERE txn_id=?', row.amt, row.amt, row.cap);
-      releaseItems(db, i.actionId, true);
+    
+    // For refunds, update payments table and release items
+    if (row.atype === 'refund' && row.cap) {
+      if (i.outcome === 'executed') {
+        db.run('UPDATE payments SET reserved_cents=reserved_cents-?, refunded_cents=refunded_cents+? WHERE txn_id=?', row.amt, row.amt, row.cap);
+        releaseItems(db, i.actionId, true);
+      }
+      if (i.outcome === 'failed') {
+        db.run('UPDATE payments SET reserved_cents=reserved_cents-? WHERE txn_id=?', row.amt, row.cap);
+        releaseItems(db, i.actionId, false);
+      }
     }
-    if (i.outcome === 'failed') {
-      db.run('UPDATE payments SET reserved_cents=reserved_cents-? WHERE txn_id=?', row.amt, row.cap);
-      releaseItems(db, i.actionId, false);
-    }
+    
     const status = i.outcome === 'executed' ? 'executed' : i.outcome === 'failed' ? 'execution_failed' : 'unknown_outcome';
     db.run('UPDATE actions SET status=?, updated_at=? WHERE id=?', status, now, i.actionId);
     ledger(db, i.actionId, status, { mode, refundId: i.refundId ?? null }, now);
@@ -376,11 +381,11 @@ export function checkSubscription(
   const agentId = (a as any).agentId ?? a.sessionId;
 
   return tx(db, () => {
-    const status = d.status;
+    const status = d.status === 'allowed' ? 'reserved' : d.status;
     db.run(
       `INSERT INTO actions(id,session_id,tool,capture_id,amount_cents,decision,rule_id,reason,status,created_at,updated_at,action_type,subscription_id,mandate_version,agent_id)
        VALUES (?,?,?,NULL,?,?,?,?,?,?,?,'subscription',?,?,?)`,
-      a.actionId, a.sessionId, a.tool, a.subscriptionValue, status, d.ruleId, d.reason, status, now, now, a.subscriptionId, mHash, agentId
+      a.actionId, a.sessionId, a.tool, a.subscriptionValue, d.status, d.ruleId, d.reason, status, now, now, a.subscriptionId, mHash, agentId
     );
 
     let approvalUrl: string | undefined;
@@ -392,7 +397,7 @@ export function checkSubscription(
     }
 
     ledger(db, a.actionId, status, { mode, ruleId: d.ruleId, amountCents: a.subscriptionValue }, now, mHash, agentId);
-    return { ...d, actionId: a.actionId, ...(approvalUrl ? { approvalUrl } : {}), ...(token ? { token } : {}) };
+    return { ...d, status, actionId: a.actionId, ...(approvalUrl ? { approvalUrl } : {}), ...(token ? { token } : {}) };
   });
 }
 
@@ -425,11 +430,11 @@ export function checkDispute(
   const agentId = a.agentId ?? a.sessionId;
 
   return tx(db, () => {
-    const status = d.status;
+    const status = d.status === 'allowed' ? 'reserved' : d.status;
     db.run(
       `INSERT INTO actions(id,session_id,tool,capture_id,amount_cents,decision,rule_id,reason,status,created_at,updated_at,action_type,dispute_id,mandate_version,agent_id)
        VALUES (?,?,?,NULL,?,?,?,?,?,?,?,'dispute',?,?,?)`,
-      a.actionId, a.sessionId, a.tool, a.disputeAmountCents, status, d.ruleId, d.reason, status, now, now, a.disputeId, mHash, agentId
+      a.actionId, a.sessionId, a.tool, a.disputeAmountCents, d.status, d.ruleId, d.reason, status, now, now, a.disputeId, mHash, agentId
     );
 
     let approvalUrl: string | undefined;
@@ -441,7 +446,7 @@ export function checkDispute(
     }
 
     ledger(db, a.actionId, status, { mode, ruleId: d.ruleId, amountCents: a.disputeAmountCents }, now, mHash, agentId);
-    return { ...d, actionId: a.actionId, ...(approvalUrl ? { approvalUrl } : {}), ...(token ? { token } : {}) };
+    return { ...d, status, actionId: a.actionId, ...(approvalUrl ? { approvalUrl } : {}), ...(token ? { token } : {}) };
   });
 }
 
