@@ -29,7 +29,7 @@ export interface Mandate {
   twoPersonThresholdCents?: number; // amount above which two-person rule applies (defaults to hardMaxCents)
 }
 
-export type Status = 'allowed' | 'blocked' | 'pending_approval';
+export type Status = 'allowed' | 'blocked' | 'pending_approval' | 'reserved';
 
 export interface Decision {
   status: Status;

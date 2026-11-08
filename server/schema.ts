@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS order_items(
 CREATE TABLE IF NOT EXISTS actions(
   id TEXT PRIMARY KEY, session_id TEXT NOT NULL, tool TEXT, capture_id TEXT, amount_cents INTEGER, decision TEXT, rule_id TEXT,
   reason TEXT, status TEXT NOT NULL, created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL, action_type TEXT NOT NULL DEFAULT 'refund', payee_email TEXT,
-  mandate_version TEXT, agent_id TEXT);
+  subscription_id TEXT, dispute_id TEXT, mandate_version TEXT, agent_id TEXT);
 CREATE INDEX IF NOT EXISTS actions_win ON actions(session_id, created_at);
 CREATE INDEX IF NOT EXISTS actions_payee ON actions(session_id, payee_email, created_at);
 CREATE TABLE IF NOT EXISTS action_items(action_id TEXT NOT NULL, order_id TEXT NOT NULL, item_id TEXT NOT NULL, qty INTEGER NOT NULL);

@@ -34,7 +34,7 @@ const releaseItems = (db: Db, actionId: string, executed: boolean): void => {
   }
 };
 
-function checkPayout(db: Db, m: Mandate, a: CheckInput, now: number, mode: 'sim' | 'live'): CheckResult {
+export function checkPayout(db: Db, m: Mandate, a: CheckInput, now: number, mode: 'sim' | 'live'): CheckResult {
   const payeeEmail = a.payeeEmail!;
   const amountCents = a.amountCents!;
 
@@ -58,8 +58,8 @@ function checkPayout(db: Db, m: Mandate, a: CheckInput, now: number, mode: 'sim'
   // Check if payee is allowlisted
   const isAllowlisted = m.payoutAllowlist ? m.payoutAllowlist.includes(payeeEmail) : false;
 
-  // Check for existing grant
-  const argsHash = hashArgs(a.tool, undefined, amountCents, undefined);
+  // Check for existing grant (bound to tool + payee + amount)
+  const argsHash = hashArgs(a.tool, payeeEmail, amountCents, undefined);
   const grant = db.one<{ id: string }>('SELECT id FROM grants WHERE args_hash=? AND session_id=? AND used=0 AND expires_at>?', argsHash, a.sessionId, now);
 
   const state: PayoutPolicyState = {
@@ -125,7 +125,7 @@ function finishPayout(db: Db, a: CheckInput, now: number, d: Decision, amountCen
     return { status: 'pending_approval', ruleId: d.ruleId, reason: d.reason, actionId: a.actionId, approvalUrl, token };
   }
 
-  return { status: d.status, ruleId: d.ruleId, reason: d.reason, actionId: a.actionId };
+  return { status, ruleId: d.ruleId, reason: d.reason, actionId: a.actionId };
 }
 
 export function check(db: Db, m: Mandate, a: CheckInput, now = Date.now(), ext?: ExternalState, mode: 'sim' | 'live' = 'sim'): CheckResult {
@@ -272,7 +272,7 @@ export type ApproveResult = { ok: true } | { ok: false; code: 403 | 404 | 409 | 
 export function approve(db: Db, m: Mandate, i: { actionId: string; token: string; decision: 'approve' | 'deny' }, now = Date.now(), ext?: ExternalState, mode: 'sim' | 'live' = 'sim'): ApproveResult {
   return tx(db, (): ApproveResult => {
     const row = db.one<any>(
-      `SELECT a.session_id sid, a.tool, a.capture_id cap, a.amount_cents amt, a.status ast, ap.token_hash th, ap.expires_at exp, ap.status aps
+      `SELECT a.session_id sid, a.tool, a.capture_id cap, a.amount_cents amt, a.status ast, a.payee_email payee, a.subscription_id sub, a.dispute_id dispute, ap.token_hash th, ap.expires_at exp, ap.status aps, a.action_type atype
        FROM approvals ap JOIN actions a ON a.id = ap.action_id WHERE ap.action_id = ?`,
       i.actionId,
     );
@@ -293,25 +293,45 @@ export function approve(db: Db, m: Mandate, i: { actionId: string; token: string
       ledger(db, i.actionId, 'denied', { mode }, now);
       return { ok: true };
     }
+    
+    // For non-refund actions (payout, subscription, dispute), only check mandate expiry and mint grant
+    const actionType = row.atype || 'refund';
     const items = db.all<{ item_id: string; qty: number }>('SELECT item_id, qty FROM action_items WHERE action_id=?', i.actionId).map((x) => ({ itemId: x.item_id, qty: x.qty }));
-    const d = decide({ amountCents: row.amt }, m, {
-      pay: payOf(db, row.cap),
-      now,
-      approved: true,
-      windowSum: windowSum(db, row.sid, now, i.actionId),
-      dup: isDup(db, row.sid, row.cap, row.amt, now, i.actionId, m.dupWindowMs),
-      ...(ext ? { ext } : {}),
-    });
-    if (d.status !== 'allowed') {
+    
+    // Check mandate expiry (always required)
+    if (now > m.expiresAt) {
       db.run(`UPDATE approvals SET status='rejected' WHERE action_id=?`, i.actionId);
-      db.run(`UPDATE actions SET status='blocked', rule_id=?, reason=?, updated_at=? WHERE id=?`, d.ruleId, d.reason, now, i.actionId);
-      ledger(db, i.actionId, 'approval_rejected', { mode, ruleId: d.ruleId }, now);
-      return { ok: false, code: 409, why: `No longer valid: ${d.reason}` };
+      db.run(`UPDATE actions SET status='blocked', rule_id=?, reason=?, updated_at=? WHERE id=?`, 'R-MANDATE-EXPIRED', 'The mandate has expired.', now, i.actionId);
+      ledger(db, i.actionId, 'approval_rejected', { mode, ruleId: 'R-MANDATE-EXPIRED' }, now);
+      return { ok: false, code: 409, why: 'Mandate has expired.' };
     }
-    db.run('INSERT INTO grants(id,args_hash,session_id,action_id,used,expires_at) VALUES (?,?,?,?,0,?)', randomUUID(), hashArgs(row.tool, row.cap, row.amt, items.length ? items : undefined), row.sid, i.actionId, now + 600_000);
+    
+    // For refunds, re-check hard rules with approved flag
+    if (actionType === 'refund') {
+      const d = decide({ amountCents: row.amt }, m, {
+        pay: payOf(db, row.cap),
+        now,
+        approved: true,
+        windowSum: windowSum(db, row.sid, now, i.actionId),
+        dup: isDup(db, row.sid, row.cap, row.amt, now, i.actionId, m.dupWindowMs),
+        ...(ext ? { ext } : {}),
+      });
+      if (d.status !== 'allowed') {
+        db.run(`UPDATE approvals SET status='rejected' WHERE action_id=?`, i.actionId);
+        db.run(`UPDATE actions SET status='blocked', rule_id=?, reason=?, updated_at=? WHERE id=?`, d.ruleId, d.reason, now, i.actionId);
+        ledger(db, i.actionId, 'approval_rejected', { mode, ruleId: d.ruleId }, now);
+        return { ok: false, code: 409, why: `No longer valid: ${d.reason}` };
+      }
+    }
+    
+    // Bind grant to tool + target (payee/subscription/dispute/capture) + amount
+    const target = row.payee || row.sub || row.dispute || row.cap || '';
+    const grantHash = hashArgs(row.tool, target, row.amt, items.length ? items : undefined);
+    
+    db.run('INSERT INTO grants(id,args_hash,session_id,action_id,used,expires_at) VALUES (?,?,?,?,0,?)', randomUUID(), grantHash, row.sid, i.actionId, now + 600_000);
     db.run(`UPDATE approvals SET status='approved' WHERE action_id=?`, i.actionId);
     db.run(`UPDATE actions SET status='approved', updated_at=? WHERE id=?`, now, i.actionId);
-    ledger(db, i.actionId, 'approved', { mode, ruleId: d.ruleId }, now);
+    ledger(db, i.actionId, 'approved', { mode, ruleId: 'R-APPROVED' }, now);
     return { ok: true };
   });
 }
@@ -358,9 +378,9 @@ export function checkSubscription(
   return tx(db, () => {
     const status = d.status;
     db.run(
-      `INSERT INTO actions(id,session_id,tool,capture_id,amount_cents,decision,rule_id,reason,status,created_at,updated_at,action_type,mandate_version,agent_id)
-       VALUES (?,?,?,NULL,?,?,?,?,?,?,?,'subscription',?,?)`,
-      a.actionId, a.sessionId, a.tool, a.subscriptionValue, status, d.ruleId, d.reason, status, now, now, mHash, agentId
+      `INSERT INTO actions(id,session_id,tool,capture_id,amount_cents,decision,rule_id,reason,status,created_at,updated_at,action_type,subscription_id,mandate_version,agent_id)
+       VALUES (?,?,?,NULL,?,?,?,?,?,?,?,'subscription',?,?,?)`,
+      a.actionId, a.sessionId, a.tool, a.subscriptionValue, status, d.ruleId, d.reason, status, now, now, a.subscriptionId, mHash, agentId
     );
 
     let approvalUrl: string | undefined;
@@ -407,9 +427,9 @@ export function checkDispute(
   return tx(db, () => {
     const status = d.status;
     db.run(
-      `INSERT INTO actions(id,session_id,tool,capture_id,amount_cents,decision,rule_id,reason,status,created_at,updated_at,action_type,mandate_version,agent_id)
-       VALUES (?,?,?,NULL,?,?,?,?,?,?,?,'dispute',?,?)`,
-      a.actionId, a.sessionId, a.tool, a.disputeAmountCents, status, d.ruleId, d.reason, status, now, now, mHash, agentId
+      `INSERT INTO actions(id,session_id,tool,capture_id,amount_cents,decision,rule_id,reason,status,created_at,updated_at,action_type,dispute_id,mandate_version,agent_id)
+       VALUES (?,?,?,NULL,?,?,?,?,?,?,?,'dispute',?,?,?)`,
+      a.actionId, a.sessionId, a.tool, a.disputeAmountCents, status, d.ruleId, d.reason, status, now, now, a.disputeId, mHash, agentId
     );
 
     let approvalUrl: string | undefined;
