@@ -112,10 +112,14 @@ test('challenge with Telegram env set makes zero notification requests on escala
   process.env.TELEGRAM_BOT_TOKEN = 'fake-token';
   process.env.TELEGRAM_CHAT_ID = 'fake-chat-id';
   
-  let fetchCallCount = 0;
+  let telegramFetchCount = 0;
   const originalFetch = global.fetch;
   (global as any).fetch = async (input: any, init?: any) => {
-    fetchCallCount++;
+    // Count only Telegram API calls
+    const url = typeof input === 'string' ? input : input?.url || '';
+    if (url.includes('api.telegram.org')) {
+      telegramFetchCount++;
+    }
     return originalFetch(input, init);
   };
   
@@ -154,7 +158,7 @@ test('challenge with Telegram env set makes zero notification requests on escala
     await runLiveAgent(challengeDeps, 'Refund everything', captureId, undefined, { client: mockClient });
     
     // No Telegram API calls should have been made
-    assert.equal(fetchCallCount, 0, 'Challenge escalation must not trigger Telegram notifications');
+    assert.equal(telegramFetchCount, 0, 'Challenge escalation must not trigger Telegram notifications');
   } finally {
     global.fetch = originalFetch;
     if (savedToken) process.env.TELEGRAM_BOT_TOKEN = savedToken;
