@@ -6,7 +6,9 @@
 
 ## Task 2: Persist non-refund actions as "reserved" and settle them ✅ DONE (3 tests, 334 total)
 
-## Task 3: Fix reconciler - only mark executed when refund is found (WORKING)
+## Task 3: Fix reconciler - only mark executed when refund is found ✅ DONE (3 tests, 337 total)
+
+## Task 4: Beat the Gate sandbox isolation - separate DB, no PayPal, no notifications ✅ DONE (4 tests, 341 total)
 
 - [x] 1. HTTP-level tests for checkpoint/verify/leaderboard/attempt routes through Express app; curl each route
   - VERIFIED: All routes respond correctly (200 or expected 503/404)

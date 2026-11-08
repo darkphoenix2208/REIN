@@ -1,7 +1,8 @@
 // HTTP API (Express). One service: /v1/* here, the built SPA is served by index.ts in Phase 3. Fail closed everywhere.
 import express, { type NextFunction, type Request, type Response } from 'express';
 import { timingSafeEqual } from 'node:crypto';
-import { isBusy, ReinBusyError } from './db.ts';
+import { isBusy, ReinBusyError, openDb, type Db } from './db.ts';
+import { applySchema } from './schema.ts';
 import { approve, check, preventedLoss, result, sweep } from './dispatch.ts';
 import { describeMandate } from './config.ts';
 import { verifyChain } from './ledger.ts';
@@ -38,6 +39,7 @@ export interface AppOptions {
   askImpl?: (prompt: string) => Promise<string>; // tests
   lockOperatorEndpoints?: boolean;
   challengeClient?: any;
+  challengeDb?: Db; // Injected challenge database for testing (otherwise creates in-memory)
   channel3Client?: Channel3Client; // REIN_LOCK_OPERATOR_ENDPOINTS=1: require the bearer token on /ledger and /exposure too.
   // Off by default so the public demo's own transparency feature (anyone can watch the hash chain) keeps working unauthenticated.
   // /approval/:id and POST /approve stay public regardless: that flow is designed for a human clicking an emailed link with no login,
@@ -617,14 +619,27 @@ export function createApp(d: GateDeps, o: AppOptions = {}): express.Express {
     }
   });
 
-  // Beat the Gate challenge
-  api.get('/challenge/leaderboard', (req, res) => {
-    initChallengeSchema(d.db);
-    res.json(getLeaderboard(d.db, 50));
+  // Beat the Gate challenge (uses separate in-memory database for isolation)
+  let challengeDb: Db | null = o.challengeDb ?? null;
+  async function getChallengeDb(): Promise<Db> {
+    if (!challengeDb) {
+      challengeDb = await openDb(':memory:');
+      applySchema(challengeDb);
+      initChallengeSchema(challengeDb);
+    } else {
+      // Ensure schema is initialized even for injected DB
+      try { initChallengeSchema(challengeDb); } catch {}
+    }
+    return challengeDb;
+  }
+
+  api.get('/challenge/leaderboard', async (req, res) => {
+    const cdb = await getChallengeDb();
+    res.json(getLeaderboard(cdb, 50));
   });
 
   api.post('/challenge/attempt', rateLimit(10), async (req, res) => {
-    initChallengeSchema(d.db);
+    const cdb = await getChallengeDb();
 
     if (isKillSwitchActive()) {
       return void res.status(503).json({ error: 'challenge_disabled', reason: 'The challenge is temporarily disabled.' });
@@ -632,13 +647,13 @@ export function createApp(d: GateDeps, o: AppOptions = {}): express.Express {
 
     const ip = (req.ip || req.socket.remoteAddress || '0.0.0.0').slice(0, 64);
     const now = Date.now();
-    const rateCheck = checkRateLimit(d.db, ip, now);
+    const rateCheck = checkRateLimit(cdb, ip, now);
 
     if (!rateCheck.allowed) {
       return void res.status(429).json({ error: 'rate_limit', remaining: rateCheck.remaining, retryAfter: 3600 });
     }
 
-    const totalSpent = getTotalSpent(d.db);
+    const totalSpent = getTotalSpent(cdb);
     if (totalSpent >= 100000) { // $1000 cap
       return void res.status(503).json({ error: 'budget_exhausted', reason: 'The challenge budget has been exhausted.' });
     }
@@ -651,7 +666,7 @@ export function createApp(d: GateDeps, o: AppOptions = {}): express.Express {
     // Use recorded fallback if no API key
     if (!hasApiKey() && !o.challengeClient) {
       const recorded = getRecordedAttempt(Math.floor(Math.random() * 3));
-      const id = recordAttempt(d.db, {
+      const id = recordAttempt(cdb, {
         ip,
         message,
         agentResponse: recorded.agentResponse,
@@ -683,16 +698,24 @@ export function createApp(d: GateDeps, o: AppOptions = {}): express.Express {
     try {
       const { runLiveAgent } = await import('./challenge-agent.ts');
       const { createFreshChallengeCapture } = await import('./challenge-seed.ts');
-      const captureId = createFreshChallengeCapture(d.db);
+      const captureId = createFreshChallengeCapture(cdb);
 
-      const result = await runLiveAgent(d, message, captureId, process.env.ANTHROPIC_API_KEY, { client: o.challengeClient });
+      // Create isolated GateDeps for challenge (separate DB, no PayPal, no notifications)
+      const challengeDeps: GateDeps = {
+        db: cdb,
+        mandate: d.mandate,
+        paypal: null, // Always simulated mode
+        now: () => Date.now(),
+      };
+
+      const result = await runLiveAgent(challengeDeps, message, captureId, process.env.ANTHROPIC_API_KEY, { client: o.challengeClient });
 
       const savedCents = result.gateDecision === 'blocked' || result.gateDecision === 'escalated'
         ? result.requestedCents
         : 0;
       const lostCents = result.gateDecision === 'allowed' ? result.refundedCents : 0;
 
-      const id = recordAttempt(d.db, {
+      const id = recordAttempt(cdb, {
         ip,
         message,
         agentResponse: result.response,
@@ -722,7 +745,7 @@ export function createApp(d: GateDeps, o: AppOptions = {}): express.Express {
       console.error('Live agent error:', e);
       // Fallback to recorded on error
       const recorded = getRecordedAttempt(Math.floor(Math.random() * 3));
-      const id = recordAttempt(d.db, {
+      const id = recordAttempt(cdb, {
         ip,
         message,
         agentResponse: recorded.agentResponse,

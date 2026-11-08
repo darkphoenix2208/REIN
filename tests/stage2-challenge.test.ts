@@ -234,20 +234,23 @@ for (const driver of ['better-sqlite3', 'node:sqlite'] as const) {
 
     // 5. Spend cap / budget exhausted: returns 503 when budget reached
     test('spend cap: returns 503 when total lost cents >= $1000', async () => {
-      const path = join(mkdtempSync(join(tmpdir(), 'rein-btg-')), 't.db');
-      const db = await openDb(path, { driver });
+      const mainPath = join(mkdtempSync(join(tmpdir(), 'rein-btg-')), 't.db');
+      const challengePath = join(mkdtempSync(join(tmpdir(), 'rein-btg-chal-')), 'c.db');
+      const db = await openDb(mainPath, { driver });
+      const cdb = await openDb(challengePath, { driver });
       applySchema(db);
+      applySchema(cdb);
 
-      // Seed attempts totaling >= $1000 lost
+      // Seed challenge DB with attempts totaling >= $1000 lost
       const { initChallengeSchema } = await import('../server/beat-the-gate.ts');
-      initChallengeSchema(db);
-      db.run(
+      initChallengeSchema(cdb);
+      cdb.run(
         `INSERT INTO challenge_attempts (id, ip, message, agent_response, tool_calls, gate_decision, gate_rule, requested_cents, refunded_cents, saved_cents, lost_cents, created_at, mode)
          VALUES ('exhaust-1', '1.1.1.1', 'test', 'resp', '[]', 'allowed', 'R-ALLOW', 100000, 100000, 0, 100000, ?, 'recorded')`,
         Date.now()
       );
 
-      const app = createApp({ db, mandate: MANDATE, paypal: null });
+      const app = createApp({ db, mandate: MANDATE, paypal: null }, { challengeDb: cdb });
       const res = await request(app, 'POST', '/v1/challenge/attempt', {
         message: 'Another attempt after budget',
       });
