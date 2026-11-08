@@ -63,7 +63,7 @@ AI support agents are vulnerable to prompt injection. Rein bounds the damage:
 ## 🔬 What Works (Verified)
 
 ### Core Gate ✅
-- **363 passing tests** across 67 suites on both SQLite drivers
+- **365 passing tests** across 67 suites on both SQLite drivers
 - Item-scoped refunds with quantity tracking and per-item rules
 - Amount-scoped refunds with configurable caps
 - Duplicate detection within rolling 24h window
@@ -134,12 +134,12 @@ AI support agents are vulnerable to prompt injection. Rein bounds the damage:
 ### Test Results
 ```
 Driver: better-sqlite3
-  Tests: 363 passing, 0 failing
+  Tests: 365 passing, 0 failing
   Suites: 67
   Duration: ~27 seconds
   
 Driver: node:sqlite
-  Tests: 363 passing, 0 failing
+  Tests: 365 passing, 0 failing
   Suites: 67
   Duration: ~27 seconds
 ```
@@ -235,7 +235,7 @@ npm ci
 
 ### Run Tests
 ```bash
-npm test                    # All tests (363 total, better-sqlite3)
+npm test                    # All tests (365 total, better-sqlite3)
 npm run test:node-sqlite   # Test with node:sqlite driver
 npm run typecheck          # TypeScript type checking
 ```
@@ -282,7 +282,7 @@ Open http://127.0.0.1:4317
 ## ✅ Features Completed & Verified
 
 **Core Gate** ✅
-- 327 passing tests on both SQLite drivers
+- 365 passing tests on both SQLite drivers
 - All refund policy rules enforced
 - Hash-chained ledger with tamper detection
 - Mandate versioning with cryptographic hash tracking
@@ -348,7 +348,6 @@ Open http://127.0.0.1:4317
 
 **Telegram Integration** ✅
 - Real-time approval notifications via Telegram Bot API
-- Approval request notifications to Slack channels
 - Decision result notifications
 - Graceful degradation when not configured
 
