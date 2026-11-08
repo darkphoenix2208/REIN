@@ -38,9 +38,9 @@ Built for the PayPal Physical AI Hackathon 2026
 - **TypeScript** - Type checking
 
 ### Design
-- **PayPal Brand Colors** - Official color palette
+- **PayPal-inspired Colors** - Navy, blue, and gold palette
 - **Responsive Design** - Mobile-first approach
-- **Accessibility** - WCAG AA compliance
+- **Accessibility** - WCAG AA compliance goals
 
 ## Features Implemented
 

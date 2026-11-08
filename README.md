@@ -92,7 +92,7 @@ AI support agents are vulnerable to prompt injection. Rein bounds the damage:
 
 ### UI ✅
 - **11 responsive pages**: Demo, Ledger, Ops, Challenge, Attack Lab, Verify, Author, Mandate, Proof, Approvals
-- **PayPal-branded**: Official color palette (#0070BA navy, #003087 dark blue)
+- **PayPal-inspired**: Navy, blue, and gold colors
 - **Inter font**: Modern fintech typography
 - **AG Grid Community**: Interactive ledger with filtering, sorting, CSV export, pinned totals row
 - **Progressive Web App**: Installable on mobile with service worker
@@ -318,7 +318,7 @@ Open http://127.0.0.1:4317
 - Complete render.yaml with environment variable mapping
 - Dockerfile with multi-stage build
 - Render Workflows integration
-- Production-ready configuration
+- Deployment configuration
 
 **AG Grid Community Improvements** ✅
 - Filtering on all columns (text, number, date filters)
@@ -371,7 +371,7 @@ MIT License - Copyright (c) 2026 darkphoenix2208
 **Technologies**: PayPal REST API, Node.js, React, TypeScript  
 
 ### Key Achievements
-- ✅ 223 tests passing on both SQLite drivers
+- ✅ 370+ tests passing on both SQLite drivers (includes property-based tests)
 - ✅ 8 adversarial attack vectors - all blocked, $0 over-refunded
 - ✅ Ed25519 signed checkpoints with offline verification
 - ✅ PayPal webhook signature verification (NEVER accepts unverified events)
@@ -379,6 +379,31 @@ MIT License - Copyright (c) 2026 darkphoenix2208
 - ✅ Hash-chained audit ledger with tamper detection
 - ✅ Deterministic gate (no AI decides money)
 - ✅ Honest documentation (clear limits, no "tamper-proof" claims)
+
+### Real vs. Simulated Mode
+
+| Feature | Simulated | Live |
+|---------|-----------|------|
+| **PayPal API calls** | ❌ Mocked | ✅ Real REST API |
+| **Refund execution** | ❌ Recorded only | ✅ Real PayPal refund |
+| **Capture lookup** | ❌ Local DB | ✅ GET /v2/payments/captures/{id} |
+| **Order details** | ❌ Local DB | ✅ GET /v2/checkout/orders/{id} |
+| **Webhook signature** | ❌ Skipped | ✅ Verified with PayPal cert |
+| **Database** | ✅ SQLite | ✅ SQLite |
+| **Policy gate** | ✅ Same code | ✅ Same code |
+| **Ledger** | ✅ Same hash chain | ✅ Same hash chain |
+| **Tests** | ✅ All tests run in simulated | ⚠️ Live tests require credentials |
+
+**Status:** Simulated mode is fully tested. Live mode requires PayPal sandbox/production credentials and is marked **NOT VERIFIED** without real API access.
+
+### External Integrations Status
+
+| Integration | Purpose | Status |
+|-------------|---------|--------|
+| **PayPal REST API** | Payment capture lookup, refund execution, order details | ✅ Implemented, ⚠️ NOT VERIFIED without live credentials |
+| **Anthropic Claude** | Beat the Gate challenge agent | ✅ Implemented, ⚠️ NOT VERIFIED without API key |
+| **Telegram Bot API** | Approval notifications | ✅ Implemented, ⚠️ NOT VERIFIED without bot token |
+| **Channel3 API** | Price anomaly detection (conceptual) | ❌ Mocked for demonstration only |
 
 ### Not Built
 
