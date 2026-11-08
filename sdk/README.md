@@ -2,6 +2,20 @@
 
 Client libraries for the Rein API in multiple languages.
 
+## Tool Wrappers
+
+### LangChain and OpenAI
+
+Use `wrap-langchain.ts` and `wrap-openai.ts` to wrap tools with Rein gate checks. These wrappers intercept tool execution and enforce policy before calling the underlying tool.
+
+See `tests/wrap-langchain.test.ts` and `tests/wrap-openai.test.ts` for proof that blocked actions never reach the underlying tool.
+
+### Claude Agent SDK
+
+For the Claude Agent SDK, use the **MCP proxy** (`server/proxy.ts`) which wraps tools automatically. The proxy implements the Model Context Protocol and enforces gate checks on all tool calls.
+
+See `docs/Integration/MCP_SETUP.md` for setup details.
+
 ## TypeScript/JavaScript
 
 ```typescript
