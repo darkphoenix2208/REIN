@@ -802,7 +802,7 @@ export function createApp(d: GateDeps, o: AppOptions = {}): express.Express {
       
       if (d.paypal && isRefund) {
         // unknown_outcome means response was lost, so refund_id may not exist
-        // Try to look up the refund by custom_id on the capture
+        // Try to look up the refund by custom_id through the order
         try {
           let refundId = act.refund_id;
           let refundStatus: { status: string } | null = null;
@@ -811,14 +811,23 @@ export function createApp(d: GateDeps, o: AppOptions = {}): express.Express {
             // We have a refund_id, check its status directly
             refundStatus = await d.paypal.getRefund(refundId);
           } else if (act.capture_id) {
-            // No refund_id: look up refund on capture by custom_id (action_id)
-            const captureData = await d.paypal.listRefundsForCapture(act.capture_id);
-            const matchingRefund = captureData.refunds?.find((r) => r.custom_id === act.id);
-            if (matchingRefund) {
-              refundId = matchingRefund.id;
-              refundStatus = matchingRefund;
-              // Update action with discovered refund_id
-              d.db.run('UPDATE actions SET refund_id=? WHERE id=?', refundId, act.id);
+            // No refund_id: look up refund via order by custom_id (action_id)
+            // First get the order_id for this capture
+            const orderRow = d.db.one<{ order_id: string }>('SELECT order_id FROM orders WHERE capture_id=?', act.capture_id);
+            if (orderRow) {
+              const orderData = await d.paypal.getOrder(orderRow.order_id);
+              // Find refunds in purchase_units[].payments.refunds[] matching our capture and custom_id
+              for (const unit of orderData.purchase_units ?? []) {
+                const refunds = unit.payments?.refunds ?? [];
+                const matchingRefund = refunds.find((r) => r.custom_id === act.id);
+                if (matchingRefund) {
+                  refundId = matchingRefund.id;
+                  refundStatus = matchingRefund;
+                  // Update action with discovered refund_id
+                  d.db.run('UPDATE actions SET refund_id=? WHERE id=?', refundId, act.id);
+                  break;
+                }
+              }
             }
             // If not found, leave as unknown_outcome (human review needed)
           }

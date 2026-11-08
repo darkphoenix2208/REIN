@@ -90,12 +90,19 @@ export class PayPalClient {
   getCapture = (id: string) => this.request<{ id: string; create_time?: string; status?: string; amount?: { value: string; currency_code: string } }>('GET', `/v2/payments/captures/${encodeURIComponent(id)}`);
   getRefund = (id: string) => this.request<{ id: string; status: string; amount?: { value: string; currency_code: string } }>('GET', `/v2/payments/refunds/${encodeURIComponent(id)}`);
   listDisputes = (txnId: string) => this.request<{ items?: { dispute_state?: string; status?: string }[] }>('GET', `/v1/customer/disputes?disputed_transaction_id=${encodeURIComponent(txnId)}`);
-
-  /** List all refunds for a capture (for reconciler lookup) */
-  listRefundsForCapture = (captureId: string) =>
-    this.request<{
-      refunds?: Array<{ id: string; status: string; custom_id?: string; amount?: { value: string; currency_code: string } }>;
-    }>('GET', `/v2/payments/captures/${encodeURIComponent(captureId)}`);
+  
+  /** Get order details including refunds via purchase_units[].payments.refunds[] */
+  getOrder = (orderId: string) => this.request<{
+    id: string;
+    status: string;
+    purchase_units?: Array<{
+      reference_id?: string;
+      payments?: {
+        captures?: Array<{ id: string; status: string; amount?: { value: string; currency_code: string } }>;
+        refunds?: Array<{ id: string; status: string; custom_id?: string; amount?: { value: string; currency_code: string } }>;
+      };
+    }>;
+  }>('GET', `/v2/checkout/orders/${encodeURIComponent(orderId)}`);
 
   /** idempotent per requestId (the Rein action id). custom_id set to actionId for reconciliation. */
   refund(captureId: string, amountCents: number, currency: string, requestId: string, note?: string) {
