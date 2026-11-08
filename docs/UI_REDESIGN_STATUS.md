@@ -3,7 +3,8 @@
 ## Design System Created
 
 ✅ **Design Tokens** (`web/design-tokens.css`)
-- PayPal color palette: navy #003087, blue #0070E0, light blue #009CDE, gold CTA #FFC439
+- Color palette: navy #003087, blue #0070E0, light blue #009CDE, gold CTA #FFC439
+- Variables renamed to neutral names (--navy, --blue, --gold instead of --color-*)
 - Background #F5F7FA, border #D9DEE7, text #0C1424, muted #5E6C84
 - Semantic colors: success #1A7F4B, warning #B25E00, danger #C4261D
 - Inter font family
@@ -14,11 +15,11 @@
 - Reduced motion support
 - Responsive 360-1440px breakpoints
 
-✅ **Layout Component** (`web/layout.tsx`)
+✅ **Layout Component** (`web/src/Layout.tsx`)
 - Desktop: sidebar navigation
 - Mobile: bottom tabs
-- Sticky header with mode chip
-- Empty, loading, and error states
+- Mode chip (SIMULATED/LIVE)
+- Empty, loading, and error state styles in design-tokens.css
 
 ## Visual Verification: NOT VERIFIED
 

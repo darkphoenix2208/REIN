@@ -1,21 +1,21 @@
-/* Design tokens based on PayPal color palette */
+/* Design tokens */
 :root {
-  /* PayPal brand colors */
-  --color-navy: #003087;
-  --color-blue: #0070E0;
-  --color-light-blue: #009CDE;
-  --color-gold: #FFC439;
+  /* Primary colors */
+  --navy: #003087;
+  --blue: #0070E0;
+  --blue-light: #009CDE;
+  --gold: #FFC439;
   
   /* Neutral palette */
-  --color-background: #F5F7FA;
-  --color-border: #D9DEE7;
-  --color-text: #0C1424;
-  --color-muted: #5E6C84;
+  --background: #F5F7FA;
+  --border: #D9DEE7;
+  --text: #0C1424;
+  --muted: #5E6C84;
   
   /* Semantic colors */
-  --color-success: #1A7F4B;
-  --color-warning: #B25E00;
-  --color-danger: #C4261D;
+  --success: #1A7F4B;
+  --warning: #B25E00;
+  --danger: #C4261D;
   
   /* Typography */
   --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
@@ -58,8 +58,8 @@ body {
   font-family: var(--font-family);
   font-size: var(--font-size-base);
   line-height: 1.5;
-  color: var(--color-text);
-  background: var(--color-background);
+  color: var(--text);
+  background: var(--background);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -88,8 +88,8 @@ body {
 }
 
 .btn-primary {
-  background: var(--color-gold);
-  color: var(--color-text);
+  background: var(--gold);
+  color: var(--text);
 }
 
 .btn-primary:hover {
@@ -103,7 +103,7 @@ body {
 }
 
 .btn-secondary {
-  background: var(--color-blue);
+  background: var(--blue);
   color: white;
 }
 
@@ -112,7 +112,7 @@ body {
 }
 
 .btn-danger {
-  background: var(--color-danger);
+  background: var(--danger);
   color: white;
 }
 
@@ -133,32 +133,32 @@ body {
 
 .chip-simulated {
   background: #E8F4FD;
-  color: var(--color-blue);
+  color: var(--blue);
 }
 
 .chip-live {
   background: #E6F4EC;
-  color: var(--color-success);
+  color: var(--success);
 }
 
 .chip-allowed {
   background: #E6F4EC;
-  color: var(--color-success);
+  color: var(--success);
 }
 
 .chip-blocked {
   background: #FDEAEA;
-  color: var(--color-danger);
+  color: var(--danger);
 }
 
 .chip-pending {
   background: #FFF5E6;
-  color: var(--color-warning);
+  color: var(--warning);
 }
 
 /* Focus rings for WCAG AA */
 *:focus-visible {
-  outline: 2px solid var(--color-blue);
+  outline: 2px solid var(--blue);
   outline-offset: 2px;
 }
 
@@ -190,7 +190,7 @@ body {
 /* Card component */
 .card {
   background: white;
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   padding: var(--space-lg);
   box-shadow: var(--shadow-sm);
@@ -204,7 +204,7 @@ body {
   justify-content: center;
   padding: var(--space-xl);
   text-align: center;
-  color: var(--color-muted);
+  color: var(--muted);
 }
 
 /* Loading state */
@@ -218,8 +218,8 @@ body {
 .spinner {
   width: 24px;
   height: 24px;
-  border: 3px solid var(--color-border);
-  border-top-color: var(--color-blue);
+  border: 3px solid var(--border);
+  border-top-color: var(--blue);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
@@ -236,7 +236,7 @@ body {
   gap: var(--space-md);
   padding: var(--space-xl);
   background: #FDEAEA;
-  border: 1px solid var(--color-danger);
+  border: 1px solid var(--danger);
   border-radius: var(--radius-md);
-  color: var(--color-danger);
+  color: var(--danger);
 }
