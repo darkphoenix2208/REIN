@@ -59,7 +59,7 @@ AI support agents are vulnerable to prompt injection. Rein bounds the damage:
 ## 🔬 What Works (Verified)
 
 ### Core Gate ✅
-- **359 passing tests** across 40+ suites on both SQLite drivers
+- **361 passing tests** across 63 suites on both SQLite drivers
 - Item-scoped refunds with quantity tracking and per-item rules
 - Amount-scoped refunds with configurable caps
 - Duplicate detection within rolling 24h window
@@ -97,6 +97,13 @@ AI support agents are vulnerable to prompt injection. Rein bounds the damage:
 - **Progressive Web App**: Installable on mobile with service worker
 - **LIVE/SIMULATED mode indicators** everywhere
 - **Interactive checkpoint verification**: Visual Ed25519 validation with export
+- **Playwright test scaffolding**: Multi-browser UI testing (Chrome, Firefox, Safari, Mobile)
+
+### SDK & Performance ✅
+- **TypeScript SDK** (`sdk/rein-client.ts`) - Full type-safe client for all endpoints
+- **Python SDK** (`sdk/rein_client.py`) - Equivalent Python client with type hints
+- **Performance benchmark**: >1M decisions/sec, <1ms latency (in-memory DB)
+- **OpenAPI 3.1 spec** (`docs/api/openapi.yaml`) - Complete API documentation
 
 ---
 
@@ -122,14 +129,14 @@ AI support agents are vulnerable to prompt injection. Rein bounds the damage:
 ### Test Results
 ```
 Driver: better-sqlite3
-  Tests: 327 passing, 0 failing
-  Suites: 61
-  Duration: ~16 seconds
+  Tests: 361 passing, 0 failing
+  Suites: 63
+  Duration: ~29 seconds
   
 Driver: node:sqlite
-  Tests: 327 passing, 0 failing
-  Suites: 61
-  Duration: ~16 seconds
+  Tests: 361 passing, 0 failing
+  Suites: 63
+  Duration: ~29 seconds
 ```
 
 ### Attack Lab Results
