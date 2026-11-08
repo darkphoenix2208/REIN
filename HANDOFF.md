@@ -75,15 +75,20 @@ Breakdown:
 
 ---
 
-## NOT VERIFIED (But Implemented)
+## NOT VERIFIED (But Implemented & Documented)
 
 1. **Live PayPal API** - requires sandbox credentials
 2. **Anthropic Claude API** - requires API key
 3. **Telegram Bot API** - requires bot token
 4. **UI visual verification** - requires Playwright browsers
-5. **Full page redesign** - design system created but not applied
+5. **Full page redesign** - design system created but not applied (20-30 hours work)
 
-All marked in README.md and docs/UI_REDESIGN_STATUS.md
+**All limitations documented in:**
+- `README.md` (Real vs. Simulated table, Integrations Status table)
+- `docs/LIMITATIONS_AND_FIXES.md` (detailed analysis of what was fixed vs. unfixable)
+- `docs/UI_REDESIGN_STATUS.md` (visual verification status)
+- `QUICKSTART.md` (get started in 5 minutes, no credentials needed)
+- `DEPLOYMENT_CHECKLIST.md` (production deployment guide)
 
 ---
 
@@ -127,12 +132,16 @@ npm start
 **UI:**
 - `web/design-tokens.css`
 - `web/layout.tsx`
+- `web/src/AppShell.tsx`
 
 **Docs:**
 - `docs/UI_REDESIGN_STATUS.md`
 - `docs/Product/DEVPOST_SUBMISSION.md`
 - `docs/FINAL_VERIFICATION.md`
+- `docs/LIMITATIONS_AND_FIXES.md`
 - `HANDOFF.md` (this file)
+- `QUICKSTART.md`
+- `DEPLOYMENT_CHECKLIST.md`
 
 ---
 
