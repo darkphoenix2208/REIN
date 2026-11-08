@@ -4,6 +4,7 @@ import '@fontsource/inter/400.css';
 import '@fontsource/inter/500.css';
 import '@fontsource/inter/600.css';
 import '@fontsource/ibm-plex-mono/400.css';
+import '../design-tokens.css';
 import './styles.css';
 import { Demo } from './Demo';
 import { Approve } from './Approve';
