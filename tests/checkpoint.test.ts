@@ -345,7 +345,7 @@ describe('Signed checkpoints (unit)', () => {
 
     // Browser-like verification using Node's WebCrypto (same as web/src/Verify.tsx)
     const { webcrypto } = await import('node:crypto');
-    const subtle = webcrypto.subtle as SubtleCrypto;
+    const subtle = webcrypto.subtle;
 
     const pubBytes = Uint8Array.from(Buffer.from(checkpoint.publicKey, 'base64'));
     const message = `${checkpoint.seq}:${checkpoint.head}:${checkpoint.timestamp}`;
