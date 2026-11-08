@@ -800,25 +800,50 @@ export function createApp(d: GateDeps, o: AppOptions = {}): express.Express {
       const mode = d.paypal ? 'live' : 'sim';
       const isRefund = act.action_type === 'refund';
       
-      if (d.paypal && isRefund && act.refund_id) {
-        // For refunds with a refund_id, check PayPal's refund status
+      if (d.paypal && isRefund) {
+        // unknown_outcome means response was lost, so refund_id may not exist
+        // Try to look up the refund by custom_id on the capture
         try {
-          const refundStatus = await d.paypal.getRefund(act.refund_id);
-          // PayPal refund statuses: COMPLETED, PENDING, FAILED, CANCELLED
-          if (refundStatus.status === 'COMPLETED') {
-            d.db.run('UPDATE payments SET reserved_cents=MAX(0, reserved_cents-?), refunded_cents=refunded_cents+? WHERE txn_id=?', act.amount_cents, act.amount_cents, act.capture_id);
-            d.db.run(`UPDATE actions SET status='executed', updated_at=? WHERE id=?`, now, act.id);
-            const { ledger } = await import('./ledger.ts');
-            ledger(d.db, act.id, 'reconciled_executed', { mode }, now);
-            reconciledCount++;
-          } else if (refundStatus.status === 'FAILED' || refundStatus.status === 'CANCELLED') {
-            d.db.run('UPDATE payments SET reserved_cents=MAX(0, reserved_cents-?) WHERE txn_id=?', act.amount_cents, act.capture_id);
-            d.db.run(`UPDATE actions SET status='execution_failed', updated_at=? WHERE id=?`, now, act.id);
-            const { ledger } = await import('./ledger.ts');
-            ledger(d.db, act.id, 'reconciled_failed', { mode }, now);
-            reconciledCount++;
+          let refundId = act.refund_id;
+          let refundStatus: { status: string } | null = null;
+
+          if (refundId) {
+            // We have a refund_id, check its status directly
+            refundStatus = await d.paypal.getRefund(refundId);
+          } else if (act.capture_id) {
+            // No refund_id: look up refund on capture by custom_id (action_id)
+            const captureData = await d.paypal.listRefundsForCapture(act.capture_id);
+            const matchingRefund = captureData.refunds?.find((r) => r.custom_id === act.id);
+            if (matchingRefund) {
+              refundId = matchingRefund.id;
+              refundStatus = matchingRefund;
+              // Update action with discovered refund_id
+              d.db.run('UPDATE actions SET refund_id=? WHERE id=?', refundId, act.id);
+            }
+            // If not found, leave as unknown_outcome (human review needed)
           }
-        } catch {}
+
+          if (refundStatus) {
+            // PayPal refund statuses: COMPLETED, PENDING, FAILED, CANCELLED
+            if (refundStatus.status === 'COMPLETED') {
+              d.db.run('UPDATE payments SET reserved_cents=MAX(0, reserved_cents-?), refunded_cents=refunded_cents+? WHERE txn_id=?', act.amount_cents, act.amount_cents, act.capture_id);
+              d.db.run(`UPDATE actions SET status='executed', updated_at=? WHERE id=?`, now, act.id);
+              const { ledger } = await import('./ledger.ts');
+              ledger(d.db, act.id, 'reconciled_executed', { mode }, now);
+              reconciledCount++;
+            } else if (refundStatus.status === 'FAILED' || refundStatus.status === 'CANCELLED') {
+              d.db.run('UPDATE payments SET reserved_cents=MAX(0, reserved_cents-?) WHERE txn_id=?', act.amount_cents, act.capture_id);
+              d.db.run(`UPDATE actions SET status='execution_failed', updated_at=? WHERE id=?`, now, act.id);
+              const { ledger } = await import('./ledger.ts');
+              ledger(d.db, act.id, 'reconciled_failed', { mode }, now);
+              reconciledCount++;
+            }
+            // PENDING stays as unknown_outcome until it completes
+          }
+          // If refundStatus is null (not found), keep as unknown_outcome
+        } catch {
+          // Lookup error: keep as unknown_outcome
+        }
       } else if (!d.paypal) {
         // Simulated mode: settle all to executed
         if (isRefund && act.capture_id) {
