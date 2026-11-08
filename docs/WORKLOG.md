@@ -4,7 +4,9 @@
 
 ## Task 1: Fix payout approval ✅ DONE (4 tests, 331 total)
 
-## Task 2: Persist non-refund actions as "reserved" and settle them (WORKING)
+## Task 2: Persist non-refund actions as "reserved" and settle them ✅ DONE (3 tests, 334 total)
+
+## Task 3: Fix reconciler - only mark executed when refund is found (WORKING)
 
 - [x] 1. HTTP-level tests for checkpoint/verify/leaderboard/attempt routes through Express app; curl each route
   - VERIFIED: All routes respond correctly (200 or expected 503/404)

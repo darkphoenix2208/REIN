@@ -768,27 +768,37 @@ export function createApp(d: GateDeps, o: AppOptions = {}): express.Express {
     const now = Date.now();
     sweep(d.db, now);
 
-    const unknowns = d.db.all<{ id: string; capture_id: string; amount_cents: number; tool: string }>(
-      `SELECT id, capture_id, amount_cents, tool FROM actions WHERE status='unknown_outcome'`
+    const unknowns = d.db.all<{ id: string; capture_id: string; amount_cents: number; tool: string; action_type: string; refund_id: string | null }>(
+      `SELECT id, capture_id, amount_cents, tool, action_type, refund_id FROM actions WHERE status='unknown_outcome'`
     );
 
     let reconciledCount = 0;
     for (const act of unknowns) {
       const mode = d.paypal ? 'live' : 'sim';
-      if (d.paypal && act.capture_id) {
+      const isRefund = act.action_type === 'refund';
+      
+      if (d.paypal && isRefund && act.refund_id) {
+        // For refunds with a refund_id, check PayPal's refund status
         try {
-          const state = await d.paypal.readState(act.capture_id);
-          if (state.capturedAtMs != null) {
+          const refundStatus = await d.paypal.getRefund(act.refund_id);
+          // PayPal refund statuses: COMPLETED, PENDING, FAILED, CANCELLED
+          if (refundStatus.status === 'COMPLETED') {
             d.db.run('UPDATE payments SET reserved_cents=MAX(0, reserved_cents-?), refunded_cents=refunded_cents+? WHERE txn_id=?', act.amount_cents, act.amount_cents, act.capture_id);
             d.db.run(`UPDATE actions SET status='executed', updated_at=? WHERE id=?`, now, act.id);
             const { ledger } = await import('./ledger.ts');
             ledger(d.db, act.id, 'reconciled_executed', { mode }, now);
             reconciledCount++;
+          } else if (refundStatus.status === 'FAILED' || refundStatus.status === 'CANCELLED') {
+            d.db.run('UPDATE payments SET reserved_cents=MAX(0, reserved_cents-?) WHERE txn_id=?', act.amount_cents, act.capture_id);
+            d.db.run(`UPDATE actions SET status='execution_failed', updated_at=? WHERE id=?`, now, act.id);
+            const { ledger } = await import('./ledger.ts');
+            ledger(d.db, act.id, 'reconciled_failed', { mode }, now);
+            reconciledCount++;
           }
         } catch {}
-      } else {
-        // Simulated / fallback: settle to executed
-        if (act.capture_id) {
+      } else if (!d.paypal) {
+        // Simulated mode: settle all to executed
+        if (isRefund && act.capture_id) {
           d.db.run('UPDATE payments SET reserved_cents=MAX(0, reserved_cents-?), refunded_cents=refunded_cents+? WHERE txn_id=?', act.amount_cents, act.amount_cents, act.capture_id);
         }
         d.db.run(`UPDATE actions SET status='executed', updated_at=? WHERE id=?`, now, act.id);
@@ -796,6 +806,7 @@ export function createApp(d: GateDeps, o: AppOptions = {}): express.Express {
         ledger(d.db, act.id, 'reconciled_executed', { mode }, now);
         reconciledCount++;
       }
+      // else: action stays as unknown_outcome until we can verify it
     }
 
     const remainingUnknowns = d.db.val<number>(

@@ -247,7 +247,11 @@ export function result(db: Db, i: { actionId: string; outcome: Outcome; refundId
     }
     
     const status = i.outcome === 'executed' ? 'executed' : i.outcome === 'failed' ? 'execution_failed' : 'unknown_outcome';
-    db.run('UPDATE actions SET status=?, updated_at=? WHERE id=?', status, now, i.actionId);
+    if (i.refundId) {
+      db.run('UPDATE actions SET status=?, refund_id=?, updated_at=? WHERE id=?', status, i.refundId, now, i.actionId);
+    } else {
+      db.run('UPDATE actions SET status=?, updated_at=? WHERE id=?', status, now, i.actionId);
+    }
     ledger(db, i.actionId, status, { mode, refundId: i.refundId ?? null }, now);
   });
 }
