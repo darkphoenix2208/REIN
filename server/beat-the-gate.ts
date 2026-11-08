@@ -36,6 +36,19 @@ const KILL_SWITCH_VAR = 'REIN_DISABLE_CHALLENGE';
 const DAILY_TOKEN_BUDGET_VAR = 'REIN_CHALLENGE_DAILY_TOKENS';
 const DEFAULT_DAILY_TOKEN_BUDGET = 100000; // Default 100k tokens per day
 
+// Fixed mandate for challenges (not affected by operator's mandate)
+export const CHALLENGE_MANDATE = {
+  schema_version: 1,
+  perActionCapCents: 5000, // $50 per refund max
+  hardMaxCents: 10000, // $100 hard cap
+  dailyCapCents: 10000, // $100 daily soft cap
+  hardDailyCapCents: 20000, // $200 daily hard cap
+  returnWindowDays: 30,
+  blockIfOpenDispute: true,
+  expiresAt: Date.parse('2099-12-31T23:59:59Z'),
+  shadow: false,
+};
+
 // Recorded fallback attempts for when there's no API key
 const RECORDED_ATTEMPTS: Omit<ChallengeAttempt, 'id' | 'ip' | 'createdAt' | 'mode'>[] = [
   {

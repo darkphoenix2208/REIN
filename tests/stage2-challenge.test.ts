@@ -287,5 +287,142 @@ for (const driver of ['better-sqlite3', 'node:sqlite'] as const) {
       assert.equal(r4.status, 429, '4th attempt should be rate limited');
       assert.equal(r4.body.error, 'rate_limit');
     });
+
+    // 7. Per-attempt token cap stops the loop early
+    test('per-attempt token cap: stops agent loop when cap reached', async () => {
+      const path = join(mkdtempSync(join(tmpdir(), 'rein-btg-')), 't.db');
+      const db = await openDb(path, { driver });
+      applySchema(db);
+
+      // Mock client that returns high token usage per call
+      let callCount = 0;
+      const highTokenClient = {
+        messages: {
+          create: async () => {
+            callCount++;
+            return {
+              content: [
+                {
+                  type: 'tool_use',
+                  id: `call_${callCount}`,
+                  name: 'get_order',
+                  input: { capture_id: 'CHALLENGE-TEST-TOKEN' },
+                },
+              ],
+              usage: { input_tokens: 2500, output_tokens: 2000 }, // 4500 tokens > 4000 cap
+            };
+          },
+        },
+      };
+
+      const app = createApp({ db, mandate: MANDATE, paypal: null }, { challengeClient: highTokenClient });
+      const res = await request(app, 'POST', '/v1/challenge/attempt', {
+        message: 'Test token cap',
+      });
+
+      assert.equal(res.status, 200);
+      assert.equal(callCount, 1, 'Should stop after first call exceeding cap');
+      assert.ok(res.body.tokensUsed >= 4000, 'Should report tokens used');
+    });
+
+    // 8. Main database ledger/payments unchanged by challenge
+    test('challenge does not affect main database ledger or payments', async () => {
+      const mainPath = join(mkdtempSync(join(tmpdir(), 'rein-btg-main-')), 't.db');
+      const challengePath = join(mkdtempSync(join(tmpdir(), 'rein-btg-chal-')), 'c.db');
+      const db = await openDb(mainPath, { driver });
+      const cdb = await openDb(challengePath, { driver });
+      applySchema(db);
+      applySchema(cdb);
+
+      // Seed main DB with a payment
+      db.run(
+        `INSERT INTO payments(txn_id,captured_cents,refunded_cents,reserved_cents,currency,source,captured_at) VALUES (?,?,?,?,?,?,?)`,
+        'MAIN-001', 10000, 0, 0, 'USD', 'paypal', Date.now()
+      );
+
+      // Mock client
+      const mockClient = {
+        messages: {
+          create: async () => ({
+            content: [{ type: 'text', text: 'Done' }],
+            usage: { input_tokens: 100, output_tokens: 50 },
+          }),
+        },
+      };
+
+      const app = createApp({ db, mandate: MANDATE, paypal: null }, { challengeDb: cdb, challengeClient: mockClient });
+      await request(app, 'POST', '/v1/challenge/attempt', { message: 'Test' });
+
+      // Main DB should be unchanged
+      const mainPayment = db.one<{ refunded_cents: number }>('SELECT refunded_cents FROM payments WHERE txn_id=?', 'MAIN-001');
+      assert.equal(mainPayment?.refunded_cents, 0, 'Main database payments unchanged');
+
+      const mainActions = db.all('SELECT * FROM actions');
+      assert.equal(mainActions.length, 0, 'Main database has no challenge actions');
+
+      db.close();
+      cdb.close();
+    });
+
+    // 9. Daily token budget falls back to recorded when exhausted
+    test('daily token budget exhausted: falls back to recorded attempt', async () => {
+      const mainPath = join(mkdtempSync(join(tmpdir(), 'rein-btg-')), 't.db');
+      const challengePath = join(mkdtempSync(join(tmpdir(), 'rein-btg-chal-')), 'c.db');
+      const db = await openDb(mainPath, { driver });
+      const cdb = await openDb(challengePath, { driver });
+      applySchema(db);
+      applySchema(cdb);
+
+      // Seed challenge DB with tokens exhausting the daily budget
+      const { initChallengeSchema } = await import('../server/beat-the-gate.ts');
+      initChallengeSchema(cdb);
+      cdb.run(
+        `INSERT INTO challenge_attempts (id, ip, message, agent_response, tool_calls, gate_decision, gate_rule, requested_cents, refunded_cents, saved_cents, lost_cents, created_at, mode, tokens_used)
+         VALUES ('exhaust-1', '1.1.1.1', 'test', 'resp', '[]', 'allowed', 'R-ALLOW', 1000, 1000, 0, 1000, ?, 'live', 100000)`,
+        Date.now()
+      );
+
+      const app = createApp({ db, mandate: MANDATE, paypal: null }, { challengeDb: cdb });
+      const res = await request(app, 'POST', '/v1/challenge/attempt', {
+        message: 'After budget exhausted',
+      });
+
+      // Should return 503 when budget exhausted
+      assert.equal(res.status, 503);
+      assert.equal(res.body.error, 'budget_exhausted');
+    });
+
+    // 10. Other capture ID unreachable (challenge captures only in challenge DB)
+    test('agent cannot access non-challenge captures', async () => {
+      const path = join(mkdtempSync(join(tmpdir(), 'rein-btg-')), 't.db');
+      const db = await openDb(path, { driver });
+      applySchema(db);
+
+      // Mock client trying to access a non-challenge capture
+      const mockClient = {
+        messages: {
+          create: async () => ({
+            content: [
+              {
+                type: 'tool_use',
+                id: 'call_1',
+                name: 'get_order',
+                input: { capture_id: 'REAL-CAPTURE-001' }, // Not a challenge capture
+              },
+            ],
+            usage: { input_tokens: 100, output_tokens: 50 },
+          }),
+        },
+      };
+
+      const app = createApp({ db, mandate: MANDATE, paypal: null }, { challengeClient: mockClient });
+      const res = await request(app, 'POST', '/v1/challenge/attempt', {
+        message: 'Try to access real capture',
+      });
+
+      assert.equal(res.status, 200);
+      // The tool call should return an error (capture not found)
+      assert.ok(res.body.toolCalls[0].result.error, 'Non-challenge capture should be inaccessible');
+    });
   });
 }

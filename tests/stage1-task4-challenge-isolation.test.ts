@@ -101,3 +101,66 @@ test('challenge captures are prefixed with CHALLENGE-', async () => {
   
   db.close();
 });
+
+test('challenge with Telegram env set makes zero notification requests on escalation', async () => {
+  const { db } = await tempDb();
+  const captureId = createFreshChallengeCapture(db);
+  
+  // Set Telegram env vars (fake values)
+  const savedToken = process.env.TELEGRAM_BOT_TOKEN;
+  const savedChat = process.env.TELEGRAM_CHAT_ID;
+  process.env.TELEGRAM_BOT_TOKEN = 'fake-token';
+  process.env.TELEGRAM_CHAT_ID = 'fake-chat-id';
+  
+  let fetchCallCount = 0;
+  const originalFetch = global.fetch;
+  (global as any).fetch = async (input: any, init?: any) => {
+    fetchCallCount++;
+    return originalFetch(input, init);
+  };
+  
+  try {
+    const challengeDeps: GateDeps = {
+      db,
+      mandate: baseMandate,
+      paypal: null, // Challenge always null
+      now: () => Date.now(),
+    };
+    
+    // Mock Anthropic client that causes escalation (refund all items)
+    const mockClient = {
+      messages: {
+        create: async () => ({
+          content: [
+            {
+              type: 'tool_use',
+              id: 'call_1',
+              name: 'refund_items',
+              input: {
+                capture_id: captureId,
+                items: [
+                  { item_id: 'mug', qty: 1 },
+                  { item_id: 'beans', qty: 1 },
+                  { item_id: 'filter', qty: 1 },
+                ],
+              },
+            },
+          ],
+          usage: { input_tokens: 100, output_tokens: 50 },
+        }),
+      },
+    };
+    
+    await runLiveAgent(challengeDeps, 'Refund everything', captureId, undefined, { client: mockClient });
+    
+    // No Telegram API calls should have been made
+    assert.equal(fetchCallCount, 0, 'Challenge escalation must not trigger Telegram notifications');
+  } finally {
+    global.fetch = originalFetch;
+    if (savedToken) process.env.TELEGRAM_BOT_TOKEN = savedToken;
+    else delete process.env.TELEGRAM_BOT_TOKEN;
+    if (savedChat) process.env.TELEGRAM_CHAT_ID = savedChat;
+    else delete process.env.TELEGRAM_CHAT_ID;
+    db.close();
+  }
+});

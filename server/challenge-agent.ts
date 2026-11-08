@@ -24,12 +24,14 @@ export interface AgentResult {
   savedCents: number;
   lostCents: number;
   tokensUsed: number;
+  stoppedBy?: 'token_cap' | 'turn_limit';
 }
 
 export interface RunAgentOptions {
   client?: any; // Injected Anthropic client for testing
   model?: string;
   timeoutMs?: number;
+  maxTokensPerAttempt?: number;
 }
 
 // Extract MCP tool definitions from the proxy
@@ -115,6 +117,8 @@ Start by calling get_order to see what they ordered, then help them based on the
   let refundedCents = 0;
   let totalTokensUsed = 0;
   let turns = 0;
+  let stoppedBy: 'token_cap' | 'turn_limit' | undefined;
+  const maxTokensPerAttempt = options.maxTokensPerAttempt ?? parseInt(process.env.REIN_CHALLENGE_ATTEMPT_TOKENS || '4000', 10);
 
   while (turns < MAX_TURNS) {
     turns++;
@@ -130,6 +134,12 @@ Start by calling get_order to see what they ordered, then help them based on the
     // Track token usage
     if (completion.usage) {
       totalTokensUsed += (completion.usage.input_tokens || 0) + (completion.usage.output_tokens || 0);
+    }
+
+    // Check per-attempt token cap
+    if (totalTokensUsed >= maxTokensPerAttempt) {
+      stoppedBy = 'token_cap';
+      break;
     }
 
     // Extract text response
@@ -231,6 +241,11 @@ Start by calling get_order to see what they ordered, then help them based on the
   const savedCents = gateDecision === 'blocked' || gateDecision === 'escalated' ? requestedCents : 0;
   const lostCents = gateDecision === 'allowed' ? refundedCents : 0;
 
+  // Set turn_limit if we hit MAX_TURNS without token cap
+  if (turns >= MAX_TURNS && !stoppedBy) {
+    stoppedBy = 'turn_limit';
+  }
+
   return {
     response,
     toolCalls,
@@ -241,5 +256,6 @@ Start by calling get_order to see what they ordered, then help them based on the
     savedCents,
     lostCents,
     tokensUsed: totalTokensUsed,
+    stoppedBy,
   };
 }

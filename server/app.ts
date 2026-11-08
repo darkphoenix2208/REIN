@@ -703,20 +703,16 @@ export function createApp(d: GateDeps, o: AppOptions = {}): express.Express {
       const { createFreshChallengeCapture } = await import('./challenge-seed.ts');
       const captureId = createFreshChallengeCapture(cdb);
 
-      // Create isolated GateDeps for challenge (separate DB, no PayPal, no notifications)
+      // Create isolated GateDeps for challenge (separate DB, no PayPal, no notifications, fixed mandate)
+      const { CHALLENGE_MANDATE } = await import('./beat-the-gate.ts');
       const challengeDeps: GateDeps = {
         db: cdb,
-        mandate: d.mandate,
+        mandate: CHALLENGE_MANDATE,
         paypal: null, // Always simulated mode
         now: () => Date.now(),
       };
 
       const result = await runLiveAgent(challengeDeps, message, captureId, process.env.ANTHROPIC_API_KEY, { client: o.challengeClient });
-
-      // Enforce per-attempt token cap (4000 tokens)
-      if (result.tokensUsed > 4000) {
-        console.warn(`Challenge attempt exceeded per-attempt token cap: ${result.tokensUsed} tokens`);
-      }
 
       const savedCents = result.gateDecision === 'blocked' || result.gateDecision === 'escalated'
         ? result.requestedCents
