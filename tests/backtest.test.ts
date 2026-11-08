@@ -175,6 +175,239 @@ describe('Mandate backtest (pure functions)', () => {
     });
     eq(noApprover.success, false, 'Empty approver rejected');
   });
+
+  test('IDENTITY: replaying under SAME mandate changes nothing', () => {
+    const actions: RecordedAction[] = [
+      {
+        id: 'act-1',
+        sessionId: 'sess-1',
+        tool: 'refund_items',
+        captureId: 'CAP-1',
+        amountCents: 1800,
+        decision: 'allowed',
+        ruleId: 'R-ALLOW',
+        createdAt: 5000,
+      },
+      {
+        id: 'act-2',
+        sessionId: 'sess-1',
+        tool: 'refund_items',
+        captureId: 'CAP-1',
+        amountCents: 7500,
+        decision: 'pending_approval',
+        ruleId: 'R-ACTION-CAP',
+        createdAt: 10000,
+      },
+      {
+        id: 'act-3',
+        sessionId: 'sess-2',
+        tool: 'refund_items',
+        captureId: 'CAP-2',
+        amountCents: 15000,
+        decision: 'blocked',
+        ruleId: 'R-HARD-MAX',
+        createdAt: 15000,
+      },
+    ];
+
+    const orders: Record<string, PayRow> = {
+      'CAP-1': { c: 10000, f: 0, r: 0, cur: 'USD', capturedAt: 1000 },
+      'CAP-2': { c: 20000, f: 0, r: 0, cur: 'USD', capturedAt: 2000 },
+    };
+
+    // Replay under the SAME mandate
+    const result = replayMandate(actions, MANDATE, orders);
+
+    eq(result.totalActions, 3, 'Processed all 3 actions');
+    eq(result.changedDecisions, 0, 'IDENTITY: no decisions should change');
+    eq(result.stricterCount, 0, 'No stricter decisions');
+    eq(result.looserCount, 0, 'No looser decisions');
+    eq(result.dollarsBlockedDifferently, 0, 'No change in blocked dollars');
+    eq(result.dollarsEscalatedDifferently, 0, 'No change in escalated dollars');
+    eq(result.dollarsAllowedDifferently, 0, 'No change in allowed dollars');
+
+    // Verify each action's decision matches original
+    for (const detail of result.results) {
+      eq(detail.changed, false, `Action ${detail.actionId} should not change`);
+      eq(detail.candidateDecision, detail.originalDecision, `Decision should match original`);
+      eq(detail.candidateRule, detail.originalRule, `Rule should match original`);
+      eq(detail.impact, 'same', `Impact should be 'same'`);
+      eq(detail.dollarEffect, 0, `Dollar effect should be 0`);
+    }
+  });
+
+  test('TIGHTENED CAP: exactly which decisions and dollars change', () => {
+    const actions: RecordedAction[] = [
+      {
+        id: 'act-1',
+        sessionId: 'sess-1',
+        tool: 'refund_items',
+        captureId: 'CAP-1',
+        amountCents: 1800, // $18 - was allowed
+        decision: 'allowed',
+        ruleId: 'R-ALLOW',
+        createdAt: 5000,
+      },
+      {
+        id: 'act-2',
+        sessionId: 'sess-1',
+        tool: 'refund_items',
+        captureId: 'CAP-1',
+        amountCents: 3500, // $35 - was allowed, will escalate with $20 cap
+        decision: 'allowed',
+        ruleId: 'R-ALLOW',
+        createdAt: 10000,
+      },
+      {
+        id: 'act-3',
+        sessionId: 'sess-2',
+        tool: 'refund_items',
+        captureId: 'CAP-2',
+        amountCents: 7500, // $75 - was escalated, stays escalated
+        decision: 'pending_approval',
+        ruleId: 'R-ACTION-CAP',
+        createdAt: 15000,
+      },
+    ];
+
+    const orders: Record<string, PayRow> = {
+      'CAP-1': { c: 10000, f: 0, r: 0, cur: 'USD', capturedAt: 1000 },
+      'CAP-2': { c: 20000, f: 0, r: 0, cur: 'USD', capturedAt: 2000 },
+    };
+
+    const tightenedMandate: Mandate = {
+      ...MANDATE,
+      perActionCapCents: 2000, // Tightened from $60 to $20
+    };
+
+    const result = replayMandate(actions, tightenedMandate, orders);
+
+    eq(result.totalActions, 3, 'Processed all 3 actions');
+    eq(result.changedDecisions, 1, 'Exactly 1 decision changed');
+    eq(result.stricterCount, 1, 'Exactly 1 stricter decision');
+    eq(result.looserCount, 0, 'No looser decisions');
+
+    // act-2 should be the only change: allowed -> pending_approval
+    const act2 = result.results.find((r) => r.actionId === 'act-2');
+    ok(act2, 'act-2 exists in results');
+    eq(act2!.changed, true, 'act-2 changed');
+    eq(act2!.originalDecision, 'allowed', 'act-2 was allowed');
+    eq(act2!.candidateDecision, 'pending_approval', 'act-2 now escalates');
+    eq(act2!.impact, 'stricter', 'Impact is stricter');
+    eq(act2!.dollarEffect, 3500, 'Dollar effect is $35');
+
+    eq(result.dollarsEscalatedDifferently, 3500, 'Exactly $35 escalated differently');
+    eq(result.dollarsAllowedDifferently, 0, 'No additional dollars allowed');
+    eq(result.dollarsBlockedDifferently, 0, 'No change in blocked dollars');
+
+    // act-1 and act-3 should NOT change
+    const act1 = result.results.find((r) => r.actionId === 'act-1');
+    eq(act1!.changed, false, 'act-1 unchanged');
+    eq(act1!.candidateDecision, 'allowed', 'act-1 still allowed');
+
+    const act3 = result.results.find((r) => r.actionId === 'act-3');
+    eq(act3!.changed, false, 'act-3 unchanged');
+    eq(act3!.candidateDecision, 'pending_approval', 'act-3 still escalated');
+  });
+
+  test('LOOSENED CAP: stricter to looser changes', () => {
+    const actions: RecordedAction[] = [
+      {
+        id: 'act-1',
+        sessionId: 'sess-1',
+        tool: 'refund_items',
+        captureId: 'CAP-1',
+        amountCents: 7500, // $75 - was escalated due to $50 cap
+        decision: 'pending_approval',
+        ruleId: 'R-ACTION-CAP',
+        createdAt: 5000,
+      },
+    ];
+
+    const orders: Record<string, PayRow> = {
+      'CAP-1': { c: 10000, f: 0, r: 0, cur: 'USD', capturedAt: 1000 },
+    };
+
+    const loosenedMandate: Mandate = {
+      ...MANDATE,
+      perActionCapCents: 10000, // Loosened from $50 to $100
+    };
+
+    const result = replayMandate(actions, loosenedMandate, orders);
+
+    eq(result.totalActions, 1, 'Processed 1 action');
+    eq(result.changedDecisions, 1, 'Decision changed');
+    eq(result.stricterCount, 0, 'No stricter decisions');
+    eq(result.looserCount, 1, 'One looser decision');
+
+    // act-1: escalated -> allowed
+    const act1 = result.results.find((r) => r.actionId === 'act-1');
+    eq(act1!.changed, true, 'act-1 changed');
+    eq(act1!.originalDecision, 'pending_approval', 'Was escalated');
+    eq(act1!.candidateDecision, 'allowed', 'Now allowed');
+    eq(act1!.impact, 'looser', 'Impact is looser');
+
+    eq(result.dollarsAllowedDifferently, 7500, '$75 allowed differently');
+    eq(result.dollarsEscalatedDifferently, 0, 'No additional dollars escalated');
+    eq(result.dollarsBlockedDifferently, 0, 'No additional dollars blocked');
+  });
+
+  test('capture missing from snapshot triggers state unavailable', () => {
+    const actions: RecordedAction[] = [
+      {
+        id: 'act-1',
+        sessionId: 'sess-1',
+        tool: 'refund_items',
+        captureId: 'CAP-MISSING', // Capture not in snapshot
+        amountCents: 2000,
+        decision: 'pending_approval',
+        ruleId: 'R-STATE-UNAVAILABLE',
+        createdAt: 5000,
+      },
+      {
+        id: 'act-2',
+        sessionId: 'sess-2',
+        tool: 'refund_items',
+        captureId: 'CAP-MISSING2',
+        amountCents: 1500,
+        decision: 'allowed', // Was allowed, but capture missing in backtest
+        ruleId: 'R-ALLOW',
+        createdAt: 10000,
+      },
+    ];
+
+    const orders: Record<string, PayRow> = {
+      // CAP-MISSING and CAP-MISSING2 are NOT in the snapshot
+    };
+
+    const result = replayMandate(actions, MANDATE, orders);
+
+    eq(result.totalActions, 2, 'Both actions processed');
+
+    // Act-1: already escalated, stays escalated (no change)
+    const act1 = result.results.find((r) => r.actionId === 'act-1');
+    ok(act1, 'act-1 found');
+    eq(act1!.changed, false, 'act-1 already escalated, unchanged');
+    eq(act1!.candidateDecision, 'pending_approval', 'Still escalated');
+    eq(act1!.candidateRule, 'R-STATE-UNAVAILABLE', 'Rule is state unavailable');
+
+    // Act-2: was allowed, but capture missing in backtest → now escalates (stricter)
+    const act2 = result.results.find((r) => r.actionId === 'act-2');
+    ok(act2, 'act-2 found');
+    eq(act2!.changed, true, 'act-2 changed from allowed to escalate');
+    eq(act2!.originalDecision, 'allowed', 'Was allowed');
+    eq(act2!.candidateDecision, 'pending_approval', 'Now escalated due to missing capture');
+    eq(act2!.candidateRule, 'R-STATE-UNAVAILABLE', 'Rule is state unavailable');
+    eq(act2!.impact, 'stricter', 'Impact is stricter');
+
+    // If both original and candidate have same decision+rule, no change is counted
+    // But act-2 went from 'allowed'/'R-ALLOW' to 'pending_approval'/'R-STATE-UNAVAILABLE'
+    // Only if the original rule was also R-STATE-UNAVAILABLE would it be unchanged
+    // Since act-1's original was already R-STATE-UNAVAILABLE→pending_approval, it's unchanged
+    // Since act-2's original was R-ALLOW→allowed, it IS changed
+    const changes = result.results.filter((r) => r.changed).length;
+    ok(changes >= 1, `At least 1 action changed (actual: ${changes})`);
+  });
 });
 
 for (const driver of ['better-sqlite3', 'node:sqlite'] as const) {
