@@ -7,6 +7,10 @@ Rein is a deterministic mandate gate for AI agents that process PayPal refunds. 
 **Built by:** darkphoenix2208  
 **PayPal sandbox only. No real money.**
 
+📖 **New here?** Start with [`QUICKSTART.md`](QUICKSTART.md) (5 minutes, no credentials needed)  
+📋 **Ready to deploy?** See [`DEPLOYMENT_CHECKLIST.md`](DEPLOYMENT_CHECKLIST.md)  
+⚠️ **See limitations?** Read [`FINAL_SUMMARY.md`](FINAL_SUMMARY.md) for what's fixed vs. documented
+
 ---
 
 ## 🚀 Quick Start (60 seconds, no keys)
