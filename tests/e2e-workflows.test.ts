@@ -3,7 +3,7 @@ import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 import { tempDb } from './helpers.ts';
 import { check, approve, result } from '../server/dispatch.ts';
-import { PayPalCredentials } from '../server/types.ts';
+import type { PayPalClient } from '../server/paypal.ts';
 
 describe('E2E Workflows', () => {
   test('complete refund workflow: check → approve → execute → settle', async () => {
@@ -41,7 +41,7 @@ describe('E2E Workflows', () => {
     assert.equal(approveRes.status, 'reserved', 'Should reserve action');
     
     // Step 3: Execute (simulated)
-    const executeRes = await result(db, null as unknown as PayPalCredentials, {
+    const executeRes = await result(db, null as unknown as PayPalClient, {
       actionId: checkRes.actionId!,
       success: true,
       captureId: 'CAP-E2E-001',
@@ -94,7 +94,7 @@ describe('E2E Workflows', () => {
     assert.equal(approveRes.status, 'reserved', 'Payout should be reserved');
     
     // Execute (simulated)
-    const executeRes = await result(db, null as unknown as PayPalCredentials, {
+    const executeRes = await result(db, null as unknown as PayPalClient, {
       actionId: checkRes.actionId!,
       success: true,
       timestamp: now + 2000,
@@ -143,7 +143,7 @@ describe('E2E Workflows', () => {
     assert.equal(approveRes.status, 'reserved', 'Subscription should be reserved');
     
     // Execute
-    const executeRes = await result(db, null as unknown as PayPalCredentials, {
+    const executeRes = await result(db, null as unknown as PayPalClient, {
       actionId: checkRes.actionId!,
       success: true,
       timestamp: now + 2000,
@@ -214,7 +214,7 @@ describe('E2E Workflows', () => {
       timestamp: now + 100,
     });
     
-    await result(db, null as unknown as PayPalCredentials, {
+    await result(db, null as unknown as PayPalClient, {
       actionId: check1.actionId!,
       success: true,
       captureId: 'CAP-MULTI',
