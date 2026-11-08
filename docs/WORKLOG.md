@@ -10,6 +10,27 @@
 
 ## Task 4: Beat the Gate sandbox isolation - separate DB, no PayPal, no notifications ✅ DONE (4 tests, 341 total)
 
+## Task 5: Checkpoint timestamp signing ✅ ALREADY IMPLEMENTED (skipped - fully functional)
+
+## Task 6: Backtest correctness ✅ ALREADY IMPLEMENTED (skipped - determinism tests passing)
+
+## Task 7: Git hygiene check ✅ DONE (5 tests, 346 total)
+
+---
+
+# STAGE 1 COMPLETE ✅
+
+**Summary:**
+- Task 1: Payout approval fixes (4 tests)
+- Task 2: Non-refund action persistence and settlement (3 tests)
+- Task 3: Reconciler safety with refund_id verification (3 tests)
+- Task 4: Beat the Gate sandbox isolation (4 tests)
+- Task 7: Git hygiene verification (5 tests)
+
+**Total:** 19 new tests, 346/346 passing (was 327)
+**TypeScript:** Clean, 0 errors
+**Git:** 4 clean commits, no secrets exposed
+
 - [x] 1. HTTP-level tests for checkpoint/verify/leaderboard/attempt routes through Express app; curl each route
   - VERIFIED: All routes respond correctly (200 or expected 503/404)
   - GET /v1/ledger/checkpoint → 503 (no key), GET /v1/ledger/verify → 404 (no checkpoint)
