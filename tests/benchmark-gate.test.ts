@@ -54,25 +54,35 @@ test('benchmark: gate throughput and latency on temp SQLite', async () => {
     1
   );
 
-  const iterations = 100;
+  const warmup = 50;
+  const iterations = 1000;
   const latencies: number[] = [];
+
+  // Warm-up phase
+  for (let i = 0; i < warmup; i++) {
+    await runRefund(deps, {
+      sessionId: `warmup-${i}`,
+      tool: 'refund_items',
+      captureId,
+      items: [{ item_id: 'mug', qty: 1 }],
+    });
+  }
+
+  // Reset refunded count after warmup
+  db.run('UPDATE payments SET refunded_cents=0, reserved_cents=0 WHERE txn_id=?', captureId);
+  db.run('UPDATE order_items SET refunded_qty=0, reserved_qty=0 WHERE order_id=?', orderId);
 
   const startOverall = performance.now();
 
   for (let i = 0; i < iterations; i++) {
     const start = performance.now();
 
-    await runRefund(
-      deps,
-      {
-        sessionId: `bench-session-${i}`,
-        tool: 'refund_items',
-        captureId,
-        amountCents: null,
-        items: [{ itemId: 'mug', qty: 1 }],
-      },
-      undefined
-    );
+    await runRefund(deps, {
+      sessionId: `bench-session-${i}`,
+      tool: 'refund_items',
+      captureId,
+      items: [{ item_id: 'mug', qty: 1 }],
+    });
 
     const end = performance.now();
     latencies.push(end - start);
@@ -84,19 +94,23 @@ test('benchmark: gate throughput and latency on temp SQLite', async () => {
   // Calculate statistics
   latencies.sort((a, b) => a - b);
   const p50 = latencies[Math.floor(latencies.length * 0.5)];
+  const p95 = latencies[Math.floor(latencies.length * 0.95)];
   const p99 = latencies[Math.floor(latencies.length * 0.99)];
   const throughput = (iterations / totalTime) * 1000; // ops/sec
 
-  console.log('\n=== Gate Benchmark Results ===');
-  console.log(`Environment: Single process, local temp SQLite, simulated mode`);
+  console.log('\n=== REAL Gate Benchmark ===');
+  console.log('Path: runRefund() → BEGIN IMMEDIATE → policy check → ledger write → COMMIT');
+  console.log('Limits: Single process, local temp SQLite, simulated mode');
+  console.log(`Warmup: ${warmup} iterations (excluded from results)`);
   console.log(`Iterations: ${iterations}`);
   console.log(`Total time: ${totalTime.toFixed(2)}ms`);
-  console.log(`Throughput: ${throughput.toFixed(2)} ops/sec`);
+  console.log(`Throughput: ${throughput.toFixed(0)} ops/sec`);
   console.log(`Latency p50: ${p50.toFixed(2)}ms`);
+  console.log(`Latency p95: ${p95.toFixed(2)}ms`);
   console.log(`Latency p99: ${p99.toFixed(2)}ms`);
   console.log(`Min: ${latencies[0].toFixed(2)}ms`);
   console.log(`Max: ${latencies[latencies.length - 1].toFixed(2)}ms`);
-  console.log('==============================\n');
+  console.log('===========================\n');
 
   // Assertions: ensure benchmark actually ran
   assert.ok(p50 > 0, 'p50 latency should be > 0');
@@ -157,17 +171,12 @@ test('benchmark: concurrent requests (serialized by BEGIN IMMEDIATE)', async () 
 
   // Launch concurrent requests (SQLite will serialize them via BEGIN IMMEDIATE)
   const promises = Array.from({ length: concurrency }, (_, i) =>
-    runRefund(
-      deps,
-      {
-        sessionId: `concurrent-session-${i}`,
-        tool: 'refund_items',
-        captureId,
-        amountCents: null,
-        items: [{ itemId: 'item', qty: 1 }],
-      },
-      undefined
-    )
+    runRefund(deps, {
+      sessionId: `concurrent-session-${i}`,
+      tool: 'refund_items',
+      captureId,
+      items: [{ item_id: 'item', qty: 1 }],
+    })
   );
 
   const results = await Promise.all(promises);
