@@ -73,15 +73,13 @@ class ReinClient:
     
     # Authenticated endpoints
     
-    def result(self, action_id: str, approved: bool, approver_email: str, totp_code: Optional[str] = None) -> Any:
+    def result(self, action_id: str, approved: bool, approver_email: str) -> Any:
         """Approve or deny an escalated action"""
         request = {
             'actionId': action_id,
             'approved': approved,
             'approverEmail': approver_email
         }
-        if totp_code:
-            request['totpCode'] = totp_code
         return self._request('POST', '/v1/result', json_data=request, requires_auth=True)
     
     def get_mandate(self) -> Dict[str, Any]:

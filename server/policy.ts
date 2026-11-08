@@ -15,12 +15,6 @@ export interface PolicyState {
   approved?: boolean;
   ext?: ExternalState;
   priceAnomaly?: boolean; // from Channel3: customer found it cheaper elsewhere
-  // Advanced policy intelligence
-  customerEmail?: string; // customer identifier for velocity tracking
-  customerVelocityActions?: number; // actions by this customer in rolling 24h
-  customerVelocityAmountCents?: number; // total refunded to this customer in rolling 24h
-  totpCode?: string; // TOTP code provided for verification
-  approvalCount?: number; // number of human approvals for this action (0, 1, or 2)
 }
 
 const r = (status: Decision['status'], ruleId: string, reason: string): Decision => ({ status, ruleId, reason });
@@ -52,14 +46,6 @@ export function decide(a: { amountCents: number; currency?: string | undefined }
   if (s.windowSum + a.amountCents > m.hardDailyCapCents)
     return r('blocked', 'R-DAILY-HARD', `Refunds today would pass the ${usd(m.hardDailyCapCents)} hard daily limit.`);
 
-  // Customer velocity tracking (hard rule)
-  if (m.customerVelocityMaxActions && s.customerVelocityActions != null && s.customerVelocityActions >= m.customerVelocityMaxActions)
-    return r('blocked', 'R-CUSTOMER-VELOCITY-ACTIONS', `Customer has reached the limit of ${m.customerVelocityMaxActions} actions in the past 24h.`);
-  if (m.customerVelocityMaxAmountCents && s.customerVelocityAmountCents != null) {
-    if (s.customerVelocityAmountCents + a.amountCents > m.customerVelocityMaxAmountCents)
-      return r('blocked', 'R-CUSTOMER-VELOCITY-AMOUNT', `Customer would exceed ${usd(m.customerVelocityMaxAmountCents)} total refunded in the past 24h.`);
-  }
-
   if (s.approved) return r('allowed', 'R-APPROVED', 'A human approved this exact refund.'); // waives ONLY the soft rules below
 
   const needsDispute = !!m.blockIfOpenDispute && s.ext?.disputeOpen == null;
@@ -68,17 +54,6 @@ export function decide(a: { amountCents: number; currency?: string | undefined }
     return r('pending_approval', 'R-STATE-UNAVAILABLE', 'Rein could not read the payment\'s live PayPal state (dispute or purchase date), so a human must decide.');
   if (s.priceAnomaly)
     return r('pending_approval', 'R-PRICE-ANOMALY', 'Channel3 data shows the customer may have found this item cheaper elsewhere. Price match team must decide.');
-  // Two-person approval rule (soft rule, escalates high-value actions)
-  const twoPersonThreshold = m.twoPersonThresholdCents ?? m.hardMaxCents;
-  if (m.requireTwoPersonApproval && a.amountCents > twoPersonThreshold) {
-    const approvals = s.approvalCount ?? 0;
-    if (approvals < 2)
-      return r('pending_approval', 'R-TWO-PERSON-REQUIRED', `Refund ${usd(a.amountCents)} exceeds ${usd(twoPersonThreshold)} and requires two separate human approvals (${approvals}/2).`);
-  }
-
-  // TOTP authentication for high-value actions (soft rule)
-  if (m.requireTOTPForHighValue && a.amountCents > m.perActionCapCents && !s.totpCode)
-    return r('pending_approval', 'R-TOTP-REQUIRED', `Refund ${usd(a.amountCents)} exceeds ${usd(m.perActionCapCents)} and requires TOTP code verification.`);
 
   if (s.windowSum + a.amountCents > m.dailyCapCents)
     return r('pending_approval', 'R-DAILY-CAP', `This would take today's refunds past ${usd(m.dailyCapCents)}.`);

@@ -342,14 +342,8 @@ Open http://127.0.0.1:4317
 - ⚠️ UI visual verification (requires opening browser)
 - ⚠️ Render deployment (requires actual deployment to Render.com)
 
-**Policy Intelligence** ✅
-- Customer velocity tracking (per-customer action and amount limits per 24h)
-- Two-person approval rule (high-value actions require two separate human approvals)
-- TOTP authentication (Time-Based One-Time Passwords for high-value actions)
-- All implemented as pure policy functions with 19 passing tests
-
-**Slack Integration** ✅
-- Interactive approval messages with Block Kit
+**Telegram Integration** ✅
+- Real-time approval notifications via Telegram Bot API
 - Approval request notifications to Slack channels
 - Decision result notifications
 - Graceful degradation when not configured
@@ -385,6 +379,16 @@ MIT License - Copyright (c) 2026 darkphoenix2208
 - ✅ Hash-chained audit ledger with tamper detection
 - ✅ Deterministic gate (no AI decides money)
 - ✅ Honest documentation (clear limits, no "tamper-proof" claims)
+
+### Not Built
+
+The following features were removed during final implementation review:
+- **Customer velocity tracking** (per-customer action/amount limits per 24h)
+- **Two-person approval rule** (requiring 2 separate human approvals)
+- **TOTP authentication** (time-based one-time passwords for high-value actions)
+- **Slack integration** (notification system)
+
+Telegram notifications remain implemented for approval escalations.
 
 ---
 

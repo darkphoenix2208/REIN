@@ -28,7 +28,6 @@ export interface ApprovalRequest {
   actionId: string;
   approved: boolean;
   approverEmail: string;
-  totpCode?: string;
 }
 
 export interface LedgerRow {
@@ -136,8 +135,8 @@ export class ReinClient {
 
   // Authenticated endpoints
 
-  async result(actionId: string, approved: boolean, approverEmail: string, totpCode?: string): Promise<any> {
-    const request: ApprovalRequest = { actionId, approved, approverEmail, totpCode };
+  async result(actionId: string, approved: boolean, approverEmail: string): Promise<any> {
+    const request: ApprovalRequest = { actionId, approved, approverEmail };
     return this.request('POST', '/v1/result', request, true);
   }
 

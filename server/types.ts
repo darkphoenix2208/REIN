@@ -21,12 +21,6 @@ export interface Mandate {
   purchaseHardMaxCents?: number; // largest single purchase ever allowed
   productBlocklist?: string[]; // blocked product categories or IDs (e.g. gift_cards, crypto)
   productAllowlist?: string[]; // allowed product categories or IDs; if set and non-empty, others blocked
-  // Advanced policy intelligence
-  customerVelocityMaxActions?: number; // max actions per customer per 24h (0 = disabled)
-  customerVelocityMaxAmountCents?: number; // max total refunded to a customer per 24h
-  requireTwoPersonApproval?: boolean; // high-value actions require two separate human approvals
-  requireTOTPForHighValue?: boolean; // require TOTP code for actions above perActionCapCents
-  twoPersonThresholdCents?: number; // amount above which two-person rule applies (defaults to hardMaxCents)
 }
 
 export type Status = 'allowed' | 'blocked' | 'pending_approval' | 'reserved';
