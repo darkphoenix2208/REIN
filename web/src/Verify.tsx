@@ -106,7 +106,7 @@ export function Verify() {
     let sigOk = false;
     try {
       const pubBytes = Uint8Array.from(atob(cp.publicKey), (c) => c.charCodeAt(0));
-      const message = `${cp.seq}:${cp.head}`;
+      const message = `${cp.seq}:${cp.head}:${cp.timestamp}`;
       const messageBytes = new TextEncoder().encode(message);
       const sigBytes = Uint8Array.from(atob(cp.signature), (c) => c.charCodeAt(0));
 

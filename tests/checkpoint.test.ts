@@ -302,6 +302,65 @@ describe('Signed checkpoints (unit)', () => {
     delete process.env.ED25519_PRIVATE_KEY;
     close();
   });
+
+  test('timestamp tampering fails signature verification', async () => {
+    const { db, close } = await tempDb();
+
+    ledger(db, 'act-1', 'reserved', { n: 1 }, Date.now());
+
+    const testKey = Buffer.alloc(32, 0x42);
+    process.env.ED25519_PRIVATE_KEY = testKey.toString('base64');
+
+    const checkpoint = signCheckpoint(db)!;
+    ok(checkpoint !== null);
+
+    // Tamper with timestamp only (keep seq and head same)
+    const tamperedCheckpoint = {
+      ...checkpoint,
+      timestamp: checkpoint.timestamp + 60000, // Add 1 minute
+    };
+
+    const verification = verifyCheckpoint(db, tamperedCheckpoint);
+    eq(verification.signatureValid, false, 'Signature must fail when timestamp is changed');
+    ok(verification.error?.includes('Invalid Ed25519 signature'), 'Reports invalid signature');
+
+    delete process.env.ED25519_PRIVATE_KEY;
+    close();
+  });
+
+  test('browser and server verifiers agree', async () => {
+    const { db, close } = await tempDb();
+
+    ledger(db, 'act-1', 'reserved', { n: 1 }, Date.now());
+
+    const testKey = Buffer.alloc(32, 0x42);
+    process.env.ED25519_PRIVATE_KEY = testKey.toString('base64');
+
+    const checkpoint = signCheckpoint(db)!;
+
+    // Server verification
+    const serverResult = verifyCheckpoint(db, checkpoint);
+    eq(serverResult.signatureValid, true, 'Server verifies signature');
+    eq(serverResult.chainValid, true, 'Server verifies chain');
+
+    // Browser-like verification using Node's WebCrypto (same as web/src/Verify.tsx)
+    const { webcrypto } = await import('node:crypto');
+    const subtle = webcrypto.subtle as SubtleCrypto;
+
+    const pubBytes = Uint8Array.from(Buffer.from(checkpoint.publicKey, 'base64'));
+    const message = `${checkpoint.seq}:${checkpoint.head}:${checkpoint.timestamp}`;
+    const messageBytes = new TextEncoder().encode(message);
+    const sigBytes = Uint8Array.from(Buffer.from(checkpoint.signature, 'base64'));
+
+    const key = await subtle.importKey('raw', pubBytes, { name: 'Ed25519' }, false, ['verify']);
+    const browserSigValid = await subtle.verify({ name: 'Ed25519' }, key, sigBytes, messageBytes);
+
+    eq(browserSigValid, true, 'Browser WebCrypto verifies signature');
+    eq(browserSigValid, serverResult.signatureValid, 'Browser and server agree on signature');
+
+    delete process.env.ED25519_PRIVATE_KEY;
+    close();
+  });
 });
 
 for (const driver of ['better-sqlite3', 'node:sqlite'] as const) {

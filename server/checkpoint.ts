@@ -169,8 +169,8 @@ export function getPublicKeyInfo(): { publicKey: string; spki: string; algorithm
 /**
  * Canonical string representation to sign for a checkpoint.
  */
-export function checkpointMessage(seq: number, head: string): string {
-  return `${seq}:${head}`;
+export function checkpointMessage(seq: number, head: string, timestamp: number): string {
+  return `${seq}:${head}:${timestamp}`;
 }
 
 /**
@@ -187,13 +187,14 @@ export function signCheckpoint(db: Db, options?: { allowGenerateKey?: boolean })
     throw new Error(`Cannot sign a broken chain: broken at row ${chain.brokenAt}`);
   }
 
-  const message = checkpointMessage(chain.rows, chain.head);
+  const timestamp = Date.now();
+  const message = checkpointMessage(chain.rows, chain.head, timestamp);
   const signature = cryptoSign(null, Buffer.from(message), keypair.privateKey);
 
   return {
     seq: chain.rows,
     head: chain.head,
-    timestamp: Date.now(),
+    timestamp,
     signature: signature.toString('base64'),
     publicKey: keypair.rawPublicKeyBase64,
   };
@@ -238,7 +239,7 @@ export function verifyCheckpoint(
       pubKeyObj = createPublicKey({ key: pubKeyBuf, format: 'der', type: 'spki' });
     }
 
-    const message = checkpointMessage(checkpoint.seq, checkpoint.head);
+    const message = checkpointMessage(checkpoint.seq, checkpoint.head, checkpoint.timestamp);
     const sigBuf = Buffer.from(checkpoint.signature, 'base64');
     const sigOk = cryptoVerify(null, Buffer.from(message), pubKeyObj, sigBuf);
 
