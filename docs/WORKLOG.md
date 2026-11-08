@@ -97,7 +97,7 @@
 ## STAGE 5: FINAL ✅ COMPLETE
 
 - [x] Final verification commands run
-  - ✅ npm test: 308/308 passing
+  - ✅ npm test: 360/360 passing
   - ✅ npm run typecheck: Clean
   - ✅ npm run web:build: Success
   - ✅ Secret scan: No secrets found
@@ -113,7 +113,7 @@
 
 ## SUMMARY FOR HUMAN REVIEW
 
-**What's Working (327 tests passing):**
+**What's Working (360 tests passing):**
 - ✅ Core refund gate with all policy rules
 - ✅ Hash-chained ledger with mandate versioning
 - ✅ Beat the Gate (recorded fallback)
