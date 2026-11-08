@@ -371,7 +371,7 @@ MIT License - Copyright (c) 2026 darkphoenix2208
 **Technologies**: PayPal REST API, Node.js, React, TypeScript  
 
 ### Key Achievements
-- ✅ 370+ tests passing on both SQLite drivers (includes property-based tests)
+- ✅ 365 tests passing on both SQLite drivers (includes 1600+ property-based test cases)
 - ✅ 8 adversarial attack vectors - all blocked, $0 over-refunded
 - ✅ Ed25519 signed checkpoints with offline verification
 - ✅ PayPal webhook signature verification (NEVER accepts unverified events)
