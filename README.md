@@ -103,7 +103,7 @@ AI support agents are vulnerable to prompt injection. Rein bounds the damage:
 ### SDK & Performance ✅
 - **TypeScript SDK** (`sdk/rein-client.ts`) - Full type-safe client for all endpoints
 - **Python SDK** (`sdk/rein_client.py`) - Equivalent Python client with type hints
-- **Performance benchmark**: >1M decisions/sec, <1ms latency (in-memory DB)
+- **Performance**: Benchmarked in `tests/benchmark-gate.test.ts` - full transaction path with SQLite
 - **OpenAPI 3.1 spec** (`docs/api/openapi.yaml`) - Complete API documentation
 
 ---
