@@ -421,8 +421,14 @@ for (const driver of ['better-sqlite3', 'node:sqlite'] as const) {
       });
 
       assert.equal(res.status, 200);
-      // The tool call should return an error (capture not found)
-      assert.ok(res.body.toolCalls[0].result.error, 'Non-challenge capture should be inaccessible');
+      // The tool call should return unknown_order status (capture not found in challenge DB)
+      const firstCall = res.body.toolCalls?.[0];
+      assert.ok(firstCall, 'Should have tool calls');
+      assert.equal(
+        firstCall.result?.status,
+        'unknown_order',
+        'Non-challenge capture should return unknown_order'
+      );
     });
   });
 }
