@@ -64,7 +64,8 @@ test('benchmark: gate throughput and latency on temp SQLite', async () => {
       sessionId: `warmup-${i}`,
       tool: 'refund_items',
       captureId,
-      items: [{ item_id: 'mug', qty: 1 }],
+      amountCents: null,
+      items: [{ itemId: 'mug', qty: 1 }],
     });
   }
 
@@ -81,7 +82,8 @@ test('benchmark: gate throughput and latency on temp SQLite', async () => {
       sessionId: `bench-session-${i}`,
       tool: 'refund_items',
       captureId,
-      items: [{ item_id: 'mug', qty: 1 }],
+      amountCents: null,
+      items: [{ itemId: 'mug', qty: 1 }],
     });
 
     const end = performance.now();
@@ -175,7 +177,8 @@ test('benchmark: concurrent requests (serialized by BEGIN IMMEDIATE)', async () 
       sessionId: `concurrent-session-${i}`,
       tool: 'refund_items',
       captureId,
-      items: [{ item_id: 'item', qty: 1 }],
+      amountCents: null,
+      items: [{ itemId: 'item', qty: 1 }],
     })
   );
 
