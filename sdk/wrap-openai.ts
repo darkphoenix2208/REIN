@@ -60,7 +60,7 @@ export function wrap(swarmFunc: SwarmFunction, options: ReinWrapOptions): SwarmF
         }),
       });
 
-      const checkResult = await checkResponse.json();
+      const checkResult: any = await checkResponse.json();
 
       if (checkResult.status === 'blocked') {
         return { error: `Blocked by Rein: ${checkResult.reason}` };

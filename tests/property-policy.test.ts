@@ -32,7 +32,7 @@ test('property: decide never allows refunding more than captured', () => {
           now: NOW,
         };
 
-        const decision = decide(mandate, { tool: 'refund_items', amountCents: requestedCents }, state);
+        const decision = decide({ amountCents: requestedCents }, mandate, state);
 
         // Hard rule: never allow refunding more than remains
         if (refunded + requestedCents > captured) {
@@ -72,8 +72,8 @@ test('property: decisions are deterministic for same inputs', () => {
           now: NOW,
         };
 
-        const decision1 = decide(mandate, { tool: 'refund_items', amountCents: requestedCents }, state);
-        const decision2 = decide(mandate, { tool: 'refund_items', amountCents: requestedCents }, state);
+        const decision1 = decide({ amountCents: requestedCents }, mandate, state);
+        const decision2 = decide({ amountCents: requestedCents }, mandate, state);
 
         // Same inputs = same outputs (deterministic)
         assert.equal(decision1.status, decision2.status);
@@ -113,7 +113,7 @@ test('property: hard caps are never bypassed regardless of approval', () => {
           approved, // Even with approval
         };
 
-        const decision = decide(mandate, { tool: 'refund_items', amountCents: requestedCents }, state);
+        const decision = decide({ amountCents: requestedCents }, mandate, state);
 
         // Hard limits are NEVER bypassed, even with approval
         if (requestedCents > hardMaxCents) {

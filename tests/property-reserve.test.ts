@@ -3,8 +3,7 @@ import { test } from 'node:test';
 import * as assert from 'node:assert/strict';
 import * as fc from 'fast-check';
 import { tempDb } from './helpers.ts';
-import { runRefund } from '../server/dispatch.ts';
-import type { GateDeps } from '../server/gate.ts';
+import { runRefund, type GateDeps } from '../server/gate.ts';
 import type { Mandate } from '../server/types.ts';
 
 const NOW = Date.now();
@@ -116,7 +115,6 @@ test('property: refunded + reserved never exceeds captured', async () => {
             tool: 'create_refund',
             captureId,
             amountCents: Math.min(amount, captured),
-            items: null,
           }, undefined);
         }
 

@@ -1,6 +1,12 @@
 // rein.wrap() for LangChain
-import type { RunnableConfig } from '@langchain/core/runnables';
-import type { StructuredTool } from '@langchain/core/tools';
+// Note: Install @langchain/core for actual usage
+type RunnableConfig = any;
+type StructuredTool = {
+  name: string;
+  description: string;
+  schema: any;
+  func: (input: any, config?: RunnableConfig) => Promise<any>;
+};
 
 export interface ReinWrapOptions {
   reinBaseUrl: string;
@@ -57,7 +63,7 @@ export function wrap<T extends StructuredTool>(tool: T, options: ReinWrapOptions
       }),
     });
 
-    const checkResult = await checkResponse.json();
+    const checkResult: any = await checkResponse.json();
 
     if (checkResult.status === 'blocked') {
       throw new Error(`Rein blocked: ${checkResult.reason}`);
