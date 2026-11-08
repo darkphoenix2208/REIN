@@ -74,6 +74,7 @@ for (const driver of ['better-sqlite3', 'node:sqlite'] as const) {
                     input: { capture_id: captureId },
                   },
                 ],
+                usage: { input_tokens: 500, output_tokens: 100 },
               };
             }
             if (turn === 2) {
@@ -90,10 +91,12 @@ for (const driver of ['better-sqlite3', 'node:sqlite'] as const) {
                     },
                   },
                 ],
+                usage: { input_tokens: 600, output_tokens: 120 },
               };
             }
             return {
               content: [{ type: 'text', text: 'I have refunded the $18 for your mug.' }],
+              usage: { input_tokens: 700, output_tokens: 50 },
             };
           },
         },
@@ -108,6 +111,7 @@ for (const driver of ['better-sqlite3', 'node:sqlite'] as const) {
       assert.equal(res.body.mode, 'live');
       assert.equal(res.body.gateDecision, 'allowed');
       assert.equal(res.body.gateRule, 'R-ALLOW');
+      assert.equal(res.body.tokensUsed, 500 + 100 + 600 + 120 + 700 + 50); // Sum of all turns
       assert.equal(res.body.refundedCents, 1800);
       assert.equal(res.body.savedCents, 0);
       assert.equal(res.body.lostCents, 1800);
@@ -137,6 +141,7 @@ for (const driver of ['better-sqlite3', 'node:sqlite'] as const) {
                     input: { capture_id: captureId },
                   },
                 ],
+                usage: { input_tokens: 550, output_tokens: 110 },
               };
             }
             if (turn === 2) {
@@ -156,10 +161,12 @@ for (const driver of ['better-sqlite3', 'node:sqlite'] as const) {
                     },
                   },
                 ],
+                usage: { input_tokens: 650, output_tokens: 140 },
               };
             }
             return {
               content: [{ type: 'text', text: 'I tried to refund everything for you.' }],
+              usage: { input_tokens: 720, output_tokens: 60 },
             };
           },
         },
@@ -198,6 +205,7 @@ for (const driver of ['better-sqlite3', 'node:sqlite'] as const) {
                   input: { capture_id: 'CHALLENGE-TEST-03' },
                 },
               ],
+              usage: { input_tokens: 500, output_tokens: 100 },
             };
           },
         },
@@ -232,8 +240,8 @@ for (const driver of ['better-sqlite3', 'node:sqlite'] as const) {
       }
     });
 
-    // 5. Spend cap / budget exhausted: returns 503 when budget reached
-    test('spend cap: returns 503 when total lost cents >= $1000', async () => {
+    // 5. Token budget: returns 503 when daily token budget exhausted
+    test('token budget: returns 503 when daily tokens exhausted', async () => {
       const mainPath = join(mkdtempSync(join(tmpdir(), 'rein-btg-')), 't.db');
       const challengePath = join(mkdtempSync(join(tmpdir(), 'rein-btg-chal-')), 'c.db');
       const db = await openDb(mainPath, { driver });
@@ -241,12 +249,12 @@ for (const driver of ['better-sqlite3', 'node:sqlite'] as const) {
       applySchema(db);
       applySchema(cdb);
 
-      // Seed challenge DB with attempts totaling >= $1000 lost
+      // Seed challenge DB with attempts exhausting the daily token budget (100k default)
       const { initChallengeSchema } = await import('../server/beat-the-gate.ts');
       initChallengeSchema(cdb);
       cdb.run(
-        `INSERT INTO challenge_attempts (id, ip, message, agent_response, tool_calls, gate_decision, gate_rule, requested_cents, refunded_cents, saved_cents, lost_cents, created_at, mode)
-         VALUES ('exhaust-1', '1.1.1.1', 'test', 'resp', '[]', 'allowed', 'R-ALLOW', 100000, 100000, 0, 100000, ?, 'recorded')`,
+        `INSERT INTO challenge_attempts (id, ip, message, agent_response, tool_calls, gate_decision, gate_rule, requested_cents, refunded_cents, saved_cents, lost_cents, created_at, mode, tokens_used)
+         VALUES ('exhaust-1', '1.1.1.1', 'test', 'resp', '[]', 'allowed', 'R-ALLOW', 1000, 1000, 0, 1000, ?, 'live', 100000)`,
         Date.now()
       );
 
@@ -256,6 +264,7 @@ for (const driver of ['better-sqlite3', 'node:sqlite'] as const) {
       });
       assert.equal(res.status, 503);
       assert.equal(res.body.error, 'budget_exhausted');
+      assert.match(res.body.reason || '', /token/i);
     });
 
     // 6. Rate limit: 4th attempt from same IP within window returns 429

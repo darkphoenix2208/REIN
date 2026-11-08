@@ -23,6 +23,7 @@ export interface AgentResult {
   refundedCents: number;
   savedCents: number;
   lostCents: number;
+  tokensUsed: number;
 }
 
 export interface RunAgentOptions {
@@ -112,6 +113,7 @@ Start by calling get_order to see what they ordered, then help them based on the
   let gateRule = 'R-ALLOW';
   let requestedCents = 0;
   let refundedCents = 0;
+  let totalTokensUsed = 0;
   let turns = 0;
 
   while (turns < MAX_TURNS) {
@@ -124,6 +126,11 @@ Start by calling get_order to see what they ordered, then help them based on the
       messages,
       tools,
     });
+
+    // Track token usage
+    if (completion.usage) {
+      totalTokensUsed += (completion.usage.input_tokens || 0) + (completion.usage.output_tokens || 0);
+    }
 
     // Extract text response
     const textBlocks = completion.content.filter((block: any) => block.type === 'text');
@@ -233,5 +240,6 @@ Start by calling get_order to see what they ordered, then help them based on the
     refundedCents,
     savedCents,
     lostCents,
+    tokensUsed: totalTokensUsed,
   };
 }

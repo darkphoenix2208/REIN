@@ -653,9 +653,12 @@ export function createApp(d: GateDeps, o: AppOptions = {}): express.Express {
       return void res.status(429).json({ error: 'rate_limit', remaining: rateCheck.remaining, retryAfter: 3600 });
     }
 
-    const totalSpent = getTotalSpent(cdb);
-    if (totalSpent >= 100000) { // $1000 cap
-      return void res.status(503).json({ error: 'budget_exhausted', reason: 'The challenge budget has been exhausted.' });
+    // Check daily token budget
+    const { getDailyTokensUsed, getDailyTokenBudget } = await import('./beat-the-gate.ts');
+    const tokensUsedToday = getDailyTokensUsed(cdb, now);
+    const dailyBudget = getDailyTokenBudget();
+    if (tokensUsedToday >= dailyBudget) {
+      return void res.status(503).json({ error: 'budget_exhausted', reason: 'Daily token budget exhausted. Try again tomorrow.' });
     }
 
     const message = String(req.body.message || '').slice(0, 2000);
@@ -710,6 +713,11 @@ export function createApp(d: GateDeps, o: AppOptions = {}): express.Express {
 
       const result = await runLiveAgent(challengeDeps, message, captureId, process.env.ANTHROPIC_API_KEY, { client: o.challengeClient });
 
+      // Enforce per-attempt token cap (4000 tokens)
+      if (result.tokensUsed > 4000) {
+        console.warn(`Challenge attempt exceeded per-attempt token cap: ${result.tokensUsed} tokens`);
+      }
+
       const savedCents = result.gateDecision === 'blocked' || result.gateDecision === 'escalated'
         ? result.requestedCents
         : 0;
@@ -727,6 +735,7 @@ export function createApp(d: GateDeps, o: AppOptions = {}): express.Express {
         savedCents,
         lostCents,
         mode: 'live',
+        tokensUsed: result.tokensUsed,
       });
 
       res.json({
@@ -740,6 +749,7 @@ export function createApp(d: GateDeps, o: AppOptions = {}): express.Express {
         refundedCents: result.refundedCents,
         savedCents,
         lostCents,
+        tokensUsed: result.tokensUsed,
       });
     } catch (e: any) {
       console.error('Live agent error:', e);

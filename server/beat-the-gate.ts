@@ -19,6 +19,7 @@ export interface ChallengeAttempt {
   lostCents: number;
   createdAt: number;
   mode: 'live' | 'recorded';
+  tokensUsed?: number;
 }
 
 export interface Leaderboard {
@@ -30,9 +31,10 @@ export interface Leaderboard {
 
 const RATE_LIMIT_PER_IP = 3; // attempts per hour
 const RATE_LIMIT_WINDOW_MS = 3600000; // 1 hour
-const MAX_TOTAL_SPEND_CENTS = 100000; // $1000 fake budget
 const MAX_TOKENS_PER_ATTEMPT = 4000;
 const KILL_SWITCH_VAR = 'REIN_DISABLE_CHALLENGE';
+const DAILY_TOKEN_BUDGET_VAR = 'REIN_CHALLENGE_DAILY_TOKENS';
+const DEFAULT_DAILY_TOKEN_BUDGET = 100000; // Default 100k tokens per day
 
 // Recorded fallback attempts for when there's no API key
 const RECORDED_ATTEMPTS: Omit<ChallengeAttempt, 'id' | 'ip' | 'createdAt' | 'mode'>[] = [
@@ -94,7 +96,8 @@ export function initChallengeSchema(db: Db): void {
     saved_cents INTEGER NOT NULL,
     lost_cents INTEGER NOT NULL,
     created_at INTEGER NOT NULL,
-    mode TEXT NOT NULL
+    mode TEXT NOT NULL,
+    tokens_used INTEGER DEFAULT 0
   )`);
   db.run(`CREATE INDEX IF NOT EXISTS idx_challenge_ip_time ON challenge_attempts(ip, created_at)`);
   db.run(`CREATE INDEX IF NOT EXISTS idx_challenge_time ON challenge_attempts(created_at DESC)`);
@@ -114,6 +117,19 @@ export function checkRateLimit(db: Db, ip: string, now: number): { allowed: bool
 
 export function getTotalSpent(db: Db): number {
   return db.val<number>('SELECT COALESCE(SUM(lost_cents), 0) FROM challenge_attempts') ?? 0;
+}
+
+export function getDailyTokensUsed(db: Db, now: number): number {
+  const oneDayAgo = now - 86400000; // 24 hours in ms
+  return db.val<number>(
+    'SELECT COALESCE(SUM(tokens_used), 0) FROM challenge_attempts WHERE created_at > ?',
+    oneDayAgo
+  ) ?? 0;
+}
+
+export function getDailyTokenBudget(): number {
+  const env = process.env[DAILY_TOKEN_BUDGET_VAR];
+  return env ? parseInt(env, 10) : DEFAULT_DAILY_TOKEN_BUDGET;
 }
 
 export function getLeaderboard(db: Db, limit = 20): Leaderboard {
@@ -151,8 +167,8 @@ export function recordAttempt(db: Db, attempt: Omit<ChallengeAttempt, 'id' | 'cr
   const id = `challenge-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
   const now = Date.now();
   db.run(
-    `INSERT INTO challenge_attempts (id, ip, message, agent_response, tool_calls, gate_decision, gate_rule, requested_cents, refunded_cents, saved_cents, lost_cents, created_at, mode)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO challenge_attempts (id, ip, message, agent_response, tool_calls, gate_decision, gate_rule, requested_cents, refunded_cents, saved_cents, lost_cents, created_at, mode, tokens_used)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     id,
     attempt.ip,
     attempt.message,
@@ -165,7 +181,8 @@ export function recordAttempt(db: Db, attempt: Omit<ChallengeAttempt, 'id' | 'cr
     attempt.savedCents,
     attempt.lostCents,
     now,
-    attempt.mode
+    attempt.mode,
+    attempt.tokensUsed ?? 0
   );
   return id;
 }
