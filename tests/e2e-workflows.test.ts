@@ -195,11 +195,11 @@ describe('E2E Workflows', () => {
     db.run(`INSERT INTO payments(txn_id,captured_cents,refunded_cents,reserved_cents,currency) VALUES (?,?,?,?,?)`,
       'CAP-MULTI', 100000, 0, 0, 'USD');
     
-    // First refund: $30
+    // First refund: $30 (using basic refund, not items)
     const check1 = await check(db, {
       sessionId: 'multi-1',
-      tool: 'refund_items',
-      args: { captureId: 'CAP-MULTI', amount: 3000, items: [{ itemId: 'item1', qty: 1 }] },
+      tool: 'refund',
+      args: { captureId: 'CAP-MULTI', amount: 3000 },
       mandate,
       timestamp: now,
     });
@@ -208,8 +208,8 @@ describe('E2E Workflows', () => {
     await approve(db, {
       sessionId: 'multi-1',
       grantId: check1.grantId!,
-      tool: 'refund_items',
-      args: { captureId: 'CAP-MULTI', amount: 3000, items: [{ itemId: 'item1', qty: 1 }] },
+      tool: 'refund',
+      args: { captureId: 'CAP-MULTI', amount: 3000 },
       mandate,
       timestamp: now + 100,
     });
@@ -224,8 +224,8 @@ describe('E2E Workflows', () => {
     // Second refund: $40
     const check2 = await check(db, {
       sessionId: 'multi-2',
-      tool: 'refund_items',
-      args: { captureId: 'CAP-MULTI', amount: 4000, items: [{ itemId: 'item2', qty: 1 }] },
+      tool: 'refund',
+      args: { captureId: 'CAP-MULTI', amount: 4000 },
       mandate,
       timestamp: now + 1000,
     });
