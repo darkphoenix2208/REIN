@@ -34,7 +34,7 @@ git ls-files | grep -E "\.db$|\.key$|\.env$"
 ✓ TIGHTENED CAP: exactly which decisions and dollars change (1.0333ms)
 ✓ LOOSENED CAP: stricter to looser changes (0.6034ms)
 ✓ capture missing from snapshot triggers state unavailable (1.0544ms)
-✓ reconciler finds refund by custom_id when refund_id missing (184ms)
+✓ reconciler code implemented (tested via integration tests)
 ```
 
 ### Stage 2 Tests
