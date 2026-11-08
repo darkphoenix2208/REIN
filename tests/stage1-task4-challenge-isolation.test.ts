@@ -110,8 +110,8 @@ test('challenge escalation sends ZERO Telegram requests (via silenceNotification
     return;
   }
 
-  const { db, close } = await tempDb();
-  const { checkRefund } = await import('../server/gate.ts');
+  const { db } = await tempDb();
+  const { runRefund } = await import('../server/gate.ts');
 
   // Track fetch calls to Telegram API
   const originalFetch = global.fetch;
@@ -132,15 +132,15 @@ test('challenge escalation sends ZERO Telegram requests (via silenceNotification
     // Set up mandate that will escalate when refunding all items
     const escalatingMandate: Mandate = {
       ...baseMandate,
-      itemAllEscalates: true, // Escalate when all items requested
+      perActionCapCents: 1000, // Low cap to trigger escalation
     };
 
     // Silence notifications for this database (this is what runLiveAgent does)
     const { silenceNotifications } = await import('../server/dispatch.ts');
     silenceNotifications(db);
 
-    // Request refund that will escalate
-    const result = checkRefund(
+    // Request refund that will escalate (amount exceeds cap)
+    const result = await runRefund(
       {
         db,
         mandate: escalatingMandate,
@@ -148,14 +148,12 @@ test('challenge escalation sends ZERO Telegram requests (via silenceNotification
         now: () => Date.now(),
       },
       {
-        actionId: 'test-challenge-' + Date.now(),
-        tool: 'refund_items',
         sessionId: 'challenge-session',
+        tool: 'refund_items',
         captureId,
-        items: [{ item_id: 'mug', qty: 1 }], // All items = escalation
-        noteToPayer: 'Test escalation',
-      },
-      Date.now()
+        amountCents: null,
+        items: [{ itemId: 'mug', qty: 1 }],
+      }
     );
 
     // Verify the action escalated
@@ -164,7 +162,7 @@ test('challenge escalation sends ZERO Telegram requests (via silenceNotification
     // Verify ZERO Telegram requests were made
     assert.equal(telegramRequestCount, 0, 'Challenge escalation should send ZERO Telegram requests');
 
-    close();
+    db.close();
   } finally {
     global.fetch = originalFetch;
   }
@@ -178,8 +176,8 @@ test('normal (non-challenge) escalation sends exactly ONE Telegram request', asy
     return;
   }
 
-  const { db, close } = await tempDb();
-  const { checkRefund } = await import('../server/gate.ts');
+  const { db } = await tempDb();
+  const { runRefund } = await import('../server/gate.ts');
 
   // Track fetch calls to Telegram API
   const originalFetch = global.fetch;
@@ -212,13 +210,13 @@ test('normal (non-challenge) escalation sends exactly ONE Telegram request', asy
     // Set up mandate that will escalate when refunding all items
     const escalatingMandate: Mandate = {
       ...baseMandate,
-      itemAllEscalates: true, // Escalate when all items requested
+      perActionCapCents: 1000, // Low cap to trigger escalation
     };
 
     // DO NOT silence notifications for this normal database
 
     // Request refund that will escalate
-    const result = checkRefund(
+    const result = await runRefund(
       {
         db,
         mandate: escalatingMandate,
@@ -226,14 +224,12 @@ test('normal (non-challenge) escalation sends exactly ONE Telegram request', asy
         now: () => Date.now(),
       },
       {
-        actionId: 'test-normal-' + Date.now(),
         tool: 'refund_items',
         sessionId: 'normal-session',
         captureId: 'NORMAL-CAP-1',
-        items: [{ item_id: 'mug', qty: 1 }], // All items = escalation
-        noteToPayer: 'Test normal escalation',
-      },
-      Date.now()
+        amountCents: null,
+        items: [{ itemId: 'mug', qty: 1 }],
+      }
     );
 
     // Verify the action escalated
@@ -247,7 +243,7 @@ test('normal (non-challenge) escalation sends exactly ONE Telegram request', asy
     assert.equal(telegramCalls.length, 1, 'Should have exactly one Telegram API call');
     assert.ok(telegramCalls[0].url.includes('sendMessage'), 'Should call Telegram sendMessage API');
 
-    close();
+    db.close();
   } finally {
     global.fetch = originalFetch;
   }
