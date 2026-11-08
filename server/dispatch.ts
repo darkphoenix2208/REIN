@@ -13,6 +13,13 @@ import type { CheckInput, CheckResult, Decision, ExternalState, Mandate, PayRow 
 const COUNTS = `('reserved','executed','approved_executed','unknown_outcome')`;
 const DAY_MS = 86_400_000;
 
+// Per-database notification silence (for challenge isolation)
+const silencedDatabases = new WeakSet<Db>();
+
+export function silenceNotifications(db: Db): void {
+  silencedDatabases.add(db);
+}
+
 const payOf = (db: Db, cap: string): PayRow | undefined =>
   db.one<{ c: number; f: number; r: number; cur: string; capturedAt: number | null }>(
     'SELECT captured_cents c, refunded_cents f, reserved_cents r, currency cur, captured_at capturedAt FROM payments WHERE txn_id=?',
@@ -78,7 +85,9 @@ export function checkPayout(db: Db, m: Mandate, a: CheckInput, now: number, mode
   return finishPayout(db, a, now, d, amountCents, payeeEmail, m, mode);
 }
 
-async function sendTelegramNotification(actionId: string, tool: string, amountCents: number, ruleId: string, reason: string, approvalUrl: string, sessionId: string, captureId?: string, payeeEmail?: string): Promise<void> {
+async function sendTelegramNotification(db: Db, actionId: string, tool: string, amountCents: number, ruleId: string, reason: string, approvalUrl: string, sessionId: string, captureId?: string, payeeEmail?: string): Promise<void> {
+  if (silencedDatabases.has(db)) return; // Database has notifications silenced
+  
   const telegramConfig = getTelegramConfig();
   if (!telegramConfig) return; // Telegram not configured, skip
 
@@ -120,7 +129,7 @@ function finishPayout(db: Db, a: CheckInput, now: number, d: Decision, amountCen
     const approvalUrl = `${process.env.REIN_PUBLIC_URL ?? 'http://127.0.0.1:4317'}/approve/${a.actionId}#t=${token}`;
 
     // Send Telegram notification (async, non-blocking)
-    sendTelegramNotification(a.actionId, a.tool, amountCents, d.ruleId, d.reason, approvalUrl, a.sessionId, undefined, payeeEmail).catch(() => {});
+    sendTelegramNotification(db, a.actionId, a.tool, amountCents, d.ruleId, d.reason, approvalUrl, a.sessionId, undefined, payeeEmail).catch(() => {});
 
     return { status: 'pending_approval', ruleId: d.ruleId, reason: d.reason, actionId: a.actionId, approvalUrl, token };
   }
@@ -220,7 +229,7 @@ function finish(db: Db, a: CheckInput, now: number, d: Decision, amountCents: nu
     approvalUrl = `${process.env.REIN_PUBLIC_URL ?? 'http://127.0.0.1:4317'}/approve/${a.actionId}#t=${token}`; // token in the fragment: never sent to servers or logs
 
     // Send Telegram notification (async, non-blocking)
-    sendTelegramNotification(a.actionId, a.tool, amountCents, d.ruleId, d.reason, approvalUrl, a.sessionId, a.captureId).catch(() => {});
+    sendTelegramNotification(db, a.actionId, a.tool, amountCents, d.ruleId, d.reason, approvalUrl, a.sessionId, a.captureId).catch(() => {});
   }
   ledger(db, a.actionId, status, { mode, ruleId: d.ruleId, amountCents, captureId: a.captureId, items: lines }, now, mHash, agentId);
   return { ...d, actionId: a.actionId, ...(approvalUrl ? { approvalUrl } : {}), ...(token ? { token } : {}) };

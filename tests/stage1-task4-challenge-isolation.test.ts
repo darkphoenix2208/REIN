@@ -102,46 +102,98 @@ test('challenge captures are prefixed with CHALLENGE-', async () => {
   db.close();
 });
 
-test('challenge never sends notifications (paypal is always null)', async () => {
-  const { db } = await tempDb();
-  const captureId = createFreshChallengeCapture(db);
-  
-  const challengeDeps: GateDeps = {
-    db,
-    mandate: baseMandate,
-    paypal: null, // Challenge always null - this prevents ALL notifications
-    now: () => Date.now(),
-  };
-  
-  // Verify paypal is null (notifications are only sent when paypal is non-null)
-  assert.equal(challengeDeps.paypal, null, 'Challenge deps must have paypal=null');
-  
-  // Mock Anthropic client that requests a single item refund
-  const mockClient = {
-    messages: {
-      create: async () => ({
-        content: [
-          {
-            type: 'tool_use',
-            id: 'call_1',
-            name: 'refund_items',
-            input: {
-              capture_id: captureId,
-              items: [{ item_id: 'mug', qty: 1 }],
-            },
-          },
-        ],
-        usage: { input_tokens: 100, output_tokens: 50 },
-      }),
-    },
-  };
-  
-  // This should complete without throwing (paypal=null prevents notification dispatch)
-  const result = await runLiveAgent(challengeDeps, 'Refund the mug', captureId, undefined, { client: mockClient });
-  
-  // The key point: paypal=null means no Telegram notifications are ever sent
-  // (Telegram notifications only fire via dispatch.ts when paypal is non-null)
-  assert.ok(result, 'Challenge agent completed successfully with paypal=null');
-  
-  db.close();
+test('challenge escalation sends ZERO Telegram requests, normal escalation sends exactly ONE', async () => {
+  // Mock fetch to count requests
+  const fetchCalls: string[] = [];
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = (async (url: string, options?: any) => {
+    fetchCalls.push(url);
+    return new Response(JSON.stringify({ ok: true }), { status: 200 });
+  }) as typeof fetch;
+
+  // Set Telegram config
+  const originalBotToken = process.env.TELEGRAM_BOT_TOKEN;
+  const originalChatId = process.env.TELEGRAM_CHAT_ID;
+  process.env.TELEGRAM_BOT_TOKEN = 'test_bot_token_12345';
+  process.env.TELEGRAM_CHAT_ID = 'test_chat_id_67890';
+
+  try {
+    // Test 1: Challenge escalation should send ZERO requests
+    const { db: challengeDb } = await tempDb();
+    const challengeCapId = createFreshChallengeCapture(challengeDb, 100000, 'CHALLENGE-TEST-CAP');
+    
+    const challengeDeps: GateDeps = {
+      db: challengeDb,
+      mandate: { ...baseMandate, perActionCapCents: 1 }, // Force escalation
+      paypal: null,
+      now: () => Date.now(),
+    };
+
+    fetchCalls.length = 0; // Reset counter
+    
+    // Run challenge agent (will escalate due to low cap)
+    const fakeClient = {
+      messages: {
+        create: async () => ({
+          id: 'msg_fake',
+          type: 'message',
+          role: 'assistant',
+          content: [{ type: 'text', text: 'I will help you' }],
+          model: 'fake',
+          stop_reason: 'end_turn',
+          usage: { input_tokens: 10, output_tokens: 10 },
+        }),
+      },
+    };
+    
+    await runLiveAgent(challengeDeps, 'Please refund my order', challengeCapId, undefined, { client: fakeClient });
+    
+    assert.equal(fetchCalls.length, 0, 'Challenge escalation should send ZERO Telegram requests');
+    challengeDb.close();
+
+    // Test 2: Normal (non-challenge) escalation should send exactly ONE request
+    const { db: normalDb } = await tempDb();
+    normalDb.run(
+      `INSERT INTO payments(txn_id,captured_cents,refunded_cents,reserved_cents,currency,source,captured_at) VALUES (?,?,?,?,?,?,?)`,
+      'NORMAL-CAP-001', 100000, 0, 0, 'USD', 'test', Date.now()
+    );
+    normalDb.run(`INSERT INTO orders(order_id,capture_id) VALUES (?,?)`, 'NORMAL-ORD-001', 'NORMAL-CAP-001');
+    normalDb.run(
+      `INSERT INTO order_items(order_id,item_id,name,unit_cents,qty,refunded_qty,reserved_qty,refundable) VALUES (?,?,?,?,?,?,?,?)`,
+      'NORMAL-ORD-001', 'item1', 'Test Item', 5000, 2, 0, 0, 1
+    );
+
+    const normalDeps: GateDeps = {
+      db: normalDb,
+      mandate: { ...baseMandate, perActionCapCents: 1 }, // Force escalation
+      paypal: null,
+      now: () => Date.now(),
+    };
+
+    fetchCalls.length = 0; // Reset counter
+
+    const { runRefund } = await import('../server/gate.ts');
+    await runRefund(normalDeps, {
+      actionId: 'act-normal-001',
+      sessionId: 'sess-normal-001',
+      tool: 'refund_items',
+      captureId: 'NORMAL-CAP-001',
+      items: [{ item_id: 'item1', qty: 1 }],
+    });
+
+    // Wait for async notification (sendTelegramNotification uses .catch(() => {}))
+    await new Promise(resolve => setTimeout(resolve, 100));
+
+    assert.equal(fetchCalls.length, 1, 'Normal escalation should send exactly ONE Telegram request');
+    assert.ok(fetchCalls[0].includes('sendMessage'), 'Should be a Telegram sendMessage API call');
+    
+    normalDb.close();
+  } finally {
+    // Restore
+    globalThis.fetch = originalFetch;
+    if (originalBotToken === undefined) delete process.env.TELEGRAM_BOT_TOKEN;
+    else process.env.TELEGRAM_BOT_TOKEN = originalBotToken;
+    if (originalChatId === undefined) delete process.env.TELEGRAM_CHAT_ID;
+    else process.env.TELEGRAM_CHAT_ID = originalChatId;
+  }
 });

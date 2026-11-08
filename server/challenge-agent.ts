@@ -3,6 +3,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import type { Db } from './db.ts';
 import type { GateDeps } from './gate.ts';
 import { createProxy } from './proxy.ts';
+import { silenceNotifications } from './dispatch.ts';
 import type { MessageParam, Tool } from '@anthropic-ai/sdk/resources/messages.js';
 
 const MAX_TOKENS = 4000;
@@ -85,6 +86,9 @@ export async function runLiveAgent(
   if (deps.paypal !== null) {
     throw new Error('Beat the Gate challenge is restricted to SIMULATED mode only. Real PayPal credentials detected.');
   }
+  
+  // Silence notifications for challenge database
+  silenceNotifications(deps.db);
 
   const model = options.model || process.env.REIN_CHALLENGE_MODEL || 'claude-3-7-sonnet-20250219';
   const anthropic = options.client || new Anthropic({ apiKey: apiKey || process.env.ANTHROPIC_API_KEY });
