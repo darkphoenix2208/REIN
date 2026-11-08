@@ -5,7 +5,7 @@
 ```bash
 # All tests passing
 npm test
-# ✅ 360/360 passing, 0 failing
+# ✅ 359/359 passing, 0 failing
 
 # TypeScript clean
 npm run typecheck
