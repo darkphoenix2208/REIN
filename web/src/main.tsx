@@ -6,6 +6,7 @@ import '@fontsource/inter/600.css';
 import '@fontsource/ibm-plex-mono/400.css';
 import '../design-tokens.css';
 import './styles.css';
+import { Layout } from './Layout';
 import { Demo } from './Demo';
 import { Approve } from './Approve';
 import { Ledger } from './Ledger';
@@ -17,17 +18,24 @@ import { Ops } from './Ops';
 import { Verify } from './Verify';
 import { Challenge } from './Challenge';
 import { Shop } from './Shop';
-import { ModeChip } from './ui';
 
 function App() {
   const [p, setP] = useState(window.location.pathname);
+  const [mode, setMode] = useState<'SIMULATED' | 'LIVE'>('SIMULATED');
+
   useEffect(() => {
     const f = () => setP(window.location.pathname);
     window.addEventListener('popstate', f);
     return () => window.removeEventListener('popstate', f);
   }, []);
-  const go = (to: string) => (e: React.MouseEvent) => { e.preventDefault(); history.pushState({}, '', to); setP(to); };
-  const cur = (to: string) => (p === to || (to === '/demo' && p === '/') ? 'page' : undefined);
+
+  useEffect(() => {
+    fetch('/health')
+      .then((r) => r.json())
+      .then((j) => setMode(j.mode === 'live' ? 'LIVE' : 'SIMULATED'))
+      .catch(() => setMode('SIMULATED'));
+  }, []);
+
   let page;
   if (p.startsWith('/approve/')) page = <Approve actionId={p.split('/')[2] ?? ''} />;
   else if (p === '/ledger') page = <Ledger />;
@@ -40,26 +48,12 @@ function App() {
   else if (p === '/attack-lab') page = <AttackLab />;
   else if (p === '/ops') page = <Ops />;
   else page = <Demo />;
+
   return (
-    <>
-      <header className="topbar">
-        <a className="brand" href="/demo" onClick={go('/demo')}>Rein</a>
-        <nav aria-label="Main">
-          <a href="/demo" aria-current={cur('/demo')} onClick={go('/demo')}>Demo</a>
-          <a href="/ledger" aria-current={cur('/ledger')} onClick={go('/ledger')}>Ledger</a>
-          <a href="/ops" aria-current={cur('/ops')} onClick={go('/ops')}>Ops</a>
-          <a href="/challenge" aria-current={cur('/challenge')} onClick={go('/challenge')}>Challenge</a>
-          <a href="/shop" aria-current={cur('/shop')} onClick={go('/shop')}>Shop</a>
-          <a href="/attack-lab" aria-current={cur('/attack-lab')} onClick={go('/attack-lab')}>Attack Lab</a>
-          <a href="/verify" aria-current={cur('/verify')} onClick={go('/verify')}>Verify</a>
-          <a href="/author" aria-current={cur('/author')} onClick={go('/author')}>Author</a>
-          <a href="/mandate" aria-current={cur('/mandate')} onClick={go('/mandate')}>Mandate</a>
-          <a href="/proof" aria-current={cur('/proof')} onClick={go('/proof')}>Proof</a>
-        </nav>
-        <ModeChip />
-      </header>
-      <main>{page}</main>
-    </>
+    <Layout mode={mode} currentPath={p}>
+      {page}
+    </Layout>
   );
 }
+
 createRoot(document.getElementById('root')!).render(<StrictMode><App /></StrictMode>);

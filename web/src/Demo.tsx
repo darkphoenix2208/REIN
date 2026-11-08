@@ -42,51 +42,146 @@ export function Demo() {
   };
 
   const ticket = tickets.find((t) => t.id === sel);
+
+  if (phase === 'error' && !tickets.length) {
+    return (
+      <div className="error-state">
+        <p>Failed to load tickets: {err}</p>
+        <button className="btn btn-primary" onClick={() => window.location.reload()}>
+          Reload Page
+        </button>
+      </div>
+    );
+  }
+
   return (
-    <>
-      <h1>Same agent, same ticket. One lane has Rein.</h1>
-      <p className="muted">Pick a customer ticket. Both lanes replay the same agent request; the right lane runs it through the real Rein gate (simulated PayPal, fake money).</p>
-      <div className="seg" role="group" aria-label="Ticket">
-        {tickets.map((t) => <button key={t.id} aria-pressed={sel === t.id} onClick={() => { setSel(t.id); setPhase('idle'); setRes(null); }}>{t.id}. {t.title}</button>)}
-      </div>
-      {ticket && <div className="ticket" aria-label="Customer ticket">{ticket.body}</div>}
-      <button className="btn" onClick={run} disabled={phase === 'loading' || !ticket}>{phase === 'loading' ? 'Running...' : 'Run both lanes'}</button>
-      <div className="sr" role="status" aria-live="polite">{live}</div>
-      {phase === 'error' && <div className="banner error" role="alert">Something went wrong: {err}. <button className="btn secondary" onClick={run}>Try again</button></div>}
-      <div className="lanes">
-        <section className="lane" aria-label="Without Rein">
-          <h2>Without Rein</h2>
-          {!res && <p className="muted">{phase === 'loading' ? 'Running the agent...' : 'Press "Run both lanes" to see what the agent does.'}</p>}
-          {res && <>
-            <p className="muted">Agent asked to refund: {res.requested.map((r) => `${r.item} $${r.amount}`).join(', ')}</p>
-            <div className="outcome-word">REFUNDED ${res.unguarded.amount}</div>
-            <p className="mono">{res.unguarded.refundId}</p>
-            <p><strong>Exposure: unlimited</strong></p>
-          </>}
-        </section>
-        <section className="lane" aria-label="With Rein">
-          <h2>With Rein</h2>
-          {phase !== 'done' && <p className="muted">{res ? 'Waiting for the gate...' : phase === 'loading' ? 'Checking the mandate...' : 'Press "Run both lanes".'}</p>}
-          {res && phase === 'done' && <Guarded r={res} onRetry={retry} />}
-        </section>
-      </div>
-    </>
+    <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
+      <h1 style={{ fontSize: 'var(--font-size-xl)', fontWeight: '600', marginBottom: 'var(--space-md)', color: 'var(--text)' }}>
+        Same agent, same ticket. One lane has Rein.
+      </h1>
+      <p style={{ color: 'var(--muted)', marginBottom: 'var(--space-lg)' }}>
+        Pick a customer ticket. Both lanes replay the same agent request; the right lane runs it through the real Rein gate (simulated PayPal, fake money).
+      </p>
+
+      {tickets.length === 0 && phase !== 'error' ? (
+        <div className="loading">
+          <div className="spinner"></div>
+        </div>
+      ) : (
+        <>
+          <div style={{ display: 'flex', gap: 'var(--space-sm)', flexWrap: 'wrap', marginBottom: 'var(--space-lg)' }} role="group" aria-label="Ticket">
+            {tickets.map((t) => (
+              <button
+                key={t.id}
+                className={`btn ${sel === t.id ? 'btn-primary' : 'btn-secondary'}`}
+                aria-pressed={sel === t.id}
+                onClick={() => { setSel(t.id); setPhase('idle'); setRes(null); }}
+              >
+                {t.id}. {t.title}
+              </button>
+            ))}
+          </div>
+
+          {ticket && (
+            <div className="card" style={{ marginBottom: 'var(--space-lg)', padding: 'var(--space-lg)', background: 'var(--background)' }} aria-label="Customer ticket">
+              {ticket.body}
+            </div>
+          )}
+
+          <button
+            className="btn btn-primary"
+            onClick={run}
+            disabled={phase === 'loading' || !ticket}
+            style={{ marginBottom: 'var(--space-lg)' }}
+          >
+            {phase === 'loading' ? 'Running...' : 'Run both lanes'}
+          </button>
+
+          <div className="sr" role="status" aria-live="polite">{live}</div>
+
+          {phase === 'error' && err && (
+            <div className="error-state" style={{ marginBottom: 'var(--space-lg)' }} role="alert">
+              <p>Something went wrong: {err}</p>
+              <button className="btn btn-secondary" onClick={run}>Try again</button>
+            </div>
+          )}
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 'var(--space-lg)' }}>
+            <section className="card" aria-label="Without Rein">
+              <h2 style={{ fontSize: 'var(--font-size-lg)', fontWeight: '600', marginBottom: 'var(--space-md)', color: 'var(--text)' }}>
+                Without Rein
+              </h2>
+              {!res && (
+                <p style={{ color: 'var(--muted)' }}>
+                  {phase === 'loading' ? 'Running the agent...' : 'Press "Run both lanes" to see what the agent does.'}
+                </p>
+              )}
+              {res && (
+                <>
+                  <p style={{ color: 'var(--muted)', marginBottom: 'var(--space-md)' }}>
+                    Agent asked to refund: {res.requested.map((r) => `${r.item} $${r.amount}`).join(', ')}
+                  </p>
+                  <div style={{ fontSize: 'var(--font-size-xl)', fontWeight: '600', color: 'var(--danger)', marginBottom: 'var(--space-sm)' }}>
+                    REFUNDED ${res.unguarded.amount}
+                  </div>
+                  <p style={{ fontFamily: 'IBM Plex Mono, monospace', fontSize: 'var(--font-size-sm)', color: 'var(--muted)', marginBottom: 'var(--space-sm)' }}>
+                    {res.unguarded.refundId}
+                  </p>
+                  <p style={{ fontWeight: '600' }}>Exposure: unlimited</p>
+                </>
+              )}
+            </section>
+
+            <section className="card" aria-label="With Rein">
+              <h2 style={{ fontSize: 'var(--font-size-lg)', fontWeight: '600', marginBottom: 'var(--space-md)', color: 'var(--text)' }}>
+                With Rein
+              </h2>
+              {phase !== 'done' && (
+                <p style={{ color: 'var(--muted)' }}>
+                  {res ? 'Waiting for the gate...' : phase === 'loading' ? 'Checking the mandate...' : 'Press "Run both lanes".'}
+                </p>
+              )}
+              {res && phase === 'done' && <Guarded r={res} onRetry={retry} />}
+            </section>
+          </div>
+        </>
+      )}
+    </div>
   );
 }
 
 function Guarded({ r, onRetry }: { r: RunResult; onRetry: () => void }) {
-  const g = r.guarded; const kind = kindOf(g.status);
+  const g = r.guarded;
+  const kind = kindOf(g.status);
   return (
-    <div className="settle">
-      {kind && <Chip kind={kind} />}
-      <div className="outcome-word">{g.status === 'executed' ? `REFUNDED ${dollars(g.amountCents)}` : g.status === 'blocked' ? 'NOT REFUNDED' : g.status === 'pending_approval' ? 'WAITING FOR APPROVAL' : g.status}</div>
-      {g.ruleId && <p className="mono">{g.ruleId}</p>}
-      {g.reason && <p>{g.reason}</p>}
-      {g.status === 'pending_approval' && <div className="row">
-        <a className="btn" href={g.approvalUrl.replace(/^https?:\/\/[^/]+/, '')} target="_blank" rel="noreferrer">Open approval page</a>
-        <button className="btn secondary" onClick={onRetry}>Agent retries after approval</button>
-      </div>}
-      <p className="num"><strong>Exposure today: {dollars(r.exposure.spentCents)} of {dollars(r.exposure.hardDailyCapCents)} hard daily cap</strong></p>
+    <div>
+      {kind && (
+        <div style={{ marginBottom: 'var(--space-md)' }}>
+          <Chip kind={kind} />
+        </div>
+      )}
+      <div style={{ fontSize: 'var(--font-size-xl)', fontWeight: '600', marginBottom: 'var(--space-sm)', color: g.status === 'executed' ? 'var(--success)' : g.status === 'blocked' ? 'var(--danger)' : 'var(--warning)' }}>
+        {g.status === 'executed' ? `REFUNDED ${dollars(g.amountCents)}` : g.status === 'blocked' ? 'NOT REFUNDED' : g.status === 'pending_approval' ? 'WAITING FOR APPROVAL' : g.status}
+      </div>
+      {g.ruleId && (
+        <p style={{ fontFamily: 'IBM Plex Mono, monospace', fontSize: 'var(--font-size-sm)', color: 'var(--muted)', marginBottom: 'var(--space-sm)' }}>
+          {g.ruleId}
+        </p>
+      )}
+      {g.reason && <p style={{ marginBottom: 'var(--space-md)' }}>{g.reason}</p>}
+      {g.status === 'pending_approval' && (
+        <div style={{ display: 'flex', gap: 'var(--space-sm)', flexWrap: 'wrap', marginBottom: 'var(--space-md)' }}>
+          <a className="btn btn-primary" href={g.approvalUrl.replace(/^https?:\/\/[^/]+/, '')} target="_blank" rel="noreferrer">
+            Open approval page
+          </a>
+          <button className="btn btn-secondary" onClick={onRetry}>
+            Agent retries after approval
+          </button>
+        </div>
+      )}
+      <p className="numeric" style={{ fontWeight: '600' }}>
+        Exposure today: {dollars(r.exposure.spentCents)} of {dollars(r.exposure.hardDailyCapCents)} hard daily cap
+      </p>
     </div>
   );
 }

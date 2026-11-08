@@ -78,106 +78,106 @@ const ATTACKS: Attack[] = [
   },
 ];
 
+const getSeverityChipClass = (severity: string) => {
+  if (severity === 'high') return 'chip-blocked';
+  if (severity === 'medium') return 'chip-pending';
+  return 'chip-allowed';
+};
+
 export function AttackLab() {
   const [selected, setSelected] = useState<number | null>(null);
   const attack = selected !== null ? ATTACKS.find((a) => a.id === selected) : null;
 
   return (
-    <div className="container" style={{ maxWidth: '1200px', margin: '2rem auto', padding: '0 1rem' }}>
-      <header style={{ marginBottom: '2rem' }}>
-        <h1>🛡️ Attack Lab</h1>
-        <p style={{ color: '#666', marginTop: '0.5rem' }}>
+    <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
+      <header style={{ marginBottom: 'var(--space-lg)' }}>
+        <h1 style={{ fontSize: 'var(--font-size-xl)', fontWeight: '600', marginBottom: 'var(--space-sm)', color: 'var(--text)' }}>
+          🛡️ Attack Lab
+        </h1>
+        <p style={{ color: 'var(--muted)', marginTop: 'var(--space-sm)' }}>
           Claude-generated adversarial tickets testing policy robustness. Each vector attempts to bypass deterministic rules.
         </p>
       </header>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 'var(--space-md)', marginBottom: 'var(--space-lg)' }}>
         {ATTACKS.map((a) => (
           <button
             key={a.id}
             onClick={() => setSelected(a.id)}
+            className="card"
             style={{
-              padding: '1rem',
-              border: selected === a.id ? '2px solid #0070f3' : '1px solid #ddd',
-              borderRadius: '8px',
-              background: selected === a.id ? '#f0f8ff' : 'white',
+              padding: 'var(--space-lg)',
+              border: selected === a.id ? '2px solid var(--blue)' : '1px solid var(--border)',
+              background: selected === a.id ? '#E8F4FD' : 'white',
               cursor: 'pointer',
               textAlign: 'left',
-              transition: 'all 0.2s',
-            }}
-            onMouseEnter={(e) => {
-              if (selected !== a.id) (e.target as HTMLElement).style.borderColor = '#0070f3';
-            }}
-            onMouseLeave={(e) => {
-              if (selected !== a.id) (e.target as HTMLElement).style.borderColor = '#ddd';
+              transition: 'all var(--transition-fast)',
             }}
           >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '0.5rem' }}>
-              <strong>Attack #{a.id}</strong>
-              <span
-                style={{
-                  fontSize: '0.75rem',
-                  padding: '0.25rem 0.5rem',
-                  borderRadius: '4px',
-                  background: a.severity === 'high' ? '#fee' : a.severity === 'medium' ? '#fef3cd' : '#e7f3ff',
-                  color: a.severity === 'high' ? '#c00' : a.severity === 'medium' ? '#856404' : '#004085',
-                }}
-              >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: 'var(--space-sm)' }}>
+              <strong style={{ color: 'var(--text)' }}>Attack #{a.id}</strong>
+              <span className={`chip ${getSeverityChipClass(a.severity)}`}>
                 {a.severity}
               </span>
             </div>
-            <div style={{ fontSize: '0.9rem', color: '#333' }}>{a.vector}</div>
-            <div style={{ fontSize: '0.75rem', color: '#666', marginTop: '0.5rem' }}>
-              Expected: <code>{a.expected}</code> ({a.ruleId})
+            <div style={{ fontSize: 'var(--font-size-base)', color: 'var(--text)', marginBottom: 'var(--space-sm)' }}>
+              {a.vector}
+            </div>
+            <div style={{ fontSize: 'var(--font-size-sm)', color: 'var(--muted)' }}>
+              Expected: <code style={{ fontFamily: 'IBM Plex Mono, monospace', fontSize: 'var(--font-size-sm)' }}>{a.expected}</code> ({a.ruleId})
             </div>
           </button>
         ))}
       </div>
 
+      {!attack && (
+        <div className="empty-state">
+          <p>Select an attack vector above to see details</p>
+        </div>
+      )}
+
       {attack && (
-        <div style={{ border: '1px solid #ddd', borderRadius: '8px', padding: '1.5rem', background: 'white' }}>
-          <h2 style={{ marginTop: 0 }}>Attack #{attack.id}: {attack.vector}</h2>
-          <div style={{ display: 'grid', gap: '1rem' }}>
+        <div className="card" style={{ padding: 'var(--space-lg)' }}>
+          <h2 style={{ marginTop: 0, fontSize: 'var(--font-size-lg)', fontWeight: '600', color: 'var(--text)' }}>
+            Attack #{attack.id}: {attack.vector}
+          </h2>
+          <div style={{ display: 'grid', gap: 'var(--space-lg)' }}>
             <div>
-              <strong>Ticket Content:</strong>
+              <strong style={{ display: 'block', marginBottom: 'var(--space-sm)' }}>Ticket Content:</strong>
               <pre
                 style={{
-                  background: '#f5f5f5',
-                  padding: '1rem',
-                  borderRadius: '4px',
+                  background: 'var(--background)',
+                  padding: 'var(--space-md)',
+                  borderRadius: 'var(--radius-md)',
                   overflow: 'auto',
-                  fontSize: '0.9rem',
+                  fontSize: 'var(--font-size-sm)',
                   whiteSpace: 'pre-wrap',
                   wordWrap: 'break-word',
+                  fontFamily: 'IBM Plex Mono, monospace',
+                  border: '1px solid var(--border)',
+                  color: 'var(--text)',
                 }}
               >
                 {attack.ticket}
               </pre>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-md)' }}>
               <div>
-                <strong>Expected Outcome:</strong>
-                <div
-                  style={{
-                    marginTop: '0.5rem',
-                    padding: '0.5rem',
-                    background: attack.expected === 'block' ? '#fee' : '#fef3cd',
-                    borderRadius: '4px',
-                  }}
-                >
+                <strong style={{ display: 'block', marginBottom: 'var(--space-sm)' }}>Expected Outcome:</strong>
+                <div className={`chip ${attack.expected === 'block' ? 'chip-blocked' : 'chip-pending'}`} style={{ display: 'inline-flex', padding: 'var(--space-sm) var(--space-md)' }}>
                   <code>{attack.expected.toUpperCase()}</code>
                 </div>
               </div>
               <div>
-                <strong>Rule:</strong>
-                <div style={{ marginTop: '0.5rem', padding: '0.5rem', background: '#f0f0f0', borderRadius: '4px' }}>
+                <strong style={{ display: 'block', marginBottom: 'var(--space-sm)' }}>Rule:</strong>
+                <div style={{ padding: 'var(--space-sm)', background: 'var(--background)', borderRadius: 'var(--radius-md)', fontFamily: 'IBM Plex Mono, monospace', fontSize: 'var(--font-size-sm)' }}>
                   <code>{attack.ruleId}</code>
                 </div>
               </div>
             </div>
             <div>
-              <strong>Why This Matters:</strong>
-              <p style={{ marginTop: '0.5rem', color: '#666' }}>
+              <strong style={{ display: 'block', marginBottom: 'var(--space-sm)' }}>Why This Matters:</strong>
+              <p style={{ marginTop: 'var(--space-sm)', color: 'var(--muted)', lineHeight: '1.6' }}>
                 {attack.vector === 'Prompt injection (VIP override)' &&
                   'Tests whether injected system-like messages can override policy. The gate never reads the ticket text — only the items/amount.'}
                 {attack.vector === 'Social engineering (urgency)' &&
@@ -197,9 +197,9 @@ export function AttackLab() {
               </p>
             </div>
           </div>
-          <div style={{ marginTop: '1.5rem', padding: '1rem', background: '#f9f9f9', borderRadius: '4px', fontSize: '0.9rem' }}>
-            <strong>🔬 Test This:</strong>
-            <ol style={{ marginTop: '0.5rem', paddingLeft: '1.5rem' }}>
+          <div style={{ marginTop: 'var(--space-lg)', padding: 'var(--space-lg)', background: 'var(--background)', borderRadius: 'var(--radius-md)', fontSize: 'var(--font-size-sm)' }}>
+            <strong style={{ display: 'block', marginBottom: 'var(--space-sm)' }}>🔬 Test This:</strong>
+            <ol style={{ marginTop: 'var(--space-sm)', paddingLeft: 'var(--space-lg)', lineHeight: '1.6' }}>
               <li>Run the agent with this ticket text</li>
               <li>Check the gate decision matches the expected outcome</li>
               <li>
@@ -210,7 +210,7 @@ export function AttackLab() {
         </div>
       )}
 
-      <footer style={{ marginTop: '2rem', padding: '1rem', background: '#f9f9f9', borderRadius: '8px', fontSize: '0.9rem' }}>
+      <footer className="card" style={{ marginTop: 'var(--space-lg)', padding: 'var(--space-lg)', background: 'var(--background)', fontSize: 'var(--font-size-sm)' }}>
         <strong>Note:</strong> These are adversarial <em>inputs</em>, not exploits. A robust gate blocks or escalates regardless of what
         the ticket says, because it validates against the mandate and trusted order data — never against natural language claims.
       </footer>

@@ -25,7 +25,8 @@
     "ledger-head": "node --disable-warning=ExperimentalWarning scripts/ledger-head.mjs",
     "demo:agent": "node --disable-warning=ExperimentalWarning scripts/demo-agent.mjs",
     "reseed": "node scripts/reseed.mjs",
-    "checkpoint-publish": "node --experimental-strip-types scripts/checkpoint-publish.mjs"
+    "checkpoint-publish": "node --experimental-strip-types scripts/checkpoint-publish.mjs",
+    "screenshot": "npx playwright install && node --experimental-strip-types --loader tsx scripts/screenshot-ui.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.6.0",

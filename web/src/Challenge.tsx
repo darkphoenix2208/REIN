@@ -39,7 +39,7 @@ export function Challenge() {
 
   useEffect(() => {
     loadLeaderboard();
-    const interval = setInterval(loadLeaderboard, 30000); // Refresh every 30s
+    const interval = setInterval(loadLeaderboard, 30000);
     return () => clearInterval(interval);
   }, []);
 
@@ -60,14 +60,9 @@ export function Challenge() {
     setResult(null);
 
     try {
-      const data = await api('/v1/challenge/attempt', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message }),
-      });
+      const data = await api('/v1/challenge/attempt', { message });
       setResult(data);
       setMessage('');
-      // Refresh leaderboard
       await loadLeaderboard();
     } catch (e: any) {
       setError(e.message || 'Submission failed');
@@ -83,57 +78,71 @@ export function Challenge() {
   const percentUsed = (spent / budget) * 100;
 
   return (
-    <div style={{ maxWidth: 1200, margin: '0 auto' }}>
-      <h1>🎯 Beat the Gate</h1>
-      <p className="muted">
+    <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
+      <h1 style={{ fontSize: 'var(--font-size-xl)', fontWeight: '600', marginBottom: 'var(--space-sm)', color: 'var(--text)' }}>
+        🎯 Beat the Gate
+      </h1>
+      <p style={{ color: 'var(--muted)', marginBottom: 'var(--space-lg)' }}>
         Can you trick Claude into over-refunding? Try to get more money than you should.
         The gate enforces the mandate — your job is to find the weaknesses.
       </p>
 
       {/* Budget Status */}
-      <div style={{ background: 'var(--surface)', padding: 20, borderRadius: 8, marginBottom: 24 }}>
-        <div style={{ display: 'flex', gap: 32, marginBottom: 16 }}>
+      <div className="card" style={{ marginBottom: 'var(--space-lg)' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 'var(--space-lg)', marginBottom: 'var(--space-md)' }}>
           <div>
-            <div className="muted" style={{ fontSize: 13 }}>Challenge Budget</div>
-            <div style={{ fontSize: 24, fontWeight: 600 }}>${(budget / 100).toFixed(2)}</div>
+            <div style={{ fontSize: 'var(--font-size-sm)', color: 'var(--muted)', marginBottom: 'var(--space-xs)' }}>
+              Challenge Budget
+            </div>
+            <div className="numeric" style={{ fontSize: 'var(--font-size-xl)', fontWeight: '600', color: 'var(--text)' }}>
+              ${(budget / 100).toFixed(2)}
+            </div>
           </div>
           <div>
-            <div className="muted" style={{ fontSize: 13 }}>Remaining</div>
-            <div style={{ fontSize: 24, fontWeight: 600, color: remaining < 10000 ? 'var(--error)' : 'inherit' }}>
+            <div style={{ fontSize: 'var(--font-size-sm)', color: 'var(--muted)', marginBottom: 'var(--space-xs)' }}>
+              Remaining
+            </div>
+            <div className="numeric" style={{ fontSize: 'var(--font-size-xl)', fontWeight: '600', color: remaining < 10000 ? 'var(--danger)' : 'var(--text)' }}>
               ${(remaining / 100).toFixed(2)}
             </div>
           </div>
           <div>
-            <div className="muted" style={{ fontSize: 13 }}>Gate Saved</div>
-            <div style={{ fontSize: 24, fontWeight: 600, color: 'var(--success)' }}>
+            <div style={{ fontSize: 'var(--font-size-sm)', color: 'var(--muted)', marginBottom: 'var(--space-xs)' }}>
+              Gate Saved
+            </div>
+            <div className="numeric" style={{ fontSize: 'var(--font-size-xl)', fontWeight: '600', color: 'var(--success)' }}>
               ${(saved / 100).toFixed(2)}
             </div>
           </div>
           <div>
-            <div className="muted" style={{ fontSize: 13 }}>Lost to Attacks</div>
-            <div style={{ fontSize: 24, fontWeight: 600, color: 'var(--error)' }}>
+            <div style={{ fontSize: 'var(--font-size-sm)', color: 'var(--muted)', marginBottom: 'var(--space-xs)' }}>
+              Lost to Attacks
+            </div>
+            <div className="numeric" style={{ fontSize: 'var(--font-size-xl)', fontWeight: '600', color: 'var(--danger)' }}>
               ${(spent / 100).toFixed(2)}
             </div>
           </div>
         </div>
-        <div style={{ background: 'var(--bg)', height: 8, borderRadius: 4, overflow: 'hidden' }}>
+        <div style={{ background: 'var(--background)', height: '8px', borderRadius: 'var(--radius-md)', overflow: 'hidden' }}>
           <div
             style={{
-              background: percentUsed > 80 ? 'var(--error)' : 'var(--paypal-blue)',
+              background: percentUsed > 80 ? 'var(--danger)' : 'var(--blue)',
               height: '100%',
               width: `${Math.min(percentUsed, 100)}%`,
-              transition: 'width 0.5s ease',
+              transition: 'width var(--transition-normal)',
             }}
           />
         </div>
-        <div className="muted" style={{ fontSize: 13, marginTop: 8 }}>
+        <div style={{ fontSize: 'var(--font-size-sm)', color: 'var(--muted)', marginTop: 'var(--space-sm)' }}>
           {percentUsed.toFixed(1)}% of budget spent · {leaderboard?.totalAttempts || 0} attempts
         </div>
       </div>
 
       {/* Submit Form */}
-      <div style={{ background: 'var(--surface)', padding: 20, borderRadius: 8, marginBottom: 24 }}>
-        <h2 style={{ marginTop: 0 }}>Your Attack</h2>
+      <div className="card" style={{ marginBottom: 'var(--space-lg)' }}>
+        <h2 style={{ marginTop: 0, fontSize: 'var(--font-size-lg)', fontWeight: '600', marginBottom: 'var(--space-md)', color: 'var(--text)' }}>
+          Your Attack
+        </h2>
         <textarea
           value={message}
           onChange={(e) => setMessage(e.target.value)}
@@ -141,67 +150,74 @@ export function Challenge() {
           disabled={loading}
           style={{
             width: '100%',
-            minHeight: 100,
-            padding: 12,
-            fontSize: 15,
-            border: '1px solid var(--line)',
-            borderRadius: 6,
-            fontFamily: 'inherit',
+            minHeight: '100px',
+            padding: 'var(--space-md)',
+            fontSize: 'var(--font-size-base)',
+            border: '1px solid var(--border)',
+            borderRadius: 'var(--radius-md)',
+            fontFamily: 'var(--font-family)',
             resize: 'vertical',
-            marginBottom: 12,
+            marginBottom: 'var(--space-md)',
           }}
         />
         <button
+          className="btn btn-primary"
           onClick={submit}
           disabled={loading || !message.trim()}
-          style={{ width: '100%', padding: 14, fontSize: 16, fontWeight: 600 }}
+          style={{ width: '100%' }}
         >
           {loading ? 'Running Agent...' : '🚀 Submit Attack'}
         </button>
         {error && (
-          <div className="banner error" role="alert" style={{ marginTop: 12 }}>
-            {error}
+          <div className="error-state" style={{ marginTop: 'var(--space-md)' }} role="alert">
+            <p>{error}</p>
           </div>
         )}
       </div>
 
+      {/* Loading State */}
+      {loading && (
+        <div className="loading">
+          <div className="spinner"></div>
+        </div>
+      )}
+
       {/* Result */}
       {result && (
-        <div style={{ background: 'var(--surface)', padding: 20, borderRadius: 8, marginBottom: 24 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
-            <h2 style={{ margin: 0 }}>Agent Response</h2>
-            <div
-              style={{
-                padding: '4px 12px',
-                background: result.mode === 'live' ? 'var(--success-bg)' : 'var(--escalate-bg)',
-                color: result.mode === 'live' ? 'var(--success)' : 'var(--escalate)',
-                borderRadius: 4,
-                fontSize: 13,
-                fontWeight: 600,
-              }}
-            >
+        <div className="card" style={{ marginBottom: 'var(--space-lg)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 'var(--space-md)' }}>
+            <h2 style={{ margin: 0, fontSize: 'var(--font-size-lg)', fontWeight: '600', color: 'var(--text)' }}>
+              Agent Response
+            </h2>
+            <span className={`chip ${result.mode === 'live' ? 'chip-live' : 'chip-simulated'}`}>
               {result.mode === 'live' ? '🔴 LIVE' : '📼 RECORDED'}
-            </div>
+            </span>
           </div>
 
-          <p style={{ background: 'var(--bg)', padding: 16, borderRadius: 6, marginBottom: 16 }}>
+          <p style={{ background: 'var(--background)', padding: 'var(--space-md)', borderRadius: 'var(--radius-md)', marginBottom: 'var(--space-md)' }}>
             {result.agentResponse}
           </p>
 
           {/* Tool Calls */}
           {result.toolCalls && result.toolCalls.length > 0 && (
-            <details open>
-              <summary style={{ cursor: 'pointer', fontWeight: 600, marginBottom: 12 }}>
+            <details open style={{ marginBottom: 'var(--space-md)' }}>
+              <summary style={{ cursor: 'pointer', fontWeight: '600', marginBottom: 'var(--space-md)' }}>
                 Tool Calls ({result.toolCalls.length})
               </summary>
               {result.toolCalls.map((tc: ToolCall, i: number) => (
-                <div key={i} style={{ background: 'var(--bg)', padding: 12, borderRadius: 6, marginBottom: 8 }}>
-                  <div style={{ fontWeight: 600, marginBottom: 8 }}>{tc.tool}()</div>
-                  <div className="mono" style={{ fontSize: 13 }}>
-                    <div className="muted">Args:</div>
-                    <pre style={{ margin: 0, whiteSpace: 'pre-wrap' }}>{JSON.stringify(tc.args, null, 2)}</pre>
-                    <div className="muted" style={{ marginTop: 8 }}>Result:</div>
-                    <pre style={{ margin: 0, whiteSpace: 'pre-wrap' }}>{JSON.stringify(tc.result, null, 2)}</pre>
+                <div key={i} className="card" style={{ background: 'var(--background)', marginBottom: 'var(--space-sm)' }}>
+                  <div style={{ fontWeight: '600', marginBottom: 'var(--space-sm)', fontSize: 'var(--font-size-base)' }}>
+                    {tc.tool}()
+                  </div>
+                  <div style={{ fontFamily: 'IBM Plex Mono, monospace', fontSize: 'var(--font-size-sm)' }}>
+                    <div style={{ color: 'var(--muted)', marginBottom: 'var(--space-xs)' }}>Args:</div>
+                    <pre style={{ margin: 0, whiteSpace: 'pre-wrap', marginBottom: 'var(--space-sm)' }}>
+                      {JSON.stringify(tc.args, null, 2)}
+                    </pre>
+                    <div style={{ color: 'var(--muted)', marginBottom: 'var(--space-xs)' }}>Result:</div>
+                    <pre style={{ margin: 0, whiteSpace: 'pre-wrap' }}>
+                      {JSON.stringify(tc.result, null, 2)}
+                    </pre>
                   </div>
                 </div>
               ))}
@@ -209,36 +225,43 @@ export function Challenge() {
           )}
 
           {/* Gate Verdict */}
-          <div style={{ marginTop: 16, display: 'flex', gap: 16 }}>
-            <div style={{ flex: 1 }}>
-              <div className="muted" style={{ fontSize: 13 }}>Gate Decision</div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 'var(--space-md)' }}>
+            <div>
+              <div style={{ fontSize: 'var(--font-size-sm)', color: 'var(--muted)', marginBottom: 'var(--space-xs)' }}>
+                Gate Decision
+              </div>
               <div
                 style={{
-                  fontSize: 18,
-                  fontWeight: 600,
+                  fontSize: 'var(--font-size-lg)',
+                  fontWeight: '600',
                   color:
                     result.gateDecision === 'blocked' || result.gateDecision === 'escalated'
                       ? 'var(--success)'
-                      : 'var(--error)',
+                      : 'var(--danger)',
+                  marginBottom: 'var(--space-xs)',
                 }}
               >
                 {result.gateDecision === 'blocked' && '🛑 BLOCKED'}
                 {result.gateDecision === 'escalated' && '⚠️ ESCALATED'}
                 {result.gateDecision === 'allowed' && '✅ ALLOWED'}
               </div>
-              <div className="mono" style={{ fontSize: 13, marginTop: 4 }}>
+              <div style={{ fontFamily: 'IBM Plex Mono, monospace', fontSize: 'var(--font-size-sm)', color: 'var(--muted)' }}>
                 {result.gateRule}
               </div>
             </div>
             <div>
-              <div className="muted" style={{ fontSize: 13 }}>Gate Saved</div>
-              <div style={{ fontSize: 18, fontWeight: 600, color: 'var(--success)' }}>
+              <div style={{ fontSize: 'var(--font-size-sm)', color: 'var(--muted)', marginBottom: 'var(--space-xs)' }}>
+                Gate Saved
+              </div>
+              <div className="numeric" style={{ fontSize: 'var(--font-size-lg)', fontWeight: '600', color: 'var(--success)' }}>
                 ${(result.savedCents / 100).toFixed(2)}
               </div>
             </div>
             <div>
-              <div className="muted" style={{ fontSize: 13 }}>You Got</div>
-              <div style={{ fontSize: 18, fontWeight: 600, color: result.lostCents > 0 ? 'var(--error)' : 'inherit' }}>
+              <div style={{ fontSize: 'var(--font-size-sm)', color: 'var(--muted)', marginBottom: 'var(--space-xs)' }}>
+                You Got
+              </div>
+              <div className="numeric" style={{ fontSize: 'var(--font-size-lg)', fontWeight: '600', color: result.lostCents > 0 ? 'var(--danger)' : 'var(--text)' }}>
                 ${(result.lostCents / 100).toFixed(2)}
               </div>
             </div>
@@ -249,58 +272,62 @@ export function Challenge() {
       {/* Leaderboard */}
       {leaderboard && leaderboard.recentAttempts.length > 0 && (
         <div>
-          <h2>Recent Attempts</h2>
-          <div className="scroll-x">
-            <table style={{ width: '100%', background: 'var(--surface)', borderCollapse: 'collapse' }}>
+          <h2 style={{ fontSize: 'var(--font-size-lg)', fontWeight: '600', marginBottom: 'var(--space-md)', color: 'var(--text)' }}>
+            Recent Attempts
+          </h2>
+          <div style={{ overflowX: 'auto' }}>
+            <table className="card" style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
-                <tr>
-                  <th style={{ textAlign: 'left', padding: 12, borderBottom: '2px solid var(--line)' }}>Message</th>
-                  <th style={{ textAlign: 'left', padding: 12, borderBottom: '2px solid var(--line)' }}>Decision</th>
-                  <th style={{ textAlign: 'right', padding: 12, borderBottom: '2px solid var(--line)' }}>Saved</th>
-                  <th style={{ textAlign: 'right', padding: 12, borderBottom: '2px solid var(--line)' }}>Lost</th>
-                  <th style={{ textAlign: 'center', padding: 12, borderBottom: '2px solid var(--line)' }}>Mode</th>
+                <tr style={{ borderBottom: '2px solid var(--border)' }}>
+                  <th style={{ textAlign: 'left', padding: 'var(--space-md)', fontWeight: '600', fontSize: 'var(--font-size-sm)' }}>
+                    Message
+                  </th>
+                  <th style={{ textAlign: 'left', padding: 'var(--space-md)', fontWeight: '600', fontSize: 'var(--font-size-sm)' }}>
+                    Decision
+                  </th>
+                  <th style={{ textAlign: 'right', padding: 'var(--space-md)', fontWeight: '600', fontSize: 'var(--font-size-sm)' }}>
+                    Saved
+                  </th>
+                  <th style={{ textAlign: 'right', padding: 'var(--space-md)', fontWeight: '600', fontSize: 'var(--font-size-sm)' }}>
+                    Lost
+                  </th>
+                  <th style={{ textAlign: 'center', padding: 'var(--space-md)', fontWeight: '600', fontSize: 'var(--font-size-sm)' }}>
+                    Mode
+                  </th>
                 </tr>
               </thead>
               <tbody>
                 {leaderboard.recentAttempts.map((attempt) => (
-                  <tr key={attempt.id}>
-                    <td style={{ padding: 12, borderBottom: '1px solid var(--line)', maxWidth: 400 }}>
+                  <tr key={attempt.id} style={{ borderBottom: '1px solid var(--border)' }}>
+                    <td style={{ padding: 'var(--space-md)', maxWidth: '400px' }}>
                       <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                         {attempt.message}
                       </div>
-                      <div className="muted mono" style={{ fontSize: 12 }}>{attempt.gateRule}</div>
+                      <div style={{ fontFamily: 'IBM Plex Mono, monospace', fontSize: 'var(--font-size-sm)', color: 'var(--muted)' }}>
+                        {attempt.gateRule}
+                      </div>
                     </td>
-                    <td style={{ padding: 12, borderBottom: '1px solid var(--line)' }}>
+                    <td style={{ padding: 'var(--space-md)' }}>
                       <span
                         style={{
                           color:
                             attempt.gateDecision === 'blocked' || attempt.gateDecision === 'escalated'
                               ? 'var(--success)'
-                              : 'var(--error)',
-                          fontWeight: 600,
+                              : 'var(--danger)',
+                          fontWeight: '600',
                         }}
                       >
                         {attempt.gateDecision}
                       </span>
                     </td>
-                    <td style={{ padding: 12, borderBottom: '1px solid var(--line)', textAlign: 'right' }}>
-                      <span style={{ color: 'var(--success)', fontWeight: 600 }}>
-                        ${(attempt.savedCents / 100).toFixed(2)}
-                      </span>
+                    <td className="numeric" style={{ padding: 'var(--space-md)', textAlign: 'right', color: 'var(--success)', fontWeight: '600' }}>
+                      ${(attempt.savedCents / 100).toFixed(2)}
                     </td>
-                    <td style={{ padding: 12, borderBottom: '1px solid var(--line)', textAlign: 'right' }}>
-                      <span style={{ color: attempt.lostCents > 0 ? 'var(--error)' : 'inherit', fontWeight: 600 }}>
-                        ${(attempt.lostCents / 100).toFixed(2)}
-                      </span>
+                    <td className="numeric" style={{ padding: 'var(--space-md)', textAlign: 'right', color: attempt.lostCents > 0 ? 'var(--danger)' : 'var(--text)', fontWeight: '600' }}>
+                      ${(attempt.lostCents / 100).toFixed(2)}
                     </td>
-                    <td style={{ padding: 12, borderBottom: '1px solid var(--line)', textAlign: 'center' }}>
-                      <span
-                        className="mono"
-                        style={{
-                          fontSize: 12,
-                          color: attempt.mode === 'live' ? 'var(--success)' : 'var(--ink-muted)',
-                        }}
-                      >
+                    <td style={{ padding: 'var(--space-md)', textAlign: 'center' }}>
+                      <span className={`chip ${attempt.mode === 'live' ? 'chip-live' : 'chip-simulated'}`} style={{ fontSize: 'var(--font-size-sm)' }}>
                         {attempt.mode}
                       </span>
                     </td>
@@ -309,6 +336,13 @@ export function Challenge() {
               </tbody>
             </table>
           </div>
+        </div>
+      )}
+
+      {/* Empty State */}
+      {leaderboard && leaderboard.recentAttempts.length === 0 && (
+        <div className="empty-state">
+          <p>No attempts yet. Be the first to challenge the gate!</p>
         </div>
       )}
     </div>

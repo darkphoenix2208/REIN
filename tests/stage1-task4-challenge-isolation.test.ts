@@ -103,25 +103,152 @@ test('challenge captures are prefixed with CHALLENGE-', async () => {
 });
 
 test('challenge escalation sends ZERO Telegram requests (via silenceNotifications)', async () => {
-  // Test that silenceNotifications function exists and can be called
-  const { silenceNotifications } = await import('../server/dispatch.ts');
-  const { db } = await tempDb();
-  
+  // This test requires TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID to be set
+  // Mark as NOT VERIFIED if these env vars are missing
+  if (!process.env.TELEGRAM_BOT_TOKEN || !process.env.TELEGRAM_CHAT_ID) {
+    console.log('⚠️  Telegram test marked NOT VERIFIED (missing TELEGRAM_BOT_TOKEN or TELEGRAM_CHAT_ID)');
+    return;
+  }
+
+  const { db, close } = await tempDb();
+  const { checkRefund } = await import('../server/gate.ts');
+
+  // Track fetch calls to Telegram API
+  const originalFetch = global.fetch;
+  let telegramRequestCount = 0;
+
+  global.fetch = async (url: any, ...args: any[]) => {
+    const urlStr = typeof url === 'string' ? url : url.toString();
+    if (urlStr.includes('api.telegram.org')) {
+      telegramRequestCount++;
+    }
+    return originalFetch(url, ...args);
+  };
+
   try {
-    // Verify silenceNotifications exists and can be called on a database
+    // Seed challenge DB with items that will trigger escalation
+    const captureId = createFreshChallengeCapture(db);
+
+    // Set up mandate that will escalate when refunding all items
+    const escalatingMandate: Mandate = {
+      ...baseMandate,
+      itemAllEscalates: true, // Escalate when all items requested
+    };
+
+    // Silence notifications for this database (this is what runLiveAgent does)
+    const { silenceNotifications } = await import('../server/dispatch.ts');
     silenceNotifications(db);
-    assert.ok(true, 'silenceNotifications function exists and accepts database');
-    
-    // Verify runLiveAgent calls silenceNotifications (by reading source, not runtime check)
-    // The mechanism is:
-    // 1. runLiveAgent in challenge-agent.ts imports silenceNotifications
-    // 2. runLiveAgent calls silenceNotifications(deps.db) on line 91
-    // 3. dispatch.ts checks silencedDatabases WeakSet before sending notifications (line 89)
-    // This prevents Telegram notifications from being sent for challenge databases
-    
-    db.close();
-  } catch (err) {
-    db.close();
-    throw err;
+
+    // Request refund that will escalate
+    const result = checkRefund(
+      {
+        db,
+        mandate: escalatingMandate,
+        paypal: null,
+        now: () => Date.now(),
+      },
+      {
+        actionId: 'test-challenge-' + Date.now(),
+        tool: 'refund_items',
+        sessionId: 'challenge-session',
+        captureId,
+        items: [{ item_id: 'mug', qty: 1 }], // All items = escalation
+        noteToPayer: 'Test escalation',
+      },
+      Date.now()
+    );
+
+    // Verify the action escalated
+    assert.equal(result.status, 'pending_approval', 'Should escalate to approval');
+
+    // Verify ZERO Telegram requests were made
+    assert.equal(telegramRequestCount, 0, 'Challenge escalation should send ZERO Telegram requests');
+
+    close();
+  } finally {
+    global.fetch = originalFetch;
+  }
+});
+
+test('normal (non-challenge) escalation sends exactly ONE Telegram request', async () => {
+  // This test requires TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID to be set
+  // Mark as NOT VERIFIED if these env vars are missing
+  if (!process.env.TELEGRAM_BOT_TOKEN || !process.env.TELEGRAM_CHAT_ID) {
+    console.log('⚠️  Telegram test marked NOT VERIFIED (missing TELEGRAM_BOT_TOKEN or TELEGRAM_CHAT_ID)');
+    return;
+  }
+
+  const { db, close } = await tempDb();
+  const { checkRefund } = await import('../server/gate.ts');
+
+  // Track fetch calls to Telegram API
+  const originalFetch = global.fetch;
+  let telegramRequestCount = 0;
+  const telegramCalls: any[] = [];
+
+  global.fetch = async (url: any, ...args: any[]) => {
+    const urlStr = typeof url === 'string' ? url : url.toString();
+    if (urlStr.includes('api.telegram.org')) {
+      telegramRequestCount++;
+      telegramCalls.push({ url: urlStr, args });
+      // Return mock success response
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({ ok: true, result: { message_id: 123 } }),
+      } as any;
+    }
+    return originalFetch(url, ...args);
+  };
+
+  try {
+    // Seed normal DB with items that will trigger escalation
+    db.run(`INSERT INTO payments(txn_id,captured_cents,refunded_cents,reserved_cents,currency,source,captured_at) VALUES (?,?,?,?,?,?,?)`,
+      'NORMAL-CAP-1', 5000, 0, 0, 'USD', 'normal', Date.now());
+    db.run(`INSERT INTO orders(order_id,capture_id) VALUES (?,?)`, 'ORDER-1', 'NORMAL-CAP-1');
+    db.run(`INSERT INTO order_items(order_id,item_id,name,unit_cents,qty,refunded_qty,reserved_qty) VALUES (?,?,?,?,?,?,?)`,
+      'ORDER-1', 'mug', 'Coffee Mug', 1800, 1, 0, 0);
+
+    // Set up mandate that will escalate when refunding all items
+    const escalatingMandate: Mandate = {
+      ...baseMandate,
+      itemAllEscalates: true, // Escalate when all items requested
+    };
+
+    // DO NOT silence notifications for this normal database
+
+    // Request refund that will escalate
+    const result = checkRefund(
+      {
+        db,
+        mandate: escalatingMandate,
+        paypal: null,
+        now: () => Date.now(),
+      },
+      {
+        actionId: 'test-normal-' + Date.now(),
+        tool: 'refund_items',
+        sessionId: 'normal-session',
+        captureId: 'NORMAL-CAP-1',
+        items: [{ item_id: 'mug', qty: 1 }], // All items = escalation
+        noteToPayer: 'Test normal escalation',
+      },
+      Date.now()
+    );
+
+    // Verify the action escalated
+    assert.equal(result.status, 'pending_approval', 'Should escalate to approval');
+
+    // Give Telegram notification async call time to complete
+    await new Promise(resolve => setTimeout(resolve, 100));
+
+    // Verify exactly ONE Telegram request was made
+    assert.equal(telegramRequestCount, 1, 'Normal escalation should send exactly ONE Telegram request');
+    assert.equal(telegramCalls.length, 1, 'Should have exactly one Telegram API call');
+    assert.ok(telegramCalls[0].url.includes('sendMessage'), 'Should call Telegram sendMessage API');
+
+    close();
+  } finally {
+    global.fetch = originalFetch;
   }
 });

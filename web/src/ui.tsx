@@ -10,8 +10,9 @@ export async function api<T = any>(path: string, body?: unknown): Promise<T> {
 export const dollars = (cents: number) => `$${(cents / 100).toFixed(2)}`;
 
 const KIND = { allow: ['✓', 'ALLOWED'], block: ['✕', 'BLOCKED'], escalate: ['!', 'ESCALATED'] } as const;
+const KIND_CLASS = { allow: 'chip-allowed', block: 'chip-blocked', escalate: 'chip-pending' } as const;
 export function Chip({ kind }: { kind: keyof typeof KIND }) {
-  return <span className={`chip ${kind}`}><span aria-hidden="true">{KIND[kind][0]}</span>{KIND[kind][1]}</span>;
+  return <span className={`chip ${KIND_CLASS[kind]}`}><span aria-hidden="true">{KIND[kind][0]}</span> {KIND[kind][1]}</span>;
 }
 export const kindOf = (status: string): keyof typeof KIND | null =>
   status === 'executed' || status === 'allowed' ? 'allow' : status === 'blocked' ? 'block' : status === 'pending_approval' ? 'escalate' : null;
