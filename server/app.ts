@@ -131,10 +131,25 @@ export function createApp(d: GateDeps, o: AppOptions = {}): express.Express {
     res.json(info);
   });
 
+  // Full rows (with prev_hash and payload_json) so a browser can recompute the whole chain itself. /v1/ledger is a lightweight view and cannot be verified.
+  api.get('/ledger/export', (_req, res) => {
+    const LIMIT = 5000;
+    const total = d.db.val<number>('SELECT COUNT(*) FROM ledger') ?? 0;
+    const rows = d.db.all('SELECT l.seq, l.action_id, l.event, l.payload_json, l.prev_hash, l.hash, l.created_at, a.rule_id, a.amount_cents FROM ledger l LEFT JOIN actions a ON a.id = l.action_id ORDER BY l.seq LIMIT ?', LIMIT);
+    res.json({ rows, total, truncated: total > LIMIT });
+  });
+
+  // Works on a fresh install: with no REIN_CHECKPOINT_KEY set, a key is generated once and kept in a 0600 file outside git (REIN_CHECKPOINT_KEY_FILE
+  // or the OS temp dir). On a host with an ephemeral disk set REIN_CHECKPOINT_KEY, or checkpoints signed before a restart will not match the new key.
   api.get('/ledger/checkpoint', (req, res) => {
-    const checkpoint = signCheckpoint(d.db);
+    let checkpoint;
+    try {
+      checkpoint = signCheckpoint(d.db, { allowGenerateKey: true });
+    } catch (e) {
+      return void res.status(409).json({ error: 'chain_broken', reason: e instanceof Error ? e.message : 'The ledger chain does not verify, so nothing was signed.' });
+    }
     if (!checkpoint) {
-      return void res.status(503).json({ error: 'signing_unavailable', reason: 'ED25519_PRIVATE_KEY not configured' });
+      return void res.status(503).json({ error: 'signing_unavailable', reason: 'No checkpoint signing key could be loaded or created. Set REIN_CHECKPOINT_KEY (32-byte Ed25519 seed or PKCS8, base64).' });
     }
     storeCheckpoint(d.db, checkpoint);
     res.json(checkpoint);
@@ -373,9 +388,19 @@ export function createApp(d: GateDeps, o: AppOptions = {}): express.Express {
     }
   });
   api.get('/exposure', (req, res) => {
-    const sid = String(req.query.sessionId ?? '');
-    const spent = d.db.val<number>(`SELECT COALESCE(SUM(amount_cents),0) FROM actions WHERE session_id=? AND created_at>=? AND status IN ('reserved','executed','approved_executed','unknown_outcome')`, sid, Date.now() - 86_400_000) ?? 0;
-    res.json({ spentCents: spent, hardDailyCapCents: d.mandate.hardDailyCapCents, ...preventedLoss(d.db) });
+    const sid = typeof req.query.sessionId === 'string' ? req.query.sessionId : '';
+    const live = `status IN ('reserved','executed','approved_executed','unknown_outcome') AND action_type='refund' AND created_at>=?`;
+    // no sessionId: total across every session (what the ops dashboard wants); with one: that session only
+    const spent = (sid
+      ? d.db.val<number>(`SELECT COALESCE(SUM(amount_cents),0) FROM actions WHERE session_id=? AND ${live}`, sid, Date.now() - 86_400_000)
+      : d.db.val<number>(`SELECT COALESCE(SUM(amount_cents),0) FROM actions WHERE ${live}`, Date.now() - 86_400_000)) ?? 0;
+    // what the gate actually stopped (enforce mode) next to the shadow-mode "would have" amounts from preventedLoss()
+    const sumWhere = (cond: string): number => d.db.val<number>(`SELECT COALESCE(SUM(amount_cents),0) FROM actions WHERE action_type='refund' AND ${cond}`) ?? 0;
+    res.json({
+      spentCents: spent, hardDailyCapCents: d.mandate.hardDailyCapCents,
+      blockedCents: sumWhere(`status='blocked'`), escalatedCents: sumWhere(`decision='pending_approval' AND status<>'shadow'`),
+      ...preventedLoss(d.db),
+    });
   });
   api.get('/order/:captureId', (req, res) => {
     const captureId = req.params.captureId;

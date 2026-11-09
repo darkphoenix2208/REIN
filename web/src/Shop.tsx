@@ -211,7 +211,7 @@ export function Shop() {
 
       {/* Catalog Search & Grid */}
       <div>
-        <div style={{ display: 'flex', gap: 'var(--space-sm)', marginBottom: 'var(--space-lg)', alignItems: 'center' }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-sm)', marginBottom: 'var(--space-lg)', alignItems: 'center' }}>
           <input
             type="search"
             placeholder="Search products (Channel3 catalog)..."

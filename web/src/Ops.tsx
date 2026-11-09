@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 
 interface Metrics {
   ledger: { total: number; chain: { ok: boolean; rows: number; head: string } };
-  exposure: { spentCents: number; hardDailyCapCents: number; blockedCents: number; escalatedCents: number };
+  exposure: { spentCents: number; hardDailyCapCents: number; blockedCents: number; escalatedCents: number; wouldBlockCents?: number; wouldEscalateCents?: number };
   mode: string;
 }
 
@@ -18,7 +18,7 @@ export function Ops() {
     try {
       const [ledger, exposure] = await Promise.all([
         fetch('/v1/ledger?limit=1').then((r) => r.json()),
-        fetch('/v1/exposure?sessionId=ops').then((r) => r.json()),
+        fetch('/v1/exposure').then((r) => r.json()),
       ]);
       setMetrics({ ledger, exposure, mode: ledger.mode });
     } catch (e: any) {
@@ -131,11 +131,11 @@ export function Ops() {
             Prevented Loss
           </div>
           <div className="numeric" style={{ fontSize: 'var(--font-size-xl)', fontWeight: '700', marginBottom: 'var(--space-sm)', color: 'var(--success)' }}>
-            {usd(exposure.blockedCents)}
+            {usd(exposure.blockedCents + (exposure.wouldBlockCents ?? 0))}
           </div>
           <div style={{ fontSize: 'var(--font-size-sm)', color: 'var(--muted)' }}>Blocked by policy</div>
           <div className="numeric" style={{ fontSize: 'var(--font-size-sm)', color: 'var(--muted)', marginTop: 'var(--space-sm)' }}>
-            {usd(exposure.escalatedCents)} escalated to human
+            {usd(exposure.escalatedCents + (exposure.wouldEscalateCents ?? 0))} sent to a human
           </div>
         </div>
 

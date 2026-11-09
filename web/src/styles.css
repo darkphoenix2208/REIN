@@ -541,3 +541,31 @@ ul.plain {
     font-size: 24px;
   }
 }
+
+/* Secondary / danger buttons (the markup already uses these classes; only .btn existed, so Approve and Deny looked identical) */
+.btn-secondary {
+  background: #fff;
+  color: var(--blue);
+  border: 1.5px solid var(--blue);
+}
+.btn-secondary:hover:not(:disabled) { background: var(--background); }
+.btn-danger {
+  background: #fff;
+  color: var(--danger);
+  border: 1.5px solid var(--danger);
+}
+
+/* Phone widths: pages use inline multi-column grids; stack them and never let a form control push the page sideways */
+@media (max-width: 767px) {
+  .main-content [style*="grid-template-columns: 1fr 1fr"],
+  .main-content [style*="grid-template-columns: 1fr 2fr"] {
+    grid-template-columns: 1fr !important;
+  }
+  .main-content input,
+  .main-content select,
+  .main-content textarea,
+  .main-content button { max-width: 100%; box-sizing: border-box; }
+  .main-content { overflow-x: clip; }
+  .lanes { grid-template-columns: 1fr; }
+  .lane + .lane { border-left: 0; border-top: 1px solid var(--line); }
+}

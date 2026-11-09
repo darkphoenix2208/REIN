@@ -3,7 +3,7 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 import http from 'node:http';
-import { mkdtempSync } from 'node:fs';
+import { existsSync, mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { openDb } from '../server/db.ts';
@@ -73,17 +73,18 @@ for (const driver of ['better-sqlite3', 'node:sqlite'] as const) {
   describe(`Stage 1 HTTP routes (${driver})`, () => {
 
     // ---- GET /v1/ledger/checkpoint ----
-    test('GET /v1/ledger/checkpoint - 503 when ED25519_PRIVATE_KEY absent', async () => {
+    test('GET /v1/ledger/checkpoint - works on a fresh install: with no key configured a key is generated once and persisted outside the repo', async () => {
       const { app } = await makeApp(driver);
-      const saved = process.env.ED25519_PRIVATE_KEY;
-      delete process.env.ED25519_PRIVATE_KEY;
+      const keep = { a: process.env.ED25519_PRIVATE_KEY, b: process.env.REIN_CHECKPOINT_KEY, f: process.env.REIN_CHECKPOINT_KEY_FILE };
+      delete process.env.ED25519_PRIVATE_KEY; delete process.env.REIN_CHECKPOINT_KEY;
+      process.env.REIN_CHECKPOINT_KEY_FILE = join(mkdtempSync(join(tmpdir(), 'rein-fresh-')), 'key.json');
       try {
         const r = await request(app, 'GET', '/v1/ledger/checkpoint');
-        assert.equal(r.status, 503, 'Must return 503 when key missing, not 500');
-        assert.ok(r.body.error, 'Must have error field');
-        assert.equal(r.body.error, 'signing_unavailable');
+        assert.equal(r.status, 200, JSON.stringify(r.body));
+        assert.ok(r.body.signature && r.body.publicKey);
+        assert.equal(existsSync(process.env.REIN_CHECKPOINT_KEY_FILE!), true);
       } finally {
-        if (saved !== undefined) process.env.ED25519_PRIVATE_KEY = saved;
+        for (const [k, v] of [['ED25519_PRIVATE_KEY', keep.a], ['REIN_CHECKPOINT_KEY', keep.b], ['REIN_CHECKPOINT_KEY_FILE', keep.f]] as const) { if (v === undefined) delete process.env[k]; else process.env[k] = v; }
       }
     });
 

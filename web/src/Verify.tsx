@@ -1,54 +1,7 @@
 import { useEffect, useState } from 'react';
 import { api } from './ui';
 
-interface Checkpoint {
-  seq: number;
-  head: string;
-  timestamp: number;
-  signature: string;
-  publicKey: string;
-}
-
-interface LedgerRow {
-  seq: number;
-  created_at: number;
-  event: string;
-  action_id: string;
-  rule_id?: string;
-  amount_cents?: number;
-  hash: string;
-  prev_hash?: string;
-  payload_json?: string;
-}
-
-interface RowVerification {
-  seq: number;
-  event: string;
-  amountCents?: number;
-  ruleId?: string;
-  hash: string;
-  prevHash: string;
-  ok: boolean;
-  tampered?: boolean;
-  reason?: string;
-}
-
-const GENESIS = '0'.repeat(64);
-
-function canon(v: unknown): string {
-  return JSON.stringify(v, (_, x) =>
-    x && typeof x === 'object' && !Array.isArray(x)
-      ? Object.fromEntries(Object.entries(x as Record<string, unknown>).sort(([a], [b]) => (a < b ? -1 : 1)))
-      : x
-  );
-}
-
-async function sha256Hex(str: string): Promise<string> {
-  const buf = new TextEncoder().encode(str);
-  const digest = await window.crypto.subtle.digest('SHA-256', buf);
-  const arr = Array.from(new Uint8Array(digest));
-  return arr.map((b) => b.toString(16).padStart(2, '0')).join('');
-}
+import { verifyChainRows, verifyCheckpointSignature, type Checkpoint, type LedgerRow, type RowVerification } from './ledgerVerify';
 
 export function Verify() {
   const [checkpoint, setCheckpoint] = useState<Checkpoint | null>(null);
@@ -74,18 +27,12 @@ export function Verify() {
 
     try {
       // 1. Fetch latest checkpoint
-      let cp: Checkpoint | null = null;
-      try {
-        cp = await api('/v1/ledger/checkpoint/latest');
-      } catch {
-        // Fallback to generating or fetching standard checkpoint
-        cp = await api('/v1/ledger/checkpoint');
-      }
+      const cp: Checkpoint | null = await api('/v1/ledger/checkpoint');
 
       setCheckpoint(cp);
 
       // 2. Fetch ledger rows (full ordered history)
-      const ledgerRes = await api('/v1/ledger?limit=1000');
+      const ledgerRes = await api('/v1/ledger/export');
       const rows: LedgerRow[] = (ledgerRes.rows || []).slice().sort((a: any, b: any) => a.seq - b.seq);
       setOriginalRows(rows);
       setCurrentRows(rows);
@@ -95,107 +42,23 @@ export function Verify() {
         await verifyInBrowser(cp, rows);
       }
     } catch (e: any) {
-      setError(e.message || 'Failed to load checkpoint or ledger for verification');
+      setError(e.message === 'signing_unavailable' ? 'No signing key is configured on this server yet. Set REIN_CHECKPOINT_KEY and reload.' : e.message === 'chain_broken' ? 'The ledger chain does not verify, so no checkpoint was signed.' : e.message || 'Failed to load checkpoint or ledger for verification');
     } finally {
       setLoading(false);
     }
   }
 
   async function verifyInBrowser(cp: Checkpoint, rows: LedgerRow[]) {
-    // 1. Verify Ed25519 signature in browser via WebCrypto
-    let sigOk = false;
-    try {
-      const pubBytes = Uint8Array.from(atob(cp.publicKey), (c) => c.charCodeAt(0));
-      const message = `${cp.seq}:${cp.head}:${cp.timestamp}`;
-      const messageBytes = new TextEncoder().encode(message);
-      const sigBytes = Uint8Array.from(atob(cp.signature), (c) => c.charCodeAt(0));
-
-      const key = await window.crypto.subtle.importKey(
-        'raw',
-        pubBytes,
-        { name: 'Ed25519' },
-        false,
-        ['verify']
-      );
-
-      sigOk = await window.crypto.subtle.verify({ name: 'Ed25519' }, key, sigBytes, messageBytes);
-    } catch (err) {
-      console.warn('Browser WebCrypto Ed25519 failed or unsupported, validating via server verify API', err);
-      // Fallback to server verification
-      try {
-        const srvRes = await api('/v1/ledger/verify', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(cp),
-        });
-        sigOk = Boolean(srvRes.signatureValid);
-      } catch {
-        sigOk = false;
-      }
-    }
+    // 1. Verify the Ed25519 signature in the browser (WebCrypto); only if this browser has no Ed25519, ask the server
+    let sigOk: boolean;
+    const local = await verifyCheckpointSignature(cp);
+    if (local === null) {
+      try { sigOk = Boolean((await api('/v1/ledger/verify', cp)).signatureValid); } catch { sigOk = false; }
+    } else sigOk = local;
     setSignatureValid(sigOk);
 
-    // 2. Verify hash chain row by row up to cp.seq
-    let prev = GENESIS;
-    let allChainOk = true;
-    const vRows: RowVerification[] = [];
-
-    for (const r of rows) {
-      if (r.seq > cp.seq) break;
-
-      // Extract payload for canon
-      let payloadObj = {};
-      try {
-        payloadObj = r.payload_json ? JSON.parse(r.payload_json) : {};
-      } catch {
-        payloadObj = {};
-      }
-
-      // Check against previous hash
-      const prevMatches = (r.prev_hash || '') === prev;
-      let hashMatches = false;
-
-      // If full payload is available, verify recalculation
-      if (r.payload_json) {
-        const canonical = canon({
-          actionId: r.action_id,
-          event: r.event,
-          payload: payloadObj,
-          ts: r.created_at,
-        });
-        const computed = await sha256Hex(prev + canonical);
-        hashMatches = computed === r.hash;
-      } else {
-        // When lightweight row lacks payload_json, check prev_hash continuity and final head match
-        hashMatches = Boolean(r.hash);
-      }
-
-      const rowOk = prevMatches && hashMatches;
-      if (!rowOk) {
-        allChainOk = false;
-      }
-
-      vRows.push({
-        seq: r.seq,
-        event: r.event,
-        amountCents: r.amount_cents,
-        ruleId: r.rule_id,
-        hash: r.hash,
-        prevHash: r.prev_hash || '',
-        ok: rowOk,
-        tampered: !rowOk,
-        reason: !prevMatches ? 'Previous hash broken' : (!hashMatches ? 'Payload hash mismatch' : undefined),
-      });
-
-      prev = r.hash;
-    }
-
-    // Check head hash at checkpoint sequence
-    const headRow = rows.find((r) => r.seq === cp.seq);
-    const headMatches = headRow ? headRow.hash === cp.head : false;
-    if (!headMatches) {
-      allChainOk = false;
-    }
+    // 2. Recompute the hash chain row by row and compare the signed head
+    const { rows: vRows, chainOk: allChainOk } = await verifyChainRows(rows, cp);
 
     setRowVerifications(vRows);
     setChainValid(allChainOk);
@@ -277,7 +140,7 @@ export function Verify() {
           }}
         >
           <strong>Simulated In-Memory Tampering Active:</strong> Row #{tamperedSeq} was altered in local memory.
-          Notice how the hash chain breaks at row #{tamperedSeq} and cascades through subsequent rows.
+          Notice how verification fails at row #{tamperedSeq}.
           No changes were written to the database.
         </div>
       )}

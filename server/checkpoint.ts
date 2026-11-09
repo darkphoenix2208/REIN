@@ -40,7 +40,8 @@ export interface KeypairInfo {
 }
 
 const PKCS8_ED25519_PREFIX = Buffer.from('302e020100300506032b657004220420', 'hex');
-const KEY_FILE = process.env.REIN_CHECKPOINT_KEY_FILE || join(tmpdir(), 'rein-checkpoint-key.json');
+/** Read at call time (not import time) so an operator or a test can point REIN_CHECKPOINT_KEY_FILE somewhere else. */
+const keyFile = (): string => process.env.REIN_CHECKPOINT_KEY_FILE || join(tmpdir(), 'rein-checkpoint-key.json');
 
 /**
  * Convert a 32-byte raw seed or existing PKCS#8 key to an Ed25519 KeyObject.
@@ -94,9 +95,9 @@ export function getKeypair(options?: { allowGenerate?: boolean }): KeypairInfo |
 
   // Check persistent key file outside git if explicitly configured or allowGenerate requested
   const shouldCheckFile = Boolean(process.env.REIN_CHECKPOINT_KEY_FILE) || Boolean(options?.allowGenerate);
-  if (shouldCheckFile && existsSync(KEY_FILE)) {
+  if (shouldCheckFile && existsSync(keyFile())) {
     try {
-      const data = JSON.parse(readFileSync(KEY_FILE, 'utf8'));
+      const data = JSON.parse(readFileSync(keyFile(), 'utf8'));
       if (data.privateKey) {
         const privateKey = createEd25519PrivateKey(data.privateKey);
         const publicKey = createPublicKey(privateKey);
@@ -110,7 +111,7 @@ export function getKeypair(options?: { allowGenerate?: boolean }): KeypairInfo |
         };
       }
     } catch (e) {
-      console.error('Failed to read key from', KEY_FILE, e);
+      console.error('Failed to read key from', keyFile(), e);
     }
   }
 
@@ -124,7 +125,7 @@ export function getKeypair(options?: { allowGenerate?: boolean }): KeypairInfo |
       const rawPubB64 = rawPub.toString('base64');
 
       writeFileSync(
-        KEY_FILE,
+        keyFile(),
         JSON.stringify(
           {
             generatedAt: new Date().toISOString(),

@@ -133,7 +133,7 @@ export function Approve({ actionId }: { actionId: string }) {
         <button className="btn btn-primary" disabled={!open} onClick={() => decide('approve')}>
           Approve
         </button>
-        <button className="btn btn-danger" disabled={!open} onClick={() => decide('deny')}>
+        <button className="btn btn-secondary" disabled={!open} onClick={() => decide('deny')}>
           Deny
         </button>
       </div>

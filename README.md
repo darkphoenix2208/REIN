@@ -61,7 +61,7 @@ AI support agents are vulnerable to prompt injection. Rein bounds the damage:
 ## 🔬 What Works (Verified)
 
 ### Core Gate ✅
-- **366 passing tests** on both SQLite drivers
+- **374 passing tests** on both SQLite drivers
 - Item-scoped refunds with quantity tracking and per-item rules
 - Amount-scoped refunds with configurable caps
 - Duplicate detection within rolling 24h window
@@ -131,7 +131,7 @@ AI support agents are vulnerable to prompt injection. Rein bounds the damage:
 
 ### Test Results
 ```
-Tests: 366 passing, 0 failing
+Tests: 374 passing, 0 failing
 Drivers: both better-sqlite3 and node:sqlite
 Duration: ~21 seconds
 ```
@@ -227,7 +227,7 @@ npm ci
 
 ### Run Tests
 ```bash
-npm test                    # All tests (366 total, better-sqlite3)
+npm test                    # All tests (374 total, better-sqlite3)
 npm run test:node-sqlite   # Test with node:sqlite driver
 npm run typecheck          # TypeScript type checking
 ```
@@ -260,7 +260,7 @@ PAYPAL_CLIENT_ID=your_sandbox_client_id
 PAYPAL_CLIENT_SECRET=your_sandbox_secret
 PAYPAL_WEBHOOK_ID=your_webhook_id
 REIN_TOKEN=$(openssl rand -hex 32)
-ED25519_PRIVATE_KEY=$(openssl rand -base64 32)
+REIN_CHECKPOINT_KEY=$(openssl rand -base64 32)   # signs ledger checkpoints; keep secret. Unset locally = a key file is generated (outside git)
 ```
 
 ### Start the Server
@@ -276,7 +276,7 @@ Open http://127.0.0.1:4317
 ## ✅ Features Completed & Verified
 
 **Core Gate** ✅
-- 366 passing tests on both SQLite drivers
+- 374 passing tests on both SQLite drivers
 - All refund policy rules enforced
 - Hash-chained ledger with tamper detection
 - Mandate versioning with cryptographic hash tracking
@@ -339,8 +339,8 @@ Open http://127.0.0.1:4317
 - ⚠️ Live Anthropic API (ANTHROPIC_API_KEY not set)
 - ⚠️ Telegram notifications (TELEGRAM_BOT_TOKEN not set)
 - ⚠️ Channel3 price data (CHANNEL3_API_KEY not set)
-- ⚠️ Signed checkpoints (ED25519_PRIVATE_KEY not set)
-- ⚠️ UI screenshots (run `npm run screenshots` locally after `npx playwright install chromium`)
+- ⚠️ Signed checkpoints on a deployed host (locally a key is generated on first use; on Render set REIN_CHECKPOINT_KEY, or checkpoints signed before a restart will not match the new key)
+- ⚠️ UI on a real phone (pages were checked in headless Chromium at 1440px and 390px; screenshots in docs/assets/screenshots/ui-check/)
 - ⚠️ Render deployment (not deployed)
 
 **Not Built:**
@@ -365,7 +365,7 @@ MIT License - Copyright (c) 2026 darkphoenix2208
 **Technologies**: PayPal REST API, Node.js, React, TypeScript  
 
 ### Key Achievements
-- ✅ 366 tests passing on both SQLite drivers (includes 1600+ property-based test cases)
+- ✅ 374 tests passing on both SQLite drivers (includes 1600+ property-based test cases)
 - ✅ 8 adversarial attack vectors - all blocked, $0 over-refunded
 - ✅ Ed25519 signed checkpoints with offline verification
 - ✅ PayPal webhook signature verification (NEVER accepts unverified events)

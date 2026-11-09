@@ -1,4 +1,4 @@
-import { ReactNode } from 'react';
+import { ReactNode, useEffect, useState } from 'react';
 
 interface LayoutProps {
   children: ReactNode;
@@ -20,6 +20,11 @@ const navItems = [
 ];
 
 export function Layout({ children, mode = 'SIMULATED', currentPath }: LayoutProps) {
+  const [moreOpen, setMoreOpen] = useState(false);
+  useEffect(() => setMoreOpen(false), [currentPath]);
+  const primary = navItems.filter((i) => ['demo', 'shop', 'challenge', 'ledger'].includes(i.id));
+  const more = navItems.filter((i) => !primary.includes(i));
+  const moreActive = more.some((i) => i.path === currentPath);
   const go = (to: string) => (e: React.MouseEvent) => {
     e.preventDefault();
     history.pushState({}, '', to);
@@ -31,7 +36,7 @@ export function Layout({ children, mode = 'SIMULATED', currentPath }: LayoutProp
       {/* Desktop sidebar - hidden on mobile */}
       <aside className="sidebar">
         <div className="sidebar-header">
-          <h1 className="logo">Rein</h1>
+          <div className="logo">Rein</div>
           <span className={`chip chip-${mode.toLowerCase()}`}>{mode}</span>
         </div>
         <nav className="sidebar-nav" aria-label="Main navigation">
@@ -51,7 +56,7 @@ export function Layout({ children, mode = 'SIMULATED', currentPath }: LayoutProp
 
       {/* Mobile header */}
       <header className="mobile-header">
-        <h1 className="logo">Rein</h1>
+        <div className="logo">Rein</div>
         <span className={`chip chip-${mode.toLowerCase()}`}>{mode}</span>
       </header>
 
@@ -62,9 +67,18 @@ export function Layout({ children, mode = 'SIMULATED', currentPath }: LayoutProp
         </div>
       </main>
 
-      {/* Mobile bottom tabs - 5 primary pages */}
+      {/* Mobile bottom tabs: 4 primary pages + More, so every page is reachable on a phone */}
+      {moreOpen && (
+        <div className="more-sheet" role="menu" aria-label="More pages">
+          {more.map((item) => (
+            <a key={item.id} href={item.path} onClick={go(item.path)} role="menuitem" className={`more-link ${currentPath === item.path ? 'more-link-active' : ''}`} aria-current={currentPath === item.path ? 'page' : undefined}>
+              {item.label}
+            </a>
+          ))}
+        </div>
+      )}
       <nav className="bottom-tabs" aria-label="Primary navigation">
-        {navItems.slice(0, 5).map((item) => (
+        {primary.map((item) => (
           <a
             key={item.id}
             href={item.path}
@@ -75,6 +89,9 @@ export function Layout({ children, mode = 'SIMULATED', currentPath }: LayoutProp
             <span className="tab-label">{item.label}</span>
           </a>
         ))}
+        <button type="button" className={`tab-item tab-more ${moreActive || moreOpen ? 'tab-item-active' : ''}`} aria-expanded={moreOpen} aria-haspopup="menu" onClick={() => setMoreOpen((o) => !o)}>
+          <span className="tab-label">More</span>
+        </button>
       </nav>
 
       <style>{`
@@ -219,6 +236,18 @@ export function Layout({ children, mode = 'SIMULATED', currentPath }: LayoutProp
           outline-offset: -2px;
         }
 
+        .tab-more { background: none; border: 0; font: inherit; cursor: pointer; color: var(--muted); }
+        .tab-more.tab-item-active { color: var(--blue); }
+        .more-sheet {
+          position: fixed; left: 8px; right: 8px; bottom: 68px; z-index: 101;
+          background: white; border: 1px solid var(--border); border-radius: 16px;
+          box-shadow: var(--shadow-lg); padding: 8px; display: grid; grid-template-columns: 1fr 1fr; gap: 4px;
+        }
+        .more-link { display: block; padding: 14px 12px; border-radius: 12px; color: var(--text); text-decoration: none; font-weight: 500; text-align: center; }
+        .more-link:hover, .more-link:focus-visible { background: var(--background); outline: none; }
+        .more-link:focus-visible { box-shadow: 0 0 0 2px var(--blue); }
+        .more-link-active { color: var(--blue); background: var(--background); }
+        @media (min-width: 768px) { .more-sheet { display: none; } }
         .tab-label {
           font-size: var(--font-size-sm);
         }
