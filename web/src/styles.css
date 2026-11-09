@@ -37,10 +37,7 @@
 /* PayPal Color Palette */
 :root {
   /* PayPal Brand Colors */
-  --paypal-blue: #0070BA;
   --navy: #003087;
-  --paypal-light-blue: #009CDE;
-  --paypal-navy: #001C64;
 
   /* Neutral Palette */
   --bg: #F5F7FA;
@@ -86,13 +83,13 @@ body {
 }
 
 ::selection {
-  background: var(--paypal-light-blue);
+  background: var(--blue-light);
   color: white;
 }
 
 /* Typography */
 a {
-  color: var(--paypal-blue);
+  color: var(--blue);
   text-decoration: none;
   text-underline-offset: 3px;
   transition: color 0.2s ease;
@@ -176,7 +173,7 @@ h3 {
   font-weight: 600;
   font-size: 22px;
   text-decoration: none;
-  color: var(--paypal-blue);
+  color: var(--blue);
   letter-spacing: -0.02em;
 }
 
@@ -205,7 +202,7 @@ h3 {
 
 .topbar nav a[aria-current=page] {
   font-weight: 600;
-  background: var(--paypal-blue);
+  background: var(--blue);
   color: white;
 }
 
@@ -249,9 +246,9 @@ main {
 }
 
 .chip.mode {
-  color: var(--paypal-blue);
+  color: var(--blue);
   background: white;
-  border: 2px solid var(--paypal-blue);
+  border: 2px solid var(--blue);
   font-size: 12px;
   padding: 3px 12px;
   text-transform: none;
@@ -301,7 +298,7 @@ main {
 }
 
 .seg button[aria-pressed=true] {
-  background: var(--paypal-blue);
+  background: var(--blue);
   color: white;
   font-weight: 600;
 }
@@ -315,7 +312,7 @@ main {
   min-height: 48px;
   cursor: pointer;
   border: none;
-  background: var(--paypal-blue);
+  background: var(--blue);
   color: white;
   transition: all 0.2s ease;
   box-shadow: 0 2px 4px rgba(0, 112, 186, 0.15);
@@ -334,13 +331,13 @@ main {
 
 .btn.secondary {
   background: white;
-  color: var(--paypal-blue);
-  border: 2px solid var(--paypal-blue);
+  color: var(--blue);
+  border: 2px solid var(--blue);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .btn.secondary:hover:not(:disabled) {
-  background: var(--paypal-blue);
+  background: var(--blue);
   color: white;
 }
 
@@ -366,7 +363,7 @@ main {
 .ticket {
   background: var(--surface);
   border: 1px solid var(--line);
-  border-left: 4px solid var(--paypal-blue);
+  border-left: 4px solid var(--blue);
   padding: 20px;
   white-space: pre-wrap;
   margin: 16px 0;
@@ -389,7 +386,7 @@ main {
   padding: 16px 20px;
   margin: 16px 0;
   border-radius: 8px;
-  border-left: 4px solid var(--paypal-blue);
+  border-left: 4px solid var(--blue);
 }
 
 .banner.error {
