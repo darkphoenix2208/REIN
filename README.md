@@ -109,6 +109,7 @@ AI support agents are vulnerable to prompt injection. Rein bounds the damage:
 
 ### UI ✅
 - **11 responsive pages**: Demo, Ledger, Ops, Challenge, Attack Lab, Verify, Author, Mandate, Proof, Approvals
+- **Dark mode** with system preference detection and manual toggle
 - **PayPal-inspired**: Navy, blue, and gold colors
 - **Inter font**: Modern fintech typography
 - **AG Grid Community**: Interactive ledger with filtering, sorting, CSV export, pinned totals row

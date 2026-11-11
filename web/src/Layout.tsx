@@ -1,4 +1,5 @@
 import { ReactNode, useEffect, useState } from 'react';
+import { useTheme, ThemeToggle } from './ThemeToggle';
 
 interface LayoutProps {
   children: ReactNode;
@@ -20,6 +21,7 @@ const navItems = [
 ];
 
 export function Layout({ children, mode = 'SIMULATED', currentPath }: LayoutProps) {
+  const { theme, toggleTheme } = useTheme();
   const [moreOpen, setMoreOpen] = useState(false);
   useEffect(() => setMoreOpen(false), [currentPath]);
   const primary = navItems.filter((i) => ['demo', 'shop', 'challenge', 'ledger'].includes(i.id));
@@ -37,7 +39,10 @@ export function Layout({ children, mode = 'SIMULATED', currentPath }: LayoutProp
       <aside className="sidebar">
         <div className="sidebar-header">
           <div className="logo">Rein</div>
-          <span className={`chip chip-${mode.toLowerCase()}`}>{mode}</span>
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+            <ThemeToggle theme={theme} onToggle={toggleTheme} />
+            <span className={`chip chip-${mode.toLowerCase()}`}>{mode}</span>
+          </div>
         </div>
         <nav className="sidebar-nav" aria-label="Main navigation">
           {navItems.map((item) => (
