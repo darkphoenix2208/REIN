@@ -608,6 +608,29 @@ ul.plain {
   .lane + .lane { border-left: 0; border-top: 1px solid var(--line); }
 }
 
+/* Theme Toggle Button */
+.theme-toggle {
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-size: 18px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.theme-toggle:hover {
+  background: var(--bg);
+  border-color: var(--ink-muted);
+}
+
+.theme-toggle:active {
+  transform: scale(0.95);
+}
+
 /* Velocity Tracking Table */
 .velocity-table {
   width: 100%;
