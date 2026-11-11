@@ -16,6 +16,7 @@ const KNOWN = new Set<string>([
   'schema_version', 'expiresAt', 'dupWindowMs', 'returnWindowDays', 'blockIfOpenDispute', 'escalateFullOrder', 'shadow', 'description',
   'perPurchaseCapCents', 'agentDailyBudgetCents', 'purchaseHardMaxCents', 'productBlocklist', 'productAllowlist',
   'payoutPerPayeeCapCents', 'payoutDailyCapCents', 'payoutHardMaxCents', 'payoutAllowlist', 'payoutEscalateNewPayee',
+  'velocityRule',
 ]);
 
 export function parseMandate(raw: unknown): Mandate {
@@ -41,6 +42,13 @@ export function parseMandate(raw: unknown): Mandate {
   if (m.purchaseHardMaxCents !== undefined && (!Number.isInteger(m.purchaseHardMaxCents) || m.purchaseHardMaxCents <= 0)) throw new MandateError('purchaseHardMaxCents must be a positive integer.');
   if (m.productBlocklist !== undefined && !Array.isArray(m.productBlocklist)) throw new MandateError('productBlocklist must be an array of strings.');
   if (m.productAllowlist !== undefined && !Array.isArray(m.productAllowlist)) throw new MandateError('productAllowlist must be an array of strings.');
+  if (m.velocityRule !== undefined) {
+    if (typeof m.velocityRule !== 'object' || m.velocityRule === null) throw new MandateError('velocityRule must be an object.');
+    const vr = m.velocityRule as any;
+    if (!Number.isInteger(vr.maxActions) || vr.maxActions <= 0) throw new MandateError('velocityRule.maxActions must be a positive integer.');
+    if (!Number.isInteger(vr.maxAmountCents) || vr.maxAmountCents <= 0) throw new MandateError('velocityRule.maxAmountCents must be a positive integer.');
+    if (typeof vr.windowHours !== 'number' || vr.windowHours <= 0) throw new MandateError('velocityRule.windowHours must be a positive number.');
+  }
   const out: Mandate = {
     perActionCapCents: m.perActionCapCents, hardMaxCents: m.hardMaxCents, dailyCapCents: m.dailyCapCents, hardDailyCapCents: m.hardDailyCapCents, expiresAt: exp,
     ...(m.dupWindowMs !== undefined ? { dupWindowMs: m.dupWindowMs } : {}),
@@ -48,6 +56,7 @@ export function parseMandate(raw: unknown): Mandate {
     ...(m.blockIfOpenDispute !== undefined ? { blockIfOpenDispute: m.blockIfOpenDispute } : {}),
     ...(m.escalateFullOrder !== undefined ? { escalateFullOrder: m.escalateFullOrder } : {}),
     ...(m.shadow !== undefined ? { shadow: m.shadow } : {}),
+    ...(m.velocityRule !== undefined ? { velocityRule: m.velocityRule } : {}),
     ...(m.perPurchaseCapCents !== undefined ? { perPurchaseCapCents: m.perPurchaseCapCents } : {}),
     ...(m.agentDailyBudgetCents !== undefined ? { agentDailyBudgetCents: m.agentDailyBudgetCents } : {}),
     ...(m.purchaseHardMaxCents !== undefined ? { purchaseHardMaxCents: m.purchaseHardMaxCents } : {}),
