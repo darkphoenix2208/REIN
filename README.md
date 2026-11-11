@@ -75,9 +75,10 @@ AI support agents are vulnerable to prompt injection. Rein bounds the damage:
 ## 🔬 What Works (Verified)
 
 ### Core Gate ✅
-- **374 passing tests** on both SQLite drivers
+- **383 passing tests** on both SQLite drivers
 - Item-scoped refunds with quantity tracking and per-item rules
 - Amount-scoped refunds with configurable caps
+- **Customer velocity tracking** - per-customer rate limits over rolling windows
 - Duplicate detection within rolling 24h window
 - Return window enforcement (configurable days)
 - Open dispute blocking

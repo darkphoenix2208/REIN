@@ -145,3 +145,104 @@ for (const driver of ['better-sqlite3', 'node:sqlite'] as const) describe(`drive
     assert.match(b.err ?? '', /BUSY|busy|locked/i, `impatient got: ${JSON.stringify(b)}`);
   });
 });
+
+describe('Velocity Limits', async () => {
+  test('gate: block refund when velocity action limit exceeded', async () => {
+    const db = await openDb(':memory:');
+    applySchema(db);
+
+    const mandate: any = {
+      ...M,
+      velocityRule: { maxActions: 2, maxAmountCents: 100000, windowHours: 24 }
+    };
+
+    const nowMs = Date.now();
+
+    // Record 2 refunds for this customer
+    db.run(`INSERT INTO ledger (seq, created_at, event, hash, prev_hash, payload_json)
+      VALUES (1, ?, 'executed', 'hash1', '0', ?)`, nowMs - 1000, JSON.stringify({ customerId: 'cust-1', amountCents: 5000, actionId: 'act-1' }));
+    db.run(`INSERT INTO ledger (seq, created_at, event, hash, prev_hash, payload_json)
+      VALUES (2, ?, 'executed', 'hash2', 'hash1', ?)`, nowMs - 2000, JSON.stringify({ customerId: 'cust-1', amountCents: 4000, actionId: 'act-2' }));
+
+    // Try 3rd refund - should be blocked
+    const r = check(db, mandate, {
+      actionId: 'act-3',
+      sessionId: 'sess-1',
+      tool: 'refund',
+      captureId: undefined,
+      amountCents: 1000,
+      customerId: 'cust-1'
+    }, nowMs, undefined, 'live');
+
+    assert.equal(r.status, 'blocked');
+    assert.equal(r.ruleId, 'R-VELOCITY-ACTIONS');
+    assert.match(r.reason, /2 refunds/);
+
+    db.close();
+  });
+
+  test('gate: block refund when velocity amount limit exceeded', async () => {
+    const db = await openDb(':memory:');
+    applySchema(db);
+
+    const mandate: any = {
+      ...M,
+      velocityRule: { maxActions: 10, maxAmountCents: 10000, windowHours: 24 }
+    };
+
+    const nowMs = Date.now();
+
+    // Record $90 refund
+    db.run(`INSERT INTO ledger (seq, created_at, event, hash, prev_hash, payload_json)
+      VALUES (1, ?, 'executed', 'hash1', '0', ?)`, nowMs - 1000, JSON.stringify({ customerId: 'cust-1', amountCents: 9000, actionId: 'act-1' }));
+
+    // Try $20 more - should be blocked (would exceed $100 limit)
+    const r = check(db, mandate, {
+      actionId: 'act-2',
+      sessionId: 'sess-1',
+      tool: 'refund',
+      captureId: undefined,
+      amountCents: 2000,
+      customerId: 'cust-1'
+    }, nowMs, undefined, 'live');
+
+    assert.equal(r.status, 'blocked');
+    assert.equal(r.ruleId, 'R-VELOCITY-AMOUNT');
+    assert.match(r.reason, /\$90\.00/);
+
+    db.close();
+  });
+
+  test('gate: escalate when approaching velocity limit', async () => {
+    const db = await openDb(':memory:');
+    applySchema(db);
+
+    const mandate: any = {
+      ...M,
+      velocityRule: { maxActions: 5, maxAmountCents: 50000, windowHours: 24 }
+    };
+
+    const nowMs = Date.now();
+
+    // Record 3 refunds (4th would be 80% of 5)
+    for (let i = 1; i <= 3; i++) {
+      db.run(`INSERT INTO ledger (seq, created_at, event, hash, prev_hash, payload_json)
+        VALUES (?, ?, 'executed', ?, ?, ?)`, i, nowMs - i * 1000, `hash${i}`, i === 1 ? '0' : `hash${i-1}`, JSON.stringify({ customerId: 'cust-1', amountCents: 5000, actionId: `act-${i}` }));
+    }
+
+    const r = check(db, mandate, {
+      actionId: 'act-4',
+      sessionId: 'sess-1',
+      tool: 'refund',
+      captureId: undefined,
+      amountCents: 5000,
+      customerId: 'cust-1'
+    }, nowMs, undefined, 'live');
+
+    assert.equal(r.status, 'pending_approval');
+    assert.equal(r.ruleId, 'R-VELOCITY-APPROACHING');
+    assert.match(r.reason, /approaching velocity limits/);
+
+    db.close();
+  });
+});

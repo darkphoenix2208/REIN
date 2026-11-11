@@ -7,6 +7,7 @@ import { decide, resolveItems, decidePayout, decideSubscriptionCancel, decideDis
 import { hashArgs, ledger, sha } from './ledger.ts';
 import { sendTelegramApproval, getTelegramConfig } from './telegram.ts';
 import { mandateHash, saveMandateVersion } from './mandate-version.ts';
+import { checkVelocity } from './velocity.ts';
 import type { CheckInput, CheckResult, Decision, ExternalState, Mandate, PayRow } from './types.ts';
 
 // statuses that SPEND the cap (blocked, denied, expired, failed and shadow do not)
@@ -184,6 +185,22 @@ export function check(db: Db, m: Mandate, a: CheckInput, now = Date.now(), ext?:
 
     const argsHash = hashArgs(a.tool, a.captureId, amountCents, a.items);
     const grant = db.one<{ id: string }>('SELECT id FROM grants WHERE args_hash=? AND session_id=? AND used=0 AND expires_at>?', argsHash, a.sessionId, now);
+
+    // Velocity check (before other policy checks)
+    if (m.velocityRule && a.customerId) {
+      const velocity = checkVelocity(db, a.customerId, amountCents, m.velocityRule, now);
+
+      if (velocity.status === 'exceeded') {
+        const ruleId = velocity.currentActions >= velocity.maxActions ? 'R-VELOCITY-ACTIONS' : 'R-VELOCITY-AMOUNT';
+        return finish(db, a, now, { status: 'blocked', ruleId, reason: velocity.message! }, amountCents, itemLines, orderId, m, mode);
+      }
+
+      if (velocity.status === 'approaching') {
+        // Escalate for human review when approaching limits
+        return finish(db, a, now, { status: 'pending_approval', ruleId: 'R-VELOCITY-APPROACHING', reason: velocity.message! }, amountCents, itemLines, orderId, m, mode);
+      }
+    }
+
     let d: Decision = decide({ amountCents, currency: a.currency }, m, {
       pay,
       windowSum: windowSum(db, a.sessionId, now, a.actionId),

@@ -396,10 +396,46 @@ export function createApp(d: GateDeps, o: AppOptions = {}): express.Express {
       : d.db.val<number>(`SELECT COALESCE(SUM(amount_cents),0) FROM actions WHERE ${live}`, Date.now() - 86_400_000)) ?? 0;
     // what the gate actually stopped (enforce mode) next to the shadow-mode "would have" amounts from preventedLoss()
     const sumWhere = (cond: string): number => d.db.val<number>(`SELECT COALESCE(SUM(amount_cents),0) FROM actions WHERE action_type='refund' AND ${cond}`) ?? 0;
+
+    // Add velocity metrics if rule exists
+    let velocityMetrics: any = undefined;
+    if (d.mandate.velocityRule) {
+      const nowMs = Date.now();
+      const windowMs = d.mandate.velocityRule.windowHours * 60 * 60 * 1000;
+      // Get top customers by recent activity
+      const topCustomers = d.db.all<{ customerId: string; actions: number; total: number }>(`
+        SELECT
+          json_extract(payload_json, '$.customerId') as customerId,
+          COUNT(*) as actions,
+          SUM(CAST(json_extract(payload_json, '$.amountCents') AS INTEGER)) as total
+        FROM ledger
+        WHERE created_at >= ?
+          AND event IN ('executed', 'approved_executed')
+          AND json_extract(payload_json, '$.customerId') IS NOT NULL
+        GROUP BY customerId
+        ORDER BY total DESC
+        LIMIT 10
+      `, nowMs - windowMs);
+
+      velocityMetrics = {
+        rule: d.mandate.velocityRule,
+        topCustomers: topCustomers.map(c => ({
+          customerId: c.customerId,
+          actions: c.actions,
+          amountCents: c.total,
+          utilizationPct: Math.max(
+            (c.actions / d.mandate.velocityRule!.maxActions) * 100,
+            (c.total / d.mandate.velocityRule!.maxAmountCents) * 100
+          )
+        }))
+      };
+    }
+
     res.json({
       spentCents: spent, hardDailyCapCents: d.mandate.hardDailyCapCents,
       blockedCents: sumWhere(`status='blocked'`), escalatedCents: sumWhere(`decision='pending_approval' AND status<>'shadow'`),
       ...preventedLoss(d.db),
+      velocity: velocityMetrics
     });
   });
   api.get('/order/:captureId', (req, res) => {

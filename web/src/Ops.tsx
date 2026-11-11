@@ -3,7 +3,18 @@ import { useEffect, useState } from 'react';
 
 interface Metrics {
   ledger: { total: number; chain: { ok: boolean; rows: number; head: string } };
-  exposure: { spentCents: number; hardDailyCapCents: number; blockedCents: number; escalatedCents: number; wouldBlockCents?: number; wouldEscalateCents?: number };
+  exposure: {
+    spentCents: number;
+    hardDailyCapCents: number;
+    blockedCents: number;
+    escalatedCents: number;
+    wouldBlockCents?: number;
+    wouldEscalateCents?: number;
+    velocity?: {
+      rule: { maxActions: number; maxAmountCents: number; windowHours: number };
+      topCustomers: Array<{ customerId: string; actions: number; amountCents: number; utilizationPct: number }>;
+    };
+  };
   mode: string;
 }
 
@@ -153,6 +164,60 @@ export function Ops() {
           </div>
         </div>
       </div>
+
+      {metrics.exposure.velocity && (
+        <div className="card">
+          <h2 style={{ marginTop: 0, fontSize: 'var(--font-size-lg)', fontWeight: '600', marginBottom: 'var(--space-md)', color: 'var(--text)' }}>
+            Velocity Tracking
+          </h2>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 'var(--space-md)', marginBottom: 'var(--space-md)' }}>
+            <div>
+              <div style={{ fontSize: 'var(--font-size-sm)', color: 'var(--muted)', marginBottom: 'var(--space-xs)' }}>
+                Max Actions / {metrics.exposure.velocity.rule.windowHours}h
+              </div>
+              <div style={{ fontSize: 'var(--font-size-xl)', fontWeight: '600', color: 'var(--text)' }}>
+                {metrics.exposure.velocity.rule.maxActions}
+              </div>
+            </div>
+            <div>
+              <div style={{ fontSize: 'var(--font-size-sm)', color: 'var(--muted)', marginBottom: 'var(--space-xs)' }}>
+                Max Amount / {metrics.exposure.velocity.rule.windowHours}h
+              </div>
+              <div style={{ fontSize: 'var(--font-size-xl)', fontWeight: '600', color: 'var(--text)' }}>
+                {usd(metrics.exposure.velocity.rule.maxAmountCents)}
+              </div>
+            </div>
+          </div>
+
+          {metrics.exposure.velocity.topCustomers.length > 0 && (
+            <>
+              <h3 style={{ marginTop: 'var(--space-lg)', marginBottom: 'var(--space-md)', fontSize: 'var(--font-size-md)', fontWeight: '600', color: 'var(--text)' }}>
+                Top Customers (Last {metrics.exposure.velocity.rule.windowHours}h)
+              </h3>
+              <table className="velocity-table">
+                <thead>
+                  <tr>
+                    <th>Customer</th>
+                    <th>Actions</th>
+                    <th>Amount</th>
+                    <th>Utilization</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {metrics.exposure.velocity.topCustomers.map((c: any) => (
+                    <tr key={c.customerId} className={c.utilizationPct >= 80 ? 'warning' : ''}>
+                      <td><code>{c.customerId}</code></td>
+                      <td>{c.actions} / {metrics.exposure.velocity!.rule.maxActions}</td>
+                      <td>{usd(c.amountCents)} / {usd(metrics.exposure.velocity!.rule.maxAmountCents)}</td>
+                      <td>{c.utilizationPct.toFixed(1)}%</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </>
+          )}
+        </div>
+      )}
 
       <div className="card">
         <h2 style={{ marginTop: 0, fontSize: 'var(--font-size-lg)', fontWeight: '600', marginBottom: 'var(--space-md)', color: 'var(--text)' }}>

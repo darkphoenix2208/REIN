@@ -1,3 +1,20 @@
+export interface VelocityRule {
+  maxActions: number;           // Maximum refund actions per customer per window
+  maxAmountCents: number;       // Maximum total refund amount per customer per window
+  windowHours: number;          // Rolling window size in hours (typically 24)
+}
+
+export interface VelocityCheck {
+  customerId: string;
+  windowMs: number;             // Window size in milliseconds
+  currentActions: number;       // Actions in current window
+  currentAmountCents: number;   // Total amount in current window
+  maxActions: number;
+  maxAmountCents: number;
+  status: 'allowed' | 'approaching' | 'exceeded';
+  message?: string;
+}
+
 export interface Mandate {
   perActionCapCents: number; // largest refund the agent may issue alone
   hardMaxCents: number; // largest refund ever allowed, even with human approval
@@ -9,6 +26,7 @@ export interface Mandate {
   blockIfOpenDispute?: boolean; // refuse refunds on payments with an open dispute
   escalateFullOrder?: boolean; // refunding every item of an order needs a human (default true)
   shadow?: boolean; // record would-have decisions, never block
+  velocityRule?: VelocityRule;  // Optional: per-customer velocity limits
   // Payout-specific limits
   payoutPerPayeeCapCents?: number; // max payout to a single payee in rolling 24h
   payoutDailyCapCents?: number; // rolling 24h total payouts
@@ -61,6 +79,7 @@ export interface CheckInput {
   amountCents: number | null;
   currency?: string;
   items?: { itemId: string; qty: number }[];
+  customerId?: string;  // Optional: for velocity tracking
   // Payout-specific fields
   payeeEmail?: string;
   note?: string;

@@ -125,7 +125,10 @@ describe('/ops reads fields the API really returns', () => {
       const ex = (await get('/v1/exposure')).json;
       const fields = [...new Set([...readFileSync('web/src/Ops.tsx', 'utf8').matchAll(/exposure\.(\w+)/g)].map((m) => m[1]!))];
       assert.ok(fields.length >= 3);
-      for (const f of fields) assert.equal(typeof ex[f], 'number', `Ops.tsx reads exposure.${f} but the API returns ${JSON.stringify(ex[f])}`);
+      for (const f of fields) {
+        if (f === 'velocity') continue; // velocity is an object, not a number
+        assert.equal(typeof ex[f], 'number', `Ops.tsx reads exposure.${f} but the API returns ${JSON.stringify(ex[f])}`);
+      }
     } finally { restore(); }
   });
   test('with no sessionId the exposure spend is the total across sessions; with one it is that session only', async () => {
