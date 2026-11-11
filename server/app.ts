@@ -1,5 +1,6 @@
 // HTTP API (Express). One service: /v1/* here, the built SPA is served by index.ts in Phase 3. Fail closed everywhere.
 import express, { type NextFunction, type Request, type Response } from 'express';
+import helmet from 'helmet';
 import { timingSafeEqual } from 'node:crypto';
 import { isBusy, ReinBusyError, openDb, type Db } from './db.ts';
 import { applySchema } from './schema.ts';
@@ -48,6 +49,29 @@ export interface AppOptions {
 
 export function createApp(d: GateDeps, o: AppOptions = {}): express.Express {
   const app = express();
+
+  // Security headers
+  app.use(helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"], // React needs unsafe-eval in dev
+        styleSrc: ["'self'", "'unsafe-inline'"],
+        imgSrc: ["'self'", "data:", "https:"],
+        connectSrc: ["'self'"],
+        fontSrc: ["'self'", "data:"],
+        objectSrc: ["'none'"],
+        mediaSrc: ["'self'"],
+        frameSrc: ["'none'"],
+      },
+    },
+    hsts: {
+      maxAge: 31536000,
+      includeSubDomains: true,
+      preload: true
+    }
+  }));
+
   app.set('trust proxy', o.trustProxy ?? false); // only honor X-Forwarded-For when a proxy is configured: otherwise any client could pick its own rate-limit key
   app.disable('x-powered-by');
   app.use(express.json({ limit: '16kb' }));

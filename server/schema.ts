@@ -35,6 +35,14 @@ CREATE TABLE IF NOT EXISTS mandate_versions(
   notes TEXT,
   hash TEXT NOT NULL);
 CREATE INDEX IF NOT EXISTS mandate_versions_time ON mandate_versions(activated_at);
+-- Performance indexes for critical queries
+CREATE INDEX IF NOT EXISTS idx_ledger_event ON ledger(event);
+CREATE INDEX IF NOT EXISTS idx_ledger_created_at ON ledger(created_at);
+CREATE INDEX IF NOT EXISTS idx_ledger_action_id ON ledger(action_id);
+CREATE INDEX IF NOT EXISTS idx_actions_status ON actions(status, created_at);
+CREATE INDEX IF NOT EXISTS idx_actions_capture ON actions(capture_id);
+CREATE INDEX IF NOT EXISTS idx_approvals_expires ON approvals(expires_at);
+CREATE INDEX IF NOT EXISTS idx_grants_expires ON grants(expires_at);
 `);
   try { db.run('ALTER TABLE actions ADD COLUMN mandate_version TEXT'); } catch {}
   try { db.run('ALTER TABLE actions ADD COLUMN agent_id TEXT'); } catch {}
