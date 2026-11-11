@@ -12,7 +12,8 @@ RUN npm ci
 COPY tsconfig.json ./
 COPY server ./server
 COPY web ./web
-RUN npm run typecheck
+# Typecheck only web and server (tests not needed in production)
+RUN npx tsc --noEmit -p tsconfig.json && npx tsc --noEmit -p web/tsconfig.json
 RUN npm run web:build
 
 # Production runtime image
