@@ -63,6 +63,44 @@
   --focus: #0070BA;
 }
 
+/* Dark Mode Palette */
+[data-theme="dark"] {
+  /* PayPal Brand Colors - adjusted for dark */
+  --navy: #0070BA;
+
+  /* Neutral Palette - inverted */
+  --bg: #1A1D1E;
+  --surface: #2C2E2F;
+  --ink: #E8EAED;
+  --ink-muted: #9AA0A6;
+  --line: #3C4043;
+
+  /* Status Colors - adjusted for dark backgrounds */
+  --allow: #34A87C;
+  --allow-bg: #1A3A2E;
+  --block: #F28B82;
+  --block-bg: #3A2626;
+  --escalate: #F9AB00;
+  --escalate-bg: #3A3226;
+  --success: #34A87C;
+  --success-bg: #1A3A2E;
+  --error: #F28B82;
+  --error-bg: #3A2626;
+
+  /* Interactive */
+  --link-visited: #C58AF9;
+  --focus: #8AB4F8;
+}
+
+/* Smooth theme transitions */
+html {
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+* {
+  transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+}
+
 /* Base Styles */
 * {
   box-sizing: border-box;
@@ -544,13 +582,13 @@ ul.plain {
 
 /* Secondary / danger buttons (the markup already uses these classes; only .btn existed, so Approve and Deny looked identical) */
 .btn-secondary {
-  background: #fff;
+  background: var(--surface);
   color: var(--blue);
   border: 1.5px solid var(--blue);
 }
-.btn-secondary:hover:not(:disabled) { background: var(--background); }
+.btn-secondary:hover:not(:disabled) { background: var(--bg); }
 .btn-danger {
-  background: #fff;
+  background: var(--surface);
   color: var(--danger);
   border: 1.5px solid var(--danger);
 }
