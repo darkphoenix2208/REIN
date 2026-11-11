@@ -135,6 +135,7 @@ Execute refund.
 {
   "captureId": "capture-789",
   "sessionId": "session-456",
+  "customerId": "customer@example.com",  // Optional: for velocity tracking
   "amount": "10.00"  // string with 2 decimals
 }
 ```
@@ -144,6 +145,7 @@ Execute refund.
 {
   "captureId": "capture-789",
   "sessionId": "session-456",
+  "customerId": "customer@example.com",  // Optional: for velocity tracking
   "items": [
     {"itemId": "item-1", "qty": 2},
     {"itemId": "item-2", "qty": 1}
@@ -157,6 +159,16 @@ Execute refund.
   "ok": true,
   "refundId": "refund-xyz",
   "amountCents": 1000,
+  "actionId": "action-123"
+}
+```
+
+**Response (Blocked - Velocity):**
+```json
+{
+  "allowed": false,
+  "reason": "Customer has 5 refunds in last 24h, max is 5",
+  "ruleId": "R-VELOCITY-ACTIONS",
   "actionId": "action-123"
 }
 ```
