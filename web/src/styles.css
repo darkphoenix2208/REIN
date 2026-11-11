@@ -569,3 +569,39 @@ ul.plain {
   .lanes { grid-template-columns: 1fr; }
   .lane + .lane { border-left: 0; border-top: 1px solid var(--line); }
 }
+
+/* Velocity Tracking Table */
+.velocity-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: var(--space-md);
+}
+
+.velocity-table th {
+  text-align: left;
+  padding: var(--space-sm);
+  border-bottom: 2px solid var(--line);
+  font-weight: 600;
+  color: var(--muted);
+  font-size: var(--font-size-sm);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.velocity-table td {
+  padding: var(--space-sm);
+  border-bottom: 1px solid var(--line);
+  color: var(--text);
+}
+
+.velocity-table tr.warning {
+  background-color: rgba(255, 165, 0, 0.1);
+}
+
+.velocity-table code {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.9em;
+  background: var(--surface);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
