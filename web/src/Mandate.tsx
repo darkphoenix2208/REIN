@@ -308,7 +308,7 @@ export function Mandate() {
         Mandate Configuration & Backtest
       </h1>
       <p style={{ color: 'var(--muted)', marginBottom: 'var(--space-lg)', fontSize: '15px' }}>
-        Author candidate policies, re-evaluate past transactions deterministically with pure zero-write simulation,
+        Author candidate policies, re-evaluate past transactions deterministically with pure zero-write backtesting,
         and cryptographically commit approved mandate versions to the ledger.
       </p>
 

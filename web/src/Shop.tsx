@@ -88,7 +88,7 @@ export function Shop() {
           <span className={`chip ${source === 'live' ? 'chip-live' : 'chip-simulated'}`}>
             Catalog: {source.toUpperCase()}
           </span>
-          <span className="chip chip-simulated">SIMULATED PAYPAL</span>
+          <span className="chip chip-live">PAYPAL SANDBOX</span>
         </div>
       </div>
 

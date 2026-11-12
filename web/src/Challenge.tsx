@@ -72,7 +72,12 @@ export function Challenge() {
       setMessage('');
       await loadLeaderboard();
     } catch (e: any) {
-      setError(e.message || 'Submission failed');
+      if (e.message === 'rate_limit' || e.body?.error === 'rate_limit') {
+        const remainingMin = Math.ceil((e.body?.retryAfter ?? 3600) / 60);
+        setError(`Challenge rate limit reached (max attempts per IP exceeded). Please wait ${remainingMin} minutes or increase REIN_CHALLENGE_RATE_LIMIT in server env.`);
+      } else {
+        setError(e.message || 'Submission failed');
+      }
     } finally {
       setLoading(false);
     }

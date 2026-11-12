@@ -13,7 +13,7 @@ import { BOOT_ID, demoRouter, tickets } from './demo.ts';
 import { aiSummary } from './llm.ts';
 import { rateLimit } from './ratelimit.ts';
 import { compilePolicy, FIELDS } from './compiler.ts';
-import { askGemini } from './llm.ts';
+import { askGemini, askLlm } from './llm.ts';
 import { readFileSync } from 'node:fs';
 import { signCheckpoint, storeCheckpoint, getLatestCheckpoint, verifyCheckpoint, getPublicKeyInfo } from './checkpoint.ts';
 import { getLeaderboard, initChallengeSchema, checkRateLimit, getTotalSpent, recordAttempt, getRecordedAttempt, isKillSwitchActive, hasApiKey } from './beat-the-gate.ts';
@@ -486,15 +486,15 @@ export function createApp(d: GateDeps, o: AppOptions = {}): express.Express {
     ];
   };
   const author = express.Router();
-  author.get('/samples', (_q, res) => res.json({ samples: SAMPLES.map((n) => ({ id: n, policy: readFileSync(`server/fixtures/demo/policy-${n}.txt`, 'utf8') })), live: !!process.env.GEMINI_API_KEY }));
+  author.get('/samples', (_q, res) => res.json({ samples: SAMPLES.map((n) => ({ id: n, policy: readFileSync(`server/fixtures/demo/policy-${n}.txt`, 'utf8') })), live: !!(process.env.GEMINI_API_KEY || process.env.GROQ_API_KEY) }));
   author.post('/compile', rateLimit(5), async (req, res) => {
     const policy = typeof req.body?.policy === 'string' ? req.body.policy.slice(0, 4000) : '';
     const sample = typeof req.body?.sample === 'string' ? req.body.sample : '';
     if (!policy.trim() && !SAMPLES.includes(sample)) return void res.status(400).json({ error: 'invalid_input', fix: 'Send the policy text.' });
     let draft; let source = 'live';
-    if (process.env.GEMINI_API_KEY && policy.trim()) draft = await compilePolicy(policy, (p) => (o.askImpl ?? askGemini)(p));
+    if ((process.env.GEMINI_API_KEY || process.env.GROQ_API_KEY) && policy.trim()) draft = await compilePolicy(policy, (p) => (o.askImpl ?? askLlm)(p));
     else if (SAMPLES.includes(sample)) { draft = JSON.parse(readFileSync(`server/fixtures/demo/compile-${sample}.json`, 'utf8')); source = 'recorded'; }
-    else return void res.status(503).json({ error: 'no_model', fix: 'Compiling your own text needs GEMINI_API_KEY on the server. Pick one of the sample policies to see a recorded compile.' });
+    else return void res.status(503).json({ error: 'no_model', fix: 'Compiling your own text needs GEMINI_API_KEY or GROQ_API_KEY on the server. Pick one of the sample policies to see a recorded compile.' });
     res.json({ source, runs: draft.runs, disagreements: draft.disagreements, fields: draft.fields, playback: playback(draft.fields), unsupported: draft.unsupported.slice(0, 40), questions: draft.questions.slice(0, 40), activatable: FIELDS.filter((k) => ['perActionCapCents', 'hardMaxCents', 'dailyCapCents', 'hardDailyCapCents'].includes(k)).every((k) => draft.fields[k] != null) });
   });
   api.use('/author', author);
@@ -735,7 +735,12 @@ export function createApp(d: GateDeps, o: AppOptions = {}): express.Express {
     const rateCheck = checkRateLimit(cdb, ip, now);
 
     if (!rateCheck.allowed) {
-      return void res.status(429).json({ error: 'rate_limit', remaining: rateCheck.remaining, retryAfter: 3600 });
+      return void res.status(429).json({
+        error: 'rate_limit',
+        remaining: rateCheck.remaining,
+        retryAfter: 3600,
+        fix: 'Challenge rate limit reached (max attempts per IP exceeded). Please wait or set REIN_CHALLENGE_RATE_LIMIT.'
+      });
     }
 
     // Check daily token budget
@@ -753,7 +758,7 @@ export function createApp(d: GateDeps, o: AppOptions = {}): express.Express {
 
     // Use recorded fallback if no API key
     if (!hasApiKey() && !o.challengeClient) {
-      const recorded = getRecordedAttempt(Math.floor(Math.random() * 3));
+      const recorded = getRecordedAttempt(message);
       const id = recordAttempt(cdb, {
         ip,
         message,
@@ -836,7 +841,7 @@ export function createApp(d: GateDeps, o: AppOptions = {}): express.Express {
     } catch (e: any) {
       console.error('Live agent error:', e);
       // Fallback to recorded on error
-      const recorded = getRecordedAttempt(Math.floor(Math.random() * 3));
+      const recorded = getRecordedAttempt(message);
       const id = recordAttempt(cdb, {
         ip,
         message,

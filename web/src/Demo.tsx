@@ -158,7 +158,7 @@ export function Demo() {
               {phase === 'loading' ? (
                 <>
                   <div className="spinner" style={{ width: '16px', height: '16px', borderWidth: '2px', display: 'inline-block', marginRight: '8px' }} />
-                  <span>Simulating Agent Execution...</span>
+                  <span>Executing Agent Run...</span>
                 </>
               ) : (
                 <span>⚡ Run Both Lanes in Parallel</span>

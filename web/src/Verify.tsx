@@ -147,7 +147,7 @@ export function Verify() {
             borderRadius: 8,
           }}
         >
-          <strong>Simulated In-Memory Tampering Active:</strong> Row #{tamperedSeq} was altered in local memory.
+          <strong>In-Memory Tampering Test Active:</strong> Row #{tamperedSeq} was altered in local memory.
           Notice how verification fails at row #{tamperedSeq}.
           No changes were written to the database.
         </div>

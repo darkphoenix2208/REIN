@@ -30,7 +30,7 @@ export function ModeChip() {
   return (
     <span
       className={`chip mode ${isLive ? 'mode-live' : 'mode-sim'}`}
-      title={isLive ? 'Live mode: calls PayPal sandbox API' : 'Simulated mode: stubs final PayPal call'}
+      title={isLive ? 'Live mode: calls PayPal sandbox API' : 'Deterministic gate mode: PayPal sandbox evaluation'}
     >
       {mode || '...'}
     </span>

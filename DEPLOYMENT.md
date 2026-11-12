@@ -21,7 +21,7 @@ Before deploying, you need:
 
 1. Go to https://render.com and sign in
 2. Click **"New +"** → **"Web Service"**
-3. Connect your GitHub repository: `darkphoenix2208/REIN`
+3. Connect your repository: `rein`
 4. Configure settings:
    - **Name:** `rein` (or your choice)
    - **Region:** Choose closest to you

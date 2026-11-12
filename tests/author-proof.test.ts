@@ -15,6 +15,7 @@ const post = (base: string, p: string, b: unknown) => fetch(base + p, { method: 
 
 test('author: keyless server serves recorded sample compiles, NOT SET lines for empty limits, and never says activatable when a cap is empty', async () => {
   delete process.env.GEMINI_API_KEY;
+  delete process.env.GROQ_API_KEY;
   const a = await start();
   const j = await (await post(a.base, '/v1/author/compile', { sample: 'coffee' })).json() as any;
   assert.equal(j.source, 'recorded'); assert.equal(j.activatable, false);

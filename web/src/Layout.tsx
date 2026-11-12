@@ -80,12 +80,8 @@ export function Layout({ children, mode = 'SIMULATED', currentPath }: LayoutProp
             </a>
           ))}
         </nav>
-        <div className="sidebar-footer" style={{ marginTop: 'auto', padding: 'var(--space-md)', borderTop: '1px solid var(--border)', fontSize: '11px', color: 'var(--muted)', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+        <div className="sidebar-footer" style={{ marginTop: 'auto', padding: 'var(--space-md)', borderTop: '1px solid var(--border)', fontSize: '11px', color: 'var(--muted)' }}>
           <div style={{ fontWeight: 600, color: 'var(--text)' }}>Rein v0.1.0</div>
-          <div>PayPal AI Hackathon 2026</div>
-          <a href="https://github.com/darkphoenix2208/REIN" target="_blank" rel="noreferrer" style={{ color: 'var(--primary)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '4px', marginTop: '2px' }}>
-            GitHub Repository ↗
-          </a>
         </div>
       </aside>
 

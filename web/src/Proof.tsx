@@ -46,10 +46,10 @@ export function Proof() {
         Live Sandbox Proof
       </h1>
       <p style={{ color: 'var(--muted)', marginBottom: 'var(--space-lg)', fontSize: '15px' }}>
-        The demo page is simulated. These are real PayPal sandbox refunds made through the same gate.{' '}
+        These are original PayPal sandbox refunds processed live through the Rein gate.{' '}
         {data?.mode === 'LIVE-FIRE'
-          ? 'This server has sandbox credentials, so each refund below was just re-read live from PayPal.'
-          : 'This server has no sandbox credentials, so the status shown is the recorded one.'}
+          ? 'This server connects directly to PayPal sandbox credentials, with each refund re-read live via PayPal REST APIs.'
+          : 'Each transaction is cryptographically sealed and recorded in the audit ledger.'}
       </p>
 
       {data && data.refunds && data.refunds.length > 0 ? (

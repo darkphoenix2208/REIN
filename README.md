@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/darkphoenix2208/REIN/actions/workflows/ci.yml"><img src="https://img.shields.io/badge/CI-392%20Tests%20Passing-success?style=flat-square&logo=githubactions&logoColor=white" alt="CI Status" /></a>
+  <a href="#-test-suite-392-tests--dual-driver-verification"><img src="https://img.shields.io/badge/CI-392%20Tests%20Passing-success?style=flat-square&logo=githubactions&logoColor=white" alt="CI Status" /></a>
   <a href="https://rein-xgze.onrender.com"><img src="https://img.shields.io/badge/Live%20Demo-Render-46E3B7?style=flat-square&logo=render&logoColor=white" alt="Render Live" /></a>
   <a href="#-tech-stack"><img src="https://img.shields.io/badge/Node.js-22.18%2B%20LTS-339933?style=flat-square&logo=nodedotjs&logoColor=white" alt="Node Version" /></a>
   <a href="#-tech-stack"><img src="https://img.shields.io/badge/TypeScript-5.9%20Strict-3178C6?style=flat-square&logo=typescript&logoColor=white" alt="TypeScript" /></a>
@@ -52,8 +52,8 @@ You do not need a PayPal account or API keys to test Rein locally. By default, R
 
 ### 1. Clone & Install
 ```bash
-git clone https://github.com/darkphoenix2208/REIN.git
-cd REIN
+git clone <repository-url>
+cd rein
 npm ci
 ```
 

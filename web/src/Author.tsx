@@ -117,7 +117,7 @@ export function Author() {
           {busy ? 'Compiling...' : 'Compile draft'}
         </button>
         <span style={{ color: 'var(--muted)', fontSize: 'var(--font-size-sm)' }}>
-          {live ? 'Live model.' : 'No model key on this server: the samples show recorded compile.'}
+          {live ? 'Live model active.' : 'Sample mode (add GROQ_API_KEY or GEMINI_API_KEY for live custom text): select a sample below to test.'}
         </span>
       </div>
 

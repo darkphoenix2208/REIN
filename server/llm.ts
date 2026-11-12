@@ -52,3 +52,34 @@ export async function askGemini(prompt: string, f: typeof fetch = fetch): Promis
   const j = (await r.json()) as { candidates?: { content?: { parts?: { text?: string }[] } }[] };
   return j.candidates?.[0]?.content?.parts?.map((p) => p.text ?? '').join('') ?? '';
 }
+
+/** Raw text completion via Groq for policy compiler when Gemini is not configured. */
+export async function askGroq(prompt: string, f: typeof fetch = fetch): Promise<string> {
+  const key = process.env.GROQ_API_KEY;
+  if (!key) throw new Error('GROQ_API_KEY is not set');
+  const model = process.env.GROQ_MODEL || 'llama-3.3-70b-versatile';
+  const r = await f('https://api.groq.com/openai/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      authorization: `Bearer ${key}`,
+    },
+    body: JSON.stringify({
+      model,
+      messages: [{ role: 'user', content: prompt }],
+      temperature: 0,
+      max_tokens: 2048,
+    }),
+    signal: AbortSignal.timeout(60_000),
+  });
+  if (!r.ok) throw new Error(`Groq HTTP ${r.status}`);
+  const j = (await r.json()) as any;
+  return j.choices?.[0]?.message?.content ?? '';
+}
+
+/** Raw text completion for the policy compiler (prefers Gemini, falls back to Groq). */
+export async function askLlm(prompt: string, f: typeof fetch = fetch): Promise<string> {
+  if (process.env.GEMINI_API_KEY) return askGemini(prompt, f);
+  if (process.env.GROQ_API_KEY) return askGroq(prompt, f);
+  throw new Error('Neither GEMINI_API_KEY nor GROQ_API_KEY is set');
+}

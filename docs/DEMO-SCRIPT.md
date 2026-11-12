@@ -157,8 +157,8 @@
 
 ## 🎯 Closing (4:30-5:00)
 
-### Show GitHub README
-1. Navigate to https://github.com/darkphoenix2208/REIN
+### Show README
+1. Open the project README
 2. Scroll through features
 
 ### What to Say
@@ -168,15 +168,14 @@
 > 
 > "The result? Zero dollars lost across every attack we threw at it."
 > 
-> "Check out the code on GitHub, try the live demo, and let me know what you think!"
+> "Check out the code, try the live demo, and let me know what you think!"
 > 
 > "Thanks for watching!"
 
 **Text Overlay:** 
 ```
-github.com/darkphoenix2208/REIN
 rein-xgze.onrender.com
-Built for Physical AI Hackathon
+Built for PayPal AI Hackathon 2026
 ```
 
 ---
@@ -239,7 +238,6 @@ refunds, Rein enforces limits, everything is cryptographically audited.
 • Dark mode, concurrent-safe, production-ready
 
 🚀 Live Demo: https://rein-xgze.onrender.com
-💻 GitHub: https://github.com/darkphoenix2208/REIN
 
 Built for Build What's Next with PayPal and AI by darkphoenix2208
 
