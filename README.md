@@ -26,15 +26,20 @@ The complete Rein platform is live on Render:
 
 🔗 **Production URL**: **[https://rein-xgze.onrender.com](https://rein-xgze.onrender.com)**
 
-| Interactive Surface | Path | What You Can Explore |
+| Interactive Surface | Route | Key Capabilities & Verification Features |
 | :--- | :--- | :--- |
-| **🎯 Dual-Lane Live Demo** | [`/`](https://rein-xgze.onrender.com/) | Side-by-side comparison: Unguarded agent ($200 loss) vs. Rein Gate ($0 loss). |
-| **📊 Audit Ledger** | [`/ledger`](https://rein-xgze.onrender.com/ledger) | Real-time AG Grid ledger verifying SHA-256 hash chains across all refund events. |
-| **⚡ Attack Lab** | [`/attack-lab`](https://rein-xgze.onrender.com/attack-lab) | Execute 8 adversarial attack vectors against live policies ($0 over-refunded). |
-| **🎮 Beat the Gate Challenge** | [`/challenge`](https://rein-xgze.onrender.com/challenge) | Test live prompt injection attacks against LLMs (Groq / Anthropic with recorded fallback). |
-| **📈 Ops Dashboard** | [`/ops`](https://rein-xgze.onrender.com/ops) | Real-time exposure meters, velocity counters, currency balances, and active mandates. |
-| **✅ Cryptographic Verifier** | [`/verify`](https://rein-xgze.onrender.com/verify) | In-browser Ed25519 signature and hash-chain recomputation over audit checkpoints. |
-| **📜 Live Health Probe** | [`/healthz`](https://rein-xgze.onrender.com/healthz) | Service health, SQLite readiness, and operational mode indicator. |
+| **🎯 Dual-Lane Live Demo** | [`/`](https://rein-xgze.onrender.com/) | Live side-by-side comparison: Unguarded agent ($200.00 loss) vs. Rein Gate ($0 loss, `R-OVER-CAPTURE` blocked). Interactive ticket selector and live budget exposure gauge. |
+| **🛒 Buyer-Side Agent & Shop** | [`/shop`](https://rein-xgze.onrender.com/shop) | Autonomous shopping agent with Channel3 price intelligence, automatic competitor price matching, instant checkout, and gate-enforced spend limits. |
+| **🎮 Beat the Gate Challenge** | [`/challenge`](https://rein-xgze.onrender.com/challenge) | Red-team adversarial challenge with 1-click quick attack payloads (`VIP Override`, `Urgent Dispute`, `Jailbreak`, `Overcharge`), $1,000 bounty tracker, live/recorded status, and real-time verdicts. |
+| **⚡ Attack Lab** | [`/attack-lab`](https://rein-xgze.onrender.com/attack-lab) | Deep-dive evaluation of 8 adversarial refund attack vectors (over-capture, replay, phantom items, expired window, etc.) with severity tags and policy defenses. |
+| **📊 Cryptographic Audit Ledger** | [`/ledger`](https://rein-xgze.onrender.com/ledger) | Real-time AG Grid journal with adaptive Light/Dark theme, rolling SHA-256 hash chains, row grouping, CSV export, and 1-click printable PDF/JSON Auditor Evidence Packs. |
+| **📈 Ops & Exposure Dashboard** | [`/ops`](https://rein-xgze.onrender.com/ops) | Real-time telemetry: daily cap exposure gauges, cryptographic chain verification, cumulative loss prevention totals, and customer velocity monitors. |
+| **✅ Cryptographic Verifier** | [`/verify`](https://rein-xgze.onrender.com/verify) | WebCrypto in-browser Ed25519 digital signature & SHA-256 chain recomputation. Includes interactive *"Tamper With One Row Locally"* memory simulation to watch client-side detection live. |
+| **📜 Mandate & Backtest Engine** | [`/mandate`](https://rein-xgze.onrender.com/mandate) | Live policy inspector, candidate parameter editor, Mandate Copilot advisor, and pure zero-write deterministic backtest simulator over historic transactions. |
+| **✍️ Author a Mandate** | [`/author`](https://rein-xgze.onrender.com/author) | 3-way consensus LLM policy compiler translating plain-English refund rules into strict, deterministic mandate rules without guessing or hallucinations. |
+| **🔬 Live Sandbox Proof** | [`/proof`](https://rein-xgze.onrender.com/proof) | Live PayPal REST API sandbox verification ledger re-reading completed transaction states. |
+| **⚖️ Human Review Portal** | [`/approve/:id`](https://rein-xgze.onrender.com/) | Human-in-the-loop escalation portal with single-use cryptographic token, timeout countdown, and Channel3 alternative item exchange suggestions. |
+| **📜 Health & Diagnostic Probe** | [`/healthz`](https://rein-xgze.onrender.com/healthz) | Live system health, SQLite readiness, operational mode (`live` vs `simulated`), and uptime. |
 
 > [!NOTE]
 > **Live Deployment Status**: Probed and verified responsive (`mode: live`). PayPal sandbox credentials are configured on Render; real financial execution through PayPal's sandbox servers is labeled **NOT VERIFIED** until an operator runs a live test refund against real merchant credentials.
@@ -107,6 +112,15 @@ Rein runs side-by-side with your agent. While an unconstrained agent will follow
     </td>
   </tr>
 </table>
+
+### 🎨 Modern Cyber-Fintech UI & Dark Mode
+
+Rein features a high-contrast cyber-defense interface built with React 19, custom CSS design tokens, and AG Grid:
+* **Adaptive Theme Engine**: Instant switching between ☀️ Light Mode and 🌙 Dark Mode (`#0B0E17` midnight surface with `#38BDF8` cyber blue accents).
+* **Zero-Flash Data Grids**: AG Grid Quartz themes dynamically bind to the active theme palette without blinding white flashes.
+* **Dual-Lane Visual Contrast**: `.card-vulnerable` (crimson danger aura) indicates ungated agent risk; `.card-protected` (emerald security aura) highlights deterministic policy enforcement.
+* **Red-Team Rapid Payloads**: 1-click attack chips in the Beat the Gate challenge for instant adversary prompt simulation.
+* **Client-Side Cryptographic Tampering**: In-browser WebCrypto verifier allows reviewers to tamper with in-memory row states and watch real-time detection.
 
 ---
 
@@ -347,22 +361,43 @@ In strict accordance with hackathon evaluation standards, we explicitly separate
 
 ```text
 rein/
-├── server/                    # Backend API and Policy Engine
+├── server/                    # Backend API, Gateway & Policy Engine
 │   ├── app.ts                 # Express 5 application setup & routing
 │   ├── gate.ts                # Core refund mandate evaluation pipeline
 │   ├── policy.ts              # Deterministic business rules & caps
 │   ├── velocity.ts            # Rolling-window velocity rate limiter
+│   ├── beat-the-gate.ts       # Challenge attempt handler & bounty ledger
 │   ├── challenge-agent.ts     # Groq & Anthropic tool-calling integration
 │   ├── checkpoint.ts          # Ed25519 checkpoint signing and verification
 │   ├── ledger.ts              # Rolling SHA-256 audit ledger
+│   ├── channel3.ts            # Channel3 catalog & competitor price intelligence
+│   ├── backtest.ts            # Pure zero-write replay and mandate backtest
+│   ├── attack-lab.ts          # 8 adversarial test vector generators
+│   ├── evidence-pdf.ts        # Printable PDF evidence pack generation
+│   ├── disputes.ts            # Dispute evidence and settlement suggestions
+│   ├── payouts.ts             # Payout policy and batch payout handling
+│   ├── price-match.ts         # Automated price matching under mandate caps
 │   ├── paypal.ts              # PayPal REST API client (sandbox)
 │   ├── reconciler.ts          # Discrepancy detector for unsettled refunds
 │   └── webhook-verify.ts      # PayPal cryptographic webhook signature checks
 ├── web/                       # React 19 Frontend SPA (Vite)
+│   ├── design-tokens.css      # Design tokens (Light & Dark theme variables)
 │   ├── src/
-│   │   ├── pages/             # Demo, Ledger, Attack Lab, Challenge, Ops, Verify
-│   │   ├── components/        # Layout, Navigation, AG Grid tables
-│   │   └── api.ts             # Type-safe client communicating with backend
+│   │   ├── Demo.tsx           # Dual-lane live interactive demo
+│   │   ├── Shop.tsx           # Buyer-side agent & Channel3 price match shop
+│   │   ├── Challenge.tsx      # Beat the Gate red-team prompt challenge
+│   │   ├── AttackLab.tsx      # Adversarial vector lab & defense inspector
+│   │   ├── Ledger.tsx         # AG Grid cryptographic ledger & evidence pack export
+│   │   ├── Ops.tsx            # Real-time ops, exposure, and velocity dashboard
+│   │   ├── Verify.tsx         # In-browser WebCrypto signature & chain verifier
+│   │   ├── Mandate.tsx        # Mandate editor, copilot & backtest engine
+│   │   ├── Author.tsx         # 3-way consensus natural language policy compiler
+│   │   ├── Proof.tsx          # PayPal sandbox live verification ledger
+│   │   ├── Approve.tsx        # Human escalation & Channel3 exchange portal
+│   │   ├── Layout.tsx         # Sidebar, mobile header, bottom tabs navigation
+│   │   ├── ThemeToggle.tsx    # Light/Dark mode state management & toggle
+│   │   ├── ledgerVerify.ts    # WebCrypto Ed25519 and SHA-256 verification
+│   │   └── ui.tsx             # Shared UI components and fetch helpers
 ├── sdk/                       # Client Libraries
 │   ├── rein-client.ts         # TypeScript / Node.js SDK
 │   └── rein_client.py         # Python SDK with full type hints
@@ -370,10 +405,11 @@ rein/
 │   ├── core.test.ts           # State machine, contention, and reservations
 │   ├── challenge-groq.test.ts # Groq LLM tool calling and error seams
 │   ├── velocity.test.ts       # Velocity limits and rolling windows
-│   └── webhook.test.ts        # Signature checks and security rejection
+│   ├── ui-contract.test.ts    # Frontend endpoint and DOM contract tests
+│   └── webhook-security.test.ts # PayPal webhook signature security tests
 ├── scripts/                   # Tooling & Benchmarks
 │   ├── probe-live.mjs         # Live deployment diagnostic probe
-│   ├── benchmark.ts           # Latency and concurrency benchmark
+│   ├── benchmark.ts           # Latency and concurrency benchmark (4,700+ ops/s)
 │   └── doctor.mjs             # Environment and dependency verification
 └── docs/                      # Comprehensive Architecture & Product Specs
     ├── DEMO-SCRIPT.md         # 3-Minute Video Walkthrough Script
