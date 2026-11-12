@@ -42,11 +42,7 @@ jobs:
       - name: Secret scan check
         run: |
           echo "Scanning for accidental committed private keys or unencrypted secrets..."
-          if grep -rn "BEGIN OPENSSH PRIVATE KEY" . --exclude-dir={node_modules,.git,web/dist}; then
-            echo "ERROR: Found unencrypted private key in repository"
-            exit 1
-          fi
-          if grep -rn "BEGIN PRIVATE KEY" . --exclude-dir={node_modules,.git,web/dist}; then
+          if grep -rEn --exclude-dir=node_modules --exclude-dir=.git --exclude-dir=web/dist --exclude-dir=.github -e '-----BEGIN [A-Z ]*PRIVATE KEY' .; then
             echo "ERROR: Found unencrypted private key in repository"
             exit 1
           fi
