@@ -19,7 +19,7 @@ Rein is a deterministic mandate gate for AI agents that process PayPal refunds. 
 - 📈 **[Ops Dashboard](https://rein-xgze.onrender.com/ops)** - Real-time metrics
 - ✅ **[Verify](https://rein-xgze.onrender.com/verify)** - Ed25519 checkpoint verification
 
-**Status:** ✅ Live on Render — running in **simulated mode** (PayPal sandbox integration implemented; live mode ⚠️ NOT VERIFIED — no live probe output received)
+**Status:** ✅ Live on Render — running in **LIVE mode** (`mode: "live"` confirmed via `probe:live`; PayPal sandbox credentials configured on Render; real PayPal refund execution, reconciler, and webhook delivery remain ⚠️ NOT VERIFIED)
 
 ---
 
@@ -352,7 +352,7 @@ Open http://127.0.0.1:4317
 - ❌ **Single-instance only**: SQLite design (distributed lock interface exists but PostgreSQL implementation is a placeholder)
 - ❌ **Sandbox only**: PayPal sandbox credentials required for live mode
 
-**VERIFIED (locally or in CI):**
+**VERIFIED (locally, in CI, and live probe):**
 - ✅ **392 tests** — `npm test` passes, both SQLite drivers (run confirmed this session)
 - ✅ **TypeScript** — `npm run typecheck` exit 0
 - ✅ **Gate logic** — all 8 attack vectors blocked, $0 over-refunded (test suite)
@@ -360,18 +360,18 @@ Open http://127.0.0.1:4317
 - ✅ **Ed25519 checkpoints** — verified in tests
 - ✅ **Customer velocity tracking** — verified in tests (`server/velocity.ts`)
 - ✅ **UI build** — `npm run web:build` succeeds
+- ✅ **Render deployment & live probe** — probed via `npm run probe:live https://rein-xgze.onrender.com` (`GET /healthz` returns `{"status":"ok","mode":"live"}`, SQLite ready, public key confirmed)
 
-**NOT VERIFIED (no live probe output provided; would need real credentials/deployment):**
-- ⚠️ **Render deployment mode** — deployed at https://rein-xgze.onrender.com but live probe was not run; assumed simulated mode
-- ⚠️ **PayPal Sandbox API** — live-fire mode not confirmed; no sandbox credentials available
-- ⚠️ **PayPal Webhooks** — webhook ID in docs not verified as active
+**NOT VERIFIED (would need live credentials/actions on external platforms):**
+- ⚠️ **PayPal Sandbox refund execution** — real PayPal sandbox refund was not executed in this run
+- ⚠️ **PayPal Webhooks live events** — webhook delivery from PayPal dashboard not verified
 - ⚠️ **PayPal reconciler** — real sandbox lookup not tested
-- ⚠️ **Groq API** — no GROQ_API_KEY available for testing against live API (unit/mock tested)
-- ⚠️ **Anthropic API** — no ANTHROPIC_API_KEY available for testing against live API (unit/mock tested)
+- ⚠️ **Groq API live call** — unit/mock tested; no live key verified
+- ⚠️ **Anthropic API live call** — unit/mock tested; no live key verified
 - ⚠️ **Telegram notifications** — no bot token available
-- ⚠️ **Channel3 price data** — no API key available (mocked)
-- ⚠️ **Checkpoint key persistence** — across Render restarts not verified
-- ⚠️ **Render Workflows** — render.yaml changes not deployed
+- ⚠️ **Channel3 price data** — runs in recorded fallback
+- ⚠️ **Checkpoint key persistence across VM restart** — key persistence across Render physical container reboot not verified
+- ⚠️ **Render Workflows** — container dispatch not deployed
 
 **Optional Features (Not Enabled):**
 - ⏸️ Anthropic API (ANTHROPIC_API_KEY not set) - Beat the Gate challenge uses recorded fallback

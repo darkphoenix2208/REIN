@@ -11,7 +11,7 @@ async function fetchJson(endpoint) {
   try {
     const res = await fetch(`${baseUrl}${endpoint}`, {
       headers: { 'Accept': 'application/json' },
-      signal: AbortSignal.timeout(8000),
+      signal: AbortSignal.timeout(30000),
     });
     const status = res.status;
     let data = null;

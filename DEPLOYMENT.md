@@ -244,7 +244,7 @@ Changes to environment variables trigger automatic redeployment.
 
 **Current Status:** Deployed at https://rein-xgze.onrender.com
 
-**Mode:** SIMULATED (PayPal Sandbox integration implemented; live mode ⚠️ NOT VERIFIED — no live probe output received)
+**Mode:** LIVE (verified via `probe:live`: `{"status":"ok","mode":"live"}`) — PayPal Sandbox credentials configured on Render; real sandbox refund execution, reconciler, and webhook delivery remain ⚠️ NOT VERIFIED.
 
 **Features Enabled:**
 - ✅ Simulated Refunds & Payouts
