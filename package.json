@@ -27,7 +27,8 @@
     "reseed": "node scripts/reseed.mjs",
     "checkpoint-publish": "node --experimental-strip-types scripts/checkpoint-publish.mjs",
     "benchmark": "node --experimental-strip-types --disable-warning=ExperimentalWarning scripts/benchmark.ts",
-    "screenshots": "node --experimental-strip-types scripts/screenshot-ui.ts"
+    "screenshots": "node --experimental-strip-types scripts/screenshot-ui.ts",
+    "probe:live": "node --disable-warning=ExperimentalWarning scripts/probe-live.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.6.0",

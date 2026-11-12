@@ -31,12 +31,19 @@ Rein is designed to run securely and reliably on Render as a single-instance ser
 | `REIN_DB` | **Yes** | `/var/data/rein.db` | Path to persistent SQLite ledger database |
 | `REIN_LOCK_OPERATOR_ENDPOINTS` | Recommended | `1` | Locks `/ledger` and `/exposure` behind `REIN_TOKEN` |
 | `REIN_PUBLIC_URL` | Recommended | Auto-detected | Canonical public HTTPS URL on Render |
+| `REIN_CHECKPOINT_KEY` | Optional | — | Ed25519 private key for signing checkpoints |
+| `REIN_CHECKPOINT_KEY_FILE` | Optional | `/var/data/.checkpoint-key.json` | Persistent path to auto-generated keypair |
+| `PAYPAL_WEBHOOK_ID` | Optional | — | PayPal webhook ID for event signature verification |
 | `ANTHROPIC_API_KEY` | Optional | — | Enables live Claude agent in "Beat the Gate" |
+| `GROQ_API_KEY` | Optional | — | Enables live Groq agent in "Beat the Gate" |
+| `GROQ_MODEL` | Optional | `llama-3.3-70b-versatile` | Groq tool-calling model |
 | `CHANNEL3_API_KEY` | Optional | — | Enables live product pricing intelligence |
+| `TELEGRAM_BOT_TOKEN` | Optional | — | Telegram bot token for approvals |
+| `TELEGRAM_CHAT_ID` | Optional | — | Telegram chat ID for approvals |
 | `PAYPAL_CLIENT_ID` | Optional | — | PayPal sandbox App Client ID (never live keys) |
 | `PAYPAL_CLIENT_SECRET` | Optional | — | PayPal sandbox Secret (never live keys) |
 | `REIN_DISABLE_CHALLENGE` | Optional | `0` | Kill switch (`1` disables challenge endpoint with 503) |
-| `REIN_CHALLENGE_DAILY_TOKENS` | Optional | `100000` | Daily Anthropic token budget for challenge attempts |
+| `REIN_CHALLENGE_DAILY_TOKENS` | Optional | `100000` | Daily token budget for challenge attempts |
 | `RENDER_API_KEY` | Optional | — | For Render Workflows container dispatch |
 
 ---

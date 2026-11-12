@@ -1,3 +1,5 @@
+<!-- TODO AUTHORSHIP: owner must confirm. LICENSE says "Harsh Patil", other files say "darkphoenix2208". These must be reconciled by the repository owner before publication. -->
+
 # Credits
 
 ## Author
@@ -9,7 +11,7 @@ Email: darkphoenix.2208@gmail.com
 
 **Rein** - A deterministic mandate gate for AI agents processing PayPal refunds
 
-Built for the PayPal Physical AI Hackathon 2026
+Built for the **Build What's Next with PayPal and AI** hackathon 2026
 
 ## Technologies Used
 
@@ -54,12 +56,13 @@ Built for the PayPal Physical AI Hackathon 2026
 - PayPal-branded UI redesign
 
 ### Test Coverage
-- 136 total tests (133 passing)
-- 40+ new tests added
-- Attack lab tests (5)
-- Webhook security tests (5)
-- Price-match tests (14)
-- E2E browser tests (4)
+- 392 passing tests on both SQLite drivers (better-sqlite3 and node:sqlite)
+- Attack lab tests (8 adversarial vectors)
+- Webhook security tests
+- Price-match tests
+- Checkpoint verification tests
+- Velocity tracking tests
+- Mandate backtesting tests
 
 ## Acknowledgments
 

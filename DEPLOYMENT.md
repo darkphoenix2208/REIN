@@ -47,8 +47,9 @@ REIN_DB=/var/data/rein.db
 # Generate with: openssl rand -hex 32
 REIN_TOKEN=<your-generated-token>
 
-# Generate with: openssl rand -base64 32
-ED25519_PRIVATE_KEY=<your-generated-key>
+# Signs ledger checkpoints; keep secret. Unset = auto-generated to REIN_CHECKPOINT_KEY_FILE
+REIN_CHECKPOINT_KEY=<your-base64-or-hex-ed25519-private-key>
+REIN_CHECKPOINT_KEY_FILE=/var/data/.checkpoint-key.json
 ```
 
 #### PayPal Sandbox:
@@ -146,14 +147,16 @@ curl https://your-app.onrender.com/v1/exposure
 
 ```bash
 # AI Features (Optional)
-ANTHROPIC_API_KEY=<your-anthropic-key>  # Beat the Gate challenge
+ANTHROPIC_API_KEY=<your-anthropic-key>  # Beat the Gate challenge (Anthropic)
+GROQ_API_KEY=<your-groq-key>            # Beat the Gate challenge (Groq, alternative)
+GROQ_MODEL=llama-3.3-70b-versatile      # Groq model supporting tool use
 GEMINI_API_KEY=<your-gemini-key>        # Policy compilation
 
 # Notifications (Optional)
 TELEGRAM_BOT_TOKEN=<your-bot-token>
 TELEGRAM_CHAT_ID=<your-chat-id>
-SLACK_BOT_TOKEN=<your-slack-token>
-SLACK_APPROVAL_CHANNEL=#approvals
+SLACK_BOT_TOKEN=<your-slack-token>      # ⚠️ NOT BUILT
+SLACK_APPROVAL_CHANNEL=#approvals       # ⚠️ NOT BUILT
 
 # Advanced
 REIN_EXPOSE_AMOUNT_TOOL=1              # Enable amount tool in MCP
@@ -241,21 +244,50 @@ Changes to environment variables trigger automatic redeployment.
 
 **Current Status:** Deployed at https://rein-xgze.onrender.com
 
-**Mode:** LIVE-FIRE (PayPal Sandbox)
+**Mode:** SIMULATED (PayPal Sandbox integration implemented; live mode ⚠️ NOT VERIFIED — no live probe output received)
 
 **Features Enabled:**
-- ✅ PayPal Refunds API
-- ✅ Webhook verification
+- ✅ Simulated Refunds & Payouts
+- ✅ Webhook signature verification
 - ✅ Hash-chained ledger
 - ✅ Ed25519 signatures
 - ✅ All 11 UI pages
 - ✅ Attack Lab
 - ✅ Ops Dashboard
 
-**Optional Features (Disabled):**
+**Optional Features (Disabled / NOT VERIFIED):**
 - ⏸️ Anthropic API (uses recorded fallback)
+- ⏸️ Groq API (uses recorded fallback)
 - ⏸️ Gemini API (uses recorded fallback)
-- ⏸️ Telegram/Slack notifications
+- ⏸️ Telegram notifications
+- ⚠️ PayPal Live Sandbox execution (NOT VERIFIED)
+
+---
+
+## 📋 Post-Deploy Checklist
+
+After deploying to Render:
+
+1. **Run Live Probe**:
+   ```bash
+   npm run probe:live https://your-app.onrender.com
+   ```
+   Confirm `/healthz` returns `status: "ok"`, verify reported mode (`sim` or `live`), and inspect ledger head / latest checkpoint.
+
+2. **Verify Checkpoint & Ledger Persistence Across Restarts**:
+   - Note the public key from `https://your-app.onrender.com/v1/ledger/pubkey` and latest sequence number.
+   - Trigger a service restart from Render dashboard.
+   - Re-run `npm run probe:live https://your-app.onrender.com`.
+   - Confirm ledger rows count and checkpoint `publicKey` remain identical (ensures disk mounted at `/var/data` and key file `/var/data/.checkpoint-key.json` persisted).
+
+3. **One Real Sandbox Refund**:
+   - If `PAYPAL_CLIENT_ID` and `PAYPAL_CLIENT_SECRET` are provided, execute one test refund via `/demo` or API.
+   - Verify `mode: "live"` in `/healthz` and check transaction in PayPal developer sandbox dashboard.
+
+4. **Approval Link on Mobile Phone**:
+   - Trigger an escalated refund (e.g., Ticket 3 or high-value amount).
+   - Open the approval link (`/approve/:id`) on a smartphone browser.
+   - Confirm responsive mobile UI and button interactions work cleanly.
 
 ---
 

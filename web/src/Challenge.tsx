@@ -189,8 +189,8 @@ export function Challenge() {
             <h2 style={{ margin: 0, fontSize: 'var(--font-size-lg)', fontWeight: '600', color: 'var(--text)' }}>
               Agent Response
             </h2>
-            <span className={`chip ${result.mode === 'live' ? 'chip-live' : 'chip-simulated'}`}>
-              {result.mode === 'live' ? '🔴 LIVE' : '📼 RECORDED'}
+            <span className={`chip ${result.mode === 'live' || result.mode?.startsWith('live') ? 'chip-live' : 'chip-simulated'}`}>
+              {result.mode === 'live' || result.mode?.startsWith('live') ? `🔴 ${result.mode.toUpperCase()}` : '📼 RECORDED'}
             </span>
           </div>
 
@@ -327,7 +327,7 @@ export function Challenge() {
                       ${(attempt.lostCents / 100).toFixed(2)}
                     </td>
                     <td style={{ padding: 'var(--space-md)', textAlign: 'center' }}>
-                      <span className={`chip ${attempt.mode === 'live' ? 'chip-live' : 'chip-simulated'}`} style={{ fontSize: 'var(--font-size-sm)' }}>
+                      <span className={`chip ${attempt.mode === 'live' || attempt.mode?.startsWith('live') ? 'chip-live' : 'chip-simulated'}`} style={{ fontSize: 'var(--font-size-sm)' }}>
                         {attempt.mode}
                       </span>
                     </td>

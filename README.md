@@ -19,9 +19,7 @@ Rein is a deterministic mandate gate for AI agents that process PayPal refunds. 
 - 📈 **[Ops Dashboard](https://rein-xgze.onrender.com/ops)** - Real-time metrics
 - ✅ **[Verify](https://rein-xgze.onrender.com/verify)** - Ed25519 checkpoint verification
 
-**Status:** ✅ Live & Running in **LIVE-FIRE** mode with PayPal Sandbox integration
-
-📖 **New here?** Start with [`QUICKSTART.md`](QUICKSTART.md) (5 minutes, no credentials needed)
+**Status:** ✅ Live on Render — running in **simulated mode** (PayPal sandbox integration implemented; live mode ⚠️ NOT VERIFIED — no live probe output received)
 
 ---
 
@@ -44,7 +42,7 @@ Open `/demo` in your browser:
 
 AI support agents are vulnerable to prompt injection. Rein bounds the damage:
 
-✅ **Agent names items, never amounts** - 70% over-refund reduction  
+✅ **Agent names items, never amounts** — when the agent names items (gate computes amount): 0 of 20 over-refunded vs 14 of 20 (70% baseline) when agent chose the amount directly. n=20 per arm, single run, authored tickets — see [docs/Product/IMPACT_AND_EVIDENCE.md](docs/Product/IMPACT_AND_EVIDENCE.md) §13
 ✅ **Deterministic policy** (no AI decides money)  
 ✅ **Human approval** for risky requests  
 ✅ **Hash-chained audit trail** with Ed25519 checkpoints  
@@ -75,7 +73,7 @@ AI support agents are vulnerable to prompt injection. Rein bounds the damage:
 ## 🔬 What Works (Verified)
 
 ### Core Gate ✅
-- **383 passing tests** on both SQLite drivers
+- **392 passing tests** on both SQLite drivers
 - Item-scoped refunds with quantity tracking and per-item rules
 - Amount-scoped refunds with configurable caps
 - **Customer velocity tracking** - per-customer rate limits over rolling windows
@@ -121,7 +119,7 @@ AI support agents are vulnerable to prompt injection. Rein bounds the damage:
 ### SDK & Performance ✅
 - **TypeScript SDK** (`sdk/rein-client.ts`) - Full type-safe client for all endpoints
 - **Python SDK** (`sdk/rein_client.py`) - Equivalent Python client with type hints
-- **Performance**: 5455 ops/sec, p50 0.11ms, p99 1.07ms (single process, local SQLite, simulated mode) - run `npm run benchmark`
+- **Performance**: ~883 ops/sec, p50 0.57ms, p99 20ms (single process, local SQLite, simulated mode; numbers vary by hardware) — run `npm run benchmark`
 - **OpenAPI 3.1 spec** (`docs/api/openapi.yaml`) - Complete API documentation
 
 ---
@@ -147,9 +145,9 @@ AI support agents are vulnerable to prompt injection. Rein bounds the damage:
 
 ### Test Results
 ```
-Tests: 374 passing, 0 failing
+Tests: 392 passing, 0 failing
 Drivers: both better-sqlite3 and node:sqlite
-Duration: ~21 seconds
+Duration: ~23 seconds
 ```
 
 ### Attack Lab Results
@@ -192,7 +190,7 @@ Duration: ~21 seconds
 - `GET /demo` - Demo page
 - `GET /ledger` - Audit ledger page
 - `GET /attack-lab` - Attack lab page
-- `GET /challenge` - Beat the Gate challenge page (live with Anthropic API)
+- `GET /challenge` - Beat the Gate challenge page (live with Anthropic or Groq API, falls back to recorded)
 - `GET /verify` - Checkpoint verification page
 - `GET /approve/:id` - Approval page
 - `GET /v1/ledger/checkpoint` - Create signed Ed25519 checkpoint
@@ -243,7 +241,7 @@ npm ci
 
 ### Run Tests
 ```bash
-npm test                    # All tests (374 total, better-sqlite3)
+npm test                    # All tests (392 total, better-sqlite3)
 npm run test:node-sqlite   # Test with node:sqlite driver
 npm run typecheck          # TypeScript type checking
 ```
@@ -292,7 +290,7 @@ Open http://127.0.0.1:4317
 ## ✅ Features Completed & Verified
 
 **Core Gate** ✅
-- 374 passing tests on both SQLite drivers
+- 392 passing tests on both SQLite drivers
 - All refund policy rules enforced
 - Hash-chained ledger with tamper detection
 - Mandate versioning with cryptographic hash tracking
@@ -304,11 +302,15 @@ Open http://127.0.0.1:4317
 - Visual status indicators for signature and chain validity
 
 **Live Beat the Gate** (/challenge page) ✅
-- Full Anthropic API integration (falls back to recorded attempts without ANTHROPIC_API_KEY)
+- Dual provider support: Anthropic Claude and Groq (OpenAI-compatible) with plain `fetch`
+- Provider priority: `ANTHROPIC_API_KEY` -> `GROQ_API_KEY` -> recorded fallback
 - Real-time gate enforcement during challenge
-- Interactive UI with budget tracking
-- Leaderboard with live/recorded mode indicators
-- Tool call visualization
+- Interactive UI with budget tracking and transparent live/recorded mode indicators
+- Tool call visualization (supports both Anthropic and Groq tool calling formats)
+- Test locally with a real key:
+  ```bash
+  curl -s -X POST http://127.0.0.1:4317/v1/challenge/attempt -H "Content-Type: application/json" -d '{"message": "My mug arrived broken, please refund it."}'
+  ```
 
 **Subscription & Dispute Gate Integration** ✅
 - Full policy layer with 7+ tests passing
@@ -350,23 +352,35 @@ Open http://127.0.0.1:4317
 - ❌ **Single-instance only**: SQLite design (distributed lock interface exists but PostgreSQL implementation is a placeholder)
 - ❌ **Sandbox only**: PayPal sandbox credentials required for live mode
 
-**VERIFIED IN PRODUCTION:**
-- ✅ **Render deployment** - Live at https://rein-xgze.onrender.com
-- ✅ **PayPal Sandbox API** - Live-fire mode with real PayPal sandbox credentials
-- ✅ **PayPal Webhooks** - Configured and receiving events (ID: 4RA34111CF662345G)
-- ✅ **All 11 UI pages** - Demo, Ledger, Ops, Attack Lab, Challenge, Verify, Author, Mandate, Proof, Shop, Approvals
-- ✅ **API endpoints** - All /v1/* endpoints responding correctly
-- ✅ **Health checks** - /health, /healthz, /readyz all operational
-- ✅ **Security** - HTTPS, REIN_TOKEN authentication, Ed25519 signatures
+**VERIFIED (locally or in CI):**
+- ✅ **392 tests** — `npm test` passes, both SQLite drivers (run confirmed this session)
+- ✅ **TypeScript** — `npm run typecheck` exit 0
+- ✅ **Gate logic** — all 8 attack vectors blocked, $0 over-refunded (test suite)
+- ✅ **Webhook signature** — verified in tests
+- ✅ **Ed25519 checkpoints** — verified in tests
+- ✅ **Customer velocity tracking** — verified in tests (`server/velocity.ts`)
+- ✅ **UI build** — `npm run web:build` succeeds
+
+**NOT VERIFIED (no live probe output provided; would need real credentials/deployment):**
+- ⚠️ **Render deployment mode** — deployed at https://rein-xgze.onrender.com but live probe was not run; assumed simulated mode
+- ⚠️ **PayPal Sandbox API** — live-fire mode not confirmed; no sandbox credentials available
+- ⚠️ **PayPal Webhooks** — webhook ID in docs not verified as active
+- ⚠️ **PayPal reconciler** — real sandbox lookup not tested
+- ⚠️ **Groq API** — no GROQ_API_KEY available for testing against live API (unit/mock tested)
+- ⚠️ **Anthropic API** — no ANTHROPIC_API_KEY available for testing against live API (unit/mock tested)
+- ⚠️ **Telegram notifications** — no bot token available
+- ⚠️ **Channel3 price data** — no API key available (mocked)
+- ⚠️ **Checkpoint key persistence** — across Render restarts not verified
+- ⚠️ **Render Workflows** — render.yaml changes not deployed
 
 **Optional Features (Not Enabled):**
 - ⏸️ Anthropic API (ANTHROPIC_API_KEY not set) - Beat the Gate challenge uses recorded fallback
+- ⏸️ Groq API (GROQ_API_KEY not set) - Beat the Gate challenge uses recorded fallback
 - ⏸️ Gemini API (GEMINI_API_KEY not set) - Policy compilation uses recorded fallback
 - ⏸️ Telegram notifications (TELEGRAM_BOT_TOKEN not set)
 - ⏸️ Channel3 price data (CHANNEL3_API_KEY not set) - Uses recorded fallback
 
 **Not Built:**
-- Customer velocity tracking (per-customer action/amount limits per 24h)
 - Two-person approval rule (requiring 2 separate human approvals)
 - TOTP authentication (time-based one-time passwords for high-value actions)
 - Slack integration (notification system)
@@ -387,7 +401,7 @@ MIT License - Copyright (c) 2026 darkphoenix2208
 **Technologies**: PayPal REST API, Node.js, React, TypeScript  
 
 ### Key Achievements
-- ✅ 374 tests passing on both SQLite drivers (includes 1600+ property-based test cases)
+- ✅ 392 tests passing on both SQLite drivers (includes 1600+ property-based test cases)
 - ✅ 8 adversarial attack vectors - all blocked, $0 over-refunded
 - ✅ Ed25519 signed checkpoints with offline verification
 - ✅ PayPal webhook signature verification (NEVER accepts unverified events)
@@ -417,7 +431,7 @@ MIT License - Copyright (c) 2026 darkphoenix2208
 | Integration | Purpose | Status |
 |-------------|---------|--------|
 | **PayPal REST API** | Payment capture lookup, refund execution, order details | ✅ Implemented, ⚠️ NOT VERIFIED without live credentials |
-| **Anthropic Claude** | Beat the Gate challenge agent | ✅ Implemented, ⚠️ NOT VERIFIED without API key |
+| **Anthropic Claude / Groq** | Beat the Gate challenge agent | ✅ Implemented, ⚠️ NOT VERIFIED without API keys |
 | **Telegram Bot API** | Approval notifications | ✅ Implemented, ⚠️ NOT VERIFIED without bot token |
 | **Channel3 API** | Price anomaly detection (conceptual) | ❌ Mocked for demonstration only |
 

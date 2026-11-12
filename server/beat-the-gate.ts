@@ -18,7 +18,7 @@ export interface ChallengeAttempt {
   savedCents: number;
   lostCents: number;
   createdAt: number;
-  mode: 'live' | 'recorded';
+  mode: string;
   tokensUsed?: number;
 }
 
@@ -224,5 +224,5 @@ export function isKillSwitchActive(): boolean {
 }
 
 export function hasApiKey(): boolean {
-  return !!process.env.ANTHROPIC_API_KEY;
+  return !!(process.env.ANTHROPIC_API_KEY || process.env.GROQ_API_KEY);
 }

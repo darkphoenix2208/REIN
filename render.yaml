@@ -38,5 +38,21 @@ services:
         sync: false
       - key: PAYPAL_CLIENT_SECRET
         sync: false
+      - key: PAYPAL_WEBHOOK_ID
+        sync: false
+      - key: REIN_CHECKPOINT_KEY
+        sync: false
+      - key: REIN_CHECKPOINT_KEY_FILE
+        value: /var/data/.checkpoint-key.json
+      - key: GROQ_API_KEY
+        sync: false
+      - key: GROQ_MODEL
+        sync: false
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false
+      - key: TELEGRAM_CHAT_ID
+        sync: false
+      - key: REIN_CHALLENGE_DAILY_TOKENS
+        sync: false
       - key: REIN_DISABLE_CHALLENGE
         sync: false

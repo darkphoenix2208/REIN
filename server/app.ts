@@ -797,12 +797,13 @@ export function createApp(d: GateDeps, o: AppOptions = {}): express.Express {
         now: () => Date.now(),
       };
 
-      const result = await runLiveAgent(challengeDeps, message, captureId, process.env.ANTHROPIC_API_KEY, { client: o.challengeClient });
+      const result = await runLiveAgent(challengeDeps, message, captureId, undefined, { client: o.challengeClient });
 
       const savedCents = result.gateDecision === 'blocked' || result.gateDecision === 'escalated'
         ? result.requestedCents
         : 0;
       const lostCents = result.gateDecision === 'allowed' ? result.refundedCents : 0;
+      const attemptMode = result.mode || 'live';
 
       const id = recordAttempt(cdb, {
         ip,
@@ -815,13 +816,13 @@ export function createApp(d: GateDeps, o: AppOptions = {}): express.Express {
         refundedCents: result.refundedCents,
         savedCents,
         lostCents,
-        mode: 'live',
+        mode: attemptMode,
         tokensUsed: result.tokensUsed,
       });
 
       res.json({
         id,
-        mode: 'live',
+        mode: attemptMode,
         agentResponse: result.response,
         toolCalls: result.toolCalls,
         gateDecision: result.gateDecision,

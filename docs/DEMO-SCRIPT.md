@@ -143,7 +143,7 @@
 ### What to Say
 > "Under the hood, Rein is:"
 > 
-> - **383 passing tests** - covering every attack vector and edge case
+> - **392 passing tests** - covering every attack vector and edge case
 > - **Hash-chained ledger** - cryptographically tamper-proof
 > - **Item-scoped refunds** - the AI names items, not amounts, so it can't over-refund
 > - **Concurrent-safe** - multiple refunds can happen simultaneously without race conditions
@@ -151,7 +151,7 @@
 > 
 > "And it's all open source on GitHub."
 
-**Text Overlay:** "383 Tests • 0 Vulnerabilities • Production Deployed"
+**Text Overlay:** "392 Tests • 0 Vulnerabilities • Production Deployed"
 
 ---
 
@@ -241,7 +241,7 @@ refunds, Rein enforces limits, everything is cryptographically audited.
 🚀 Live Demo: https://rein-xgze.onrender.com
 💻 GitHub: https://github.com/darkphoenix2208/REIN
 
-Built for the Physical AI Hackathon by darkphoenix2208
+Built for Build What's Next with PayPal and AI by darkphoenix2208
 
 #AIAgent #Fintech #PromptInjection #PayPal #Security
 ```
@@ -263,7 +263,7 @@ Built for the Physical AI Hackathon by darkphoenix2208
    - Show the hash-chaining algorithm
 
 4. **Stats Screen** (final 5 seconds)
-   - "383 Tests Passing"
+   - "392 Tests Passing"
    - "0 Security Vulnerabilities"
    - "$0 Over-Refunded"
    - "100% Attack Prevention Rate"
@@ -277,7 +277,7 @@ If you want a shorter version for social media:
 1. **Problem** (0-10s): "AI agents can be tricked by prompt injection"
 2. **Demo** (10-40s): Show Attack Lab blocking all 8 attacks
 3. **How** (40-55s): "Item-scoped refunds + cryptographic audit"
-4. **Result** (55-60s): "$0 lost, 383 tests passing, production ready"
+4. **Result** (55-60s): "$0 lost, 392 tests passing, production ready"
 
 ---
 
