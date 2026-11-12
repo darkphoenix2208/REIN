@@ -3,7 +3,7 @@
 // Probes a live Rein deployment without credentials to check mode, health, and checkpoint keys.
 // Usage: node scripts/probe-live.mjs [url]
 
-const baseUrl = (process.argv[2] || process.env.REIN_PUBLIC_URL || 'http://127.0.0.1:4317').replace(/\/+$/, '');
+const baseUrl = (process.argv[2] || process.env.REIN_PUBLIC_URL || process.env.REIN_URL || 'http://127.0.0.1:4317').replace(/\/+$/, '');
 
 console.log(`\n=== PROBING REIN DEPLOYMENT: ${baseUrl} ===\n`);
 
