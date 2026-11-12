@@ -36,13 +36,19 @@ export function Proof() {
 
   return (
     <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-      <h1 style={{ fontSize: 'var(--font-size-xl)', fontWeight: '600', marginBottom: 'var(--space-sm)', color: 'var(--text)' }}>
-        Live sandbox proof
+      <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: 'rgba(0, 112, 186, 0.1)', color: 'var(--blue)', padding: '6px 14px', borderRadius: '999px', fontSize: '13px', fontWeight: 600, marginBottom: '16px', border: '1px solid rgba(0, 112, 186, 0.2)' }}>
+        <span>🔬 LIVE SANDBOX PROOF</span>
+        <span>•</span>
+        <span>PayPal REST API Verification</span>
+      </div>
+
+      <h1 style={{ fontSize: 'var(--font-size-xl)', fontWeight: '700', marginBottom: 'var(--space-xs)', color: 'var(--text)', letterSpacing: '-0.02em' }}>
+        Live Sandbox Proof
       </h1>
-      <p style={{ color: 'var(--muted)', marginBottom: 'var(--space-lg)' }}>
+      <p style={{ color: 'var(--muted)', marginBottom: 'var(--space-lg)', fontSize: '15px' }}>
         The demo page is simulated. These are real PayPal sandbox refunds made through the same gate.{' '}
         {data?.mode === 'LIVE-FIRE'
-          ? 'This server has sandbox credentials, so each refund below was just re-read from PayPal.'
+          ? 'This server has sandbox credentials, so each refund below was just re-read live from PayPal.'
           : 'This server has no sandbox credentials, so the status shown is the recorded one.'}
       </p>
 

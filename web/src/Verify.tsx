@@ -100,20 +100,28 @@ export function Verify() {
   const overallValid = Boolean(signatureValid && chainValid);
 
   return (
-    <div style={{ maxWidth: 960, margin: '0 auto', paddingBottom: '3rem' }}>
-      <h1>Cryptographic Ledger Verification</h1>
-      <p className="muted">
+    <div style={{ maxWidth: 1080, margin: '0 auto', paddingBottom: '3rem' }}>
+      <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: 'rgba(0, 112, 186, 0.1)', color: 'var(--blue)', padding: '6px 14px', borderRadius: '999px', fontSize: '13px', fontWeight: 600, marginBottom: '16px', border: '1px solid rgba(0, 112, 186, 0.2)' }}>
+        <span>🔐 ZERO-TRUST VERIFIER</span>
+        <span>•</span>
+        <span>Ed25519 & SHA-256 WebCrypto Engine</span>
+      </div>
+
+      <h1 style={{ fontSize: 'var(--font-size-xl)', fontWeight: '700', margin: '0 0 var(--space-xs) 0', color: 'var(--text)', letterSpacing: '-0.02em' }}>
+        Cryptographic Ledger Verification
+      </h1>
+      <p style={{ color: 'var(--muted)', marginBottom: 'var(--space-lg)', fontSize: '15px' }}>
         Verify the complete audit trail and Ed25519 digital signature directly in your browser.
         Every ledger entry is cryptographically linked to the previous entry, establishing tamper-evidence.
       </p>
 
       {/* Action Bar */}
       <div style={{ display: 'flex', gap: 12, marginBottom: 20, flexWrap: 'wrap', alignItems: 'center' }}>
-        <button className="btn" onClick={loadAll} disabled={loading}>
+        <button className="btn btn-primary" onClick={loadAll} disabled={loading}>
           {loading ? 'Verifying...' : '↻ Reload & Verify Latest'}
         </button>
         <button
-          className="btn secondary"
+          className="btn btn-secondary"
           onClick={tamperWithOneRowLocally}
           disabled={loading || isTamperedLocally || currentRows.length === 0}
           title="Modifies an in-memory copy of one row to test client-side tamper detection"
@@ -121,7 +129,7 @@ export function Verify() {
           Tamper With One Row Locally
         </button>
         {isTamperedLocally && (
-          <button className="btn secondary" onClick={resetToOriginal} style={{ borderColor: '#FFC439' }}>
+          <button className="btn btn-secondary" onClick={resetToOriginal} style={{ borderColor: '#FFC439' }}>
             ↺ Reset Local Tamper
           </button>
         )}
@@ -131,12 +139,12 @@ export function Verify() {
         <div
           className="banner"
           style={{
-            background: '#FFF8E1',
-            border: '1px solid #FFC439',
-            color: '#7A4F01',
-            padding: '12px 16px',
+            background: 'rgba(245, 158, 11, 0.12)',
+            border: '1px solid rgba(245, 158, 11, 0.4)',
+            color: 'var(--warning)',
+            padding: '14px 18px',
             marginBottom: 20,
-            borderRadius: 4,
+            borderRadius: 8,
           }}
         >
           <strong>Simulated In-Memory Tampering Active:</strong> Row #{tamperedSeq} was altered in local memory.
@@ -155,12 +163,13 @@ export function Verify() {
       {checkpoint && (
         <div
           style={{
-            background: overallValid ? '#E6F4EA' : '#FCE8E6',
-            border: `1px solid ${overallValid ? '#137333' : '#C5221F'}`,
-            color: overallValid ? '#137333' : '#C5221F',
-            padding: 20,
-            borderRadius: 6,
+            background: overallValid ? 'var(--allow-bg, rgba(16, 185, 129, 0.1))' : 'var(--block-bg, rgba(239, 68, 68, 0.1))',
+            border: `1.5px solid ${overallValid ? 'var(--allow, #10B981)' : 'var(--block, #EF4444)'}`,
+            color: overallValid ? 'var(--allow, #10B981)' : 'var(--block, #EF4444)',
+            padding: 22,
+            borderRadius: 12,
             marginBottom: 24,
+            boxShadow: overallValid ? '0 4px 16px rgba(16, 185, 129, 0.08)' : '0 4px 16px rgba(239, 68, 68, 0.08)',
           }}
         >
           <div style={{ fontSize: 20, fontWeight: 700, marginBottom: 6 }}>
@@ -265,7 +274,7 @@ export function Verify() {
           <div className="scroll-x">
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
               <thead>
-                <tr style={{ background: '#f3f5f8', textAlign: 'left' }}>
+                <tr style={{ background: 'var(--background)', textAlign: 'left', color: 'var(--text)' }}>
                   <th style={{ padding: '8px 12px', borderBottom: '1px solid var(--line)' }}>Seq</th>
                   <th style={{ padding: '8px 12px', borderBottom: '1px solid var(--line)' }}>Status</th>
                   <th style={{ padding: '8px 12px', borderBottom: '1px solid var(--line)' }}>Event</th>
@@ -280,7 +289,7 @@ export function Verify() {
                   <tr
                     key={r.seq}
                     style={{
-                      background: r.ok ? 'transparent' : '#FFF0F0',
+                      background: r.ok ? 'transparent' : 'rgba(239, 68, 68, 0.12)',
                       borderBottom: '1px solid var(--line)',
                     }}
                   >

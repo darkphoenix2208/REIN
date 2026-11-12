@@ -56,10 +56,16 @@ export function Author() {
 
   return (
     <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-      <h1 style={{ fontSize: 'var(--font-size-xl)', fontWeight: '600', marginBottom: 'var(--space-sm)', color: 'var(--text)' }}>
-        Author a mandate
+      <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: 'rgba(0, 112, 186, 0.1)', color: 'var(--blue)', padding: '6px 14px', borderRadius: '999px', fontSize: '13px', fontWeight: 600, marginBottom: '16px', border: '1px solid rgba(0, 112, 186, 0.2)' }}>
+        <span>✍️ POLICY COMPILER</span>
+        <span>•</span>
+        <span>3-Way Agreement & Zero-Hallucination Drafts</span>
+      </div>
+
+      <h1 style={{ fontSize: 'var(--font-size-xl)', fontWeight: '700', marginBottom: 'var(--space-xs)', color: 'var(--text)', letterSpacing: '-0.02em' }}>
+        Author a Mandate
       </h1>
-      <p style={{ color: 'var(--muted)', marginBottom: 'var(--space-lg)' }}>
+      <p style={{ color: 'var(--muted)', marginBottom: 'var(--space-lg)', fontSize: '15px' }}>
         Paste your refund policy in plain English. A model reads it three times; anything the runs disagree on, or the policy does not say, stays empty. Nothing here is activated: this is a draft you read back and sign off.
       </p>
 
@@ -95,11 +101,13 @@ export function Author() {
         rows={8}
         style={{
           width: '100%',
-          fontFamily: 'var(--font-family)',
+          fontFamily: 'IBM Plex Mono, monospace',
           fontSize: 'var(--font-size-base)',
           padding: 'var(--space-md)',
           border: '1px solid var(--border)',
           borderRadius: 'var(--radius-md)',
+          background: 'var(--surface)',
+          color: 'var(--text)',
           marginBottom: 'var(--space-md)',
         }}
       />
@@ -163,7 +171,10 @@ export function Author() {
 
           <div
             className={draft.activatable ? 'card' : 'error-state'}
-            style={{ background: draft.activatable ? '#E6F4EC' : undefined }}
+            style={{
+              background: draft.activatable ? 'var(--allow-bg, rgba(16, 185, 129, 0.1))' : undefined,
+              border: draft.activatable ? '1px solid var(--success)' : undefined,
+            }}
           >
             <p style={{ margin: 0, color: draft.activatable ? 'var(--success)' : undefined }}>
               {draft.activatable

@@ -99,32 +99,33 @@ export function AttackLab() {
         </p>
       </header>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 'var(--space-md)', marginBottom: 'var(--space-lg)' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 'var(--space-md)', marginBottom: 'var(--space-lg)' }}>
         {ATTACKS.map((a) => (
           <button
             key={a.id}
             onClick={() => setSelected(a.id)}
             className="card"
             style={{
-              padding: 'var(--space-lg)',
+              padding: 'var(--space-md) var(--space-lg)',
               border: selected === a.id ? '2px solid var(--blue)' : '1px solid var(--border)',
-              background: selected === a.id ? '#E8F4FD' : 'white',
+              background: selected === a.id ? 'rgba(0, 112, 186, 0.08)' : 'var(--card-bg, #ffffff)',
               cursor: 'pointer',
               textAlign: 'left',
               transition: 'all var(--transition-fast)',
+              boxShadow: selected === a.id ? '0 4px 14px rgba(0, 112, 186, 0.15)' : 'var(--shadow-sm)',
             }}
           >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: 'var(--space-sm)' }}>
-              <strong style={{ color: 'var(--text)' }}>Attack #{a.id}</strong>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-xs)' }}>
+              <strong style={{ color: 'var(--text)', fontSize: '15px' }}>Vector #{a.id}</strong>
               <span className={`chip ${getSeverityChipClass(a.severity)}`}>
-                {a.severity}
+                {a.severity.toUpperCase()}
               </span>
             </div>
-            <div style={{ fontSize: 'var(--font-size-base)', color: 'var(--text)', marginBottom: 'var(--space-sm)' }}>
+            <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text)', marginBottom: 'var(--space-xs)' }}>
               {a.vector}
             </div>
-            <div style={{ fontSize: 'var(--font-size-sm)', color: 'var(--muted)' }}>
-              Expected: <code style={{ fontFamily: 'IBM Plex Mono, monospace', fontSize: 'var(--font-size-sm)' }}>{a.expected}</code> ({a.ruleId})
+            <div style={{ fontSize: '12px', color: 'var(--muted)' }}>
+              Expected: <code style={{ fontFamily: 'IBM Plex Mono, monospace', fontSize: '11px', color: 'var(--blue)' }}>{a.expected}</code> ({a.ruleId})
             </div>
           </button>
         ))}

@@ -2,11 +2,37 @@ import { useEffect, useMemo, useState } from 'react';
 import { AgGridReact } from 'ag-grid-react';
 import { AllCommunityModule, ModuleRegistry, themeQuartz, type ColDef } from 'ag-grid-community';
 import { api } from './ui';
+import { useTheme } from './ThemeToggle';
 
 ModuleRegistry.registerModules([AllCommunityModule]);
-const theme = themeQuartz.withParams({ backgroundColor: '#FFFFFF', foregroundColor: '#0C1424', borderColor: '#D3D9E3', headerBackgroundColor: '#F3F5F8', fontFamily: "'IBM Plex Mono', monospace", fontSize: 14, borderRadius: 0, wrapperBorderRadius: 0, accentColor: '#0C1424' });
+
+const lightTheme = themeQuartz.withParams({
+  backgroundColor: '#FFFFFF',
+  foregroundColor: '#0C1424',
+  borderColor: '#D9DEE7',
+  headerBackgroundColor: '#F8FAFC',
+  fontFamily: "'IBM Plex Mono', monospace",
+  fontSize: 13,
+  borderRadius: 6,
+  wrapperBorderRadius: 6,
+  accentColor: '#0070BA',
+});
+
+const darkTheme = themeQuartz.withParams({
+  backgroundColor: '#141A28',
+  foregroundColor: '#F1F5F9',
+  borderColor: '#232D42',
+  headerBackgroundColor: '#0B0E17',
+  fontFamily: "'IBM Plex Mono', monospace",
+  fontSize: 13,
+  borderRadius: 6,
+  wrapperBorderRadius: 6,
+  accentColor: '#38BDF8',
+});
 
 export function Ledger() {
+  const { theme: currentTheme } = useTheme();
+  const gridTheme = currentTheme === 'dark' ? darkTheme : lightTheme;
   const [data, setData] = useState<any>(null);
   const [err, setErr] = useState('');
   const [selected, setSelected] = useState<any>(null);
@@ -86,51 +112,63 @@ export function Ledger() {
     }];
   }, [data]);
   return (
-    <>
-      <h1>Ledger</h1>
-      {err && <div className="banner error" role="alert">Could not load the ledger: {err} <button className="btn secondary" onClick={load}>Retry</button></div>}
+    <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
+      <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: 'rgba(0, 112, 186, 0.1)', color: 'var(--blue)', padding: '6px 14px', borderRadius: '999px', fontSize: '13px', fontWeight: 600, marginBottom: '16px', border: '1px solid rgba(0, 112, 186, 0.2)' }}>
+        <span>📊 AUDIT TRAIL</span>
+        <span>•</span>
+        <span>Tamper-Evident SHA-256 Ledger</span>
+      </div>
+
+      <h1 style={{ fontSize: 'var(--font-size-xl)', fontWeight: '700', marginBottom: 'var(--space-xs)', color: 'var(--text)', letterSpacing: '-0.02em' }}>
+        Cryptographic Ledger
+      </h1>
+      <p style={{ color: 'var(--muted)', marginBottom: 'var(--space-lg)', fontSize: '15px' }}>
+        Every evaluation, reservation, and execution is hashed into an append-only chain. Replays and integrity checks guarantee zero undetected mutations.
+      </p>
+
+      {err && <div className="banner error" role="alert">Could not load the ledger: {err} <button className="btn btn-secondary" onClick={load}>Retry</button></div>}
       {!data && !err && <div className="banner">Loading ledger...</div>}
       {data && (
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', alignItems: 'center', marginBottom: '1rem' }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', alignItems: 'center', marginBottom: '1.25rem', background: 'var(--card-bg, #ffffff)', padding: '16px', borderRadius: '12px', border: '1px solid var(--border)' }}>
           <p className="row" style={{ margin: 0 }}>
             <span className={`chip ${data.chain.ok ? 'allow' : 'block'}`}>
               <span aria-hidden="true">{data.chain.ok ? '✓' : '✕'}</span>
               {data.chain.ok ? 'Chain verified' : 'Chain BROKEN'}
             </span>
-            <span className="num">{data.total} entries</span>
-            <span className="muted">Hash-chained; tamper-evident against partial edits.</span>
+            <span className="num" style={{ fontWeight: 600 }}>{data.total} entries</span>
+            <span className="muted" style={{ fontSize: '13px' }}>Hash-chained; tamper-evident against edits.</span>
           </p>
-          <div style={{ marginLeft: 'auto', display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-            <label style={{ fontSize: '0.875rem' }}>
-              Group by:
+          <div style={{ marginLeft: 'auto', display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+            <label style={{ fontSize: '0.875rem', color: 'var(--text)' }}>
+              Group:
               <select
                 value={groupBy}
                 onChange={(e) => setGroupBy(e.target.value as any)}
-                style={{ marginLeft: '0.5rem', padding: '0.25rem 0.5rem' }}
+                style={{ marginLeft: '0.5rem', padding: '0.35rem 0.6rem', borderRadius: '6px', border: '1px solid var(--border)', background: 'var(--background)', color: 'var(--text)' }}
               >
                 <option value="none">None</option>
                 <option value="event">Event</option>
                 <option value="rule">Rule</option>
               </select>
             </label>
-            <button className="btn secondary" onClick={exportCSV} disabled={!data?.rows?.length}>
+            <button className="btn btn-secondary" onClick={exportCSV} disabled={!data?.rows?.length}>
               Export CSV
             </button>
-            <button className="btn secondary" onClick={exportPdf} disabled={!data?.rows?.length} title="Download printable PDF evidence pack with signed checkpoint and chain status">
+            <button className="btn btn-secondary" onClick={exportPdf} disabled={!data?.rows?.length} title="Download printable PDF evidence pack with signed checkpoint and chain status">
               Auditor Pack (PDF)
             </button>
-            <button className="btn secondary" onClick={exportJsonPack} disabled={!data?.rows?.length} title="Download complete JSON evidence pack">
+            <button className="btn btn-secondary" onClick={exportJsonPack} disabled={!data?.rows?.length} title="Download complete JSON evidence pack">
               Auditor Pack (JSON)
             </button>
           </div>
         </div>
       )}
-      {data?.chain.ok && <p className="mono" aria-label="Head hash">Head after {data.chain.rows} rows: {data.chain.head}</p>}
+      {data?.chain.ok && <p className="mono" aria-label="Head hash" style={{ fontSize: '13px', color: 'var(--muted)', marginBottom: '12px' }}>Head after {data.chain.rows} rows: <code>{data.chain.head}</code></p>}
       {data && data.total === 0 && <div className="banner">No decisions yet. Run a ticket on the Demo page.</div>}
       {data && groupBy === 'none' && (
         <div className="scroll-x" style={{ height: 480 }}>
           <AgGridReact
-            theme={theme}
+            theme={gridTheme}
             rowData={data.rows}
             columnDefs={cols}
             pinnedBottomRowData={pinnedBottomRowData}
@@ -146,22 +184,23 @@ export function Ledger() {
         </div>
       )}
       {data && groupBy !== 'none' && (
-        <div style={{ border: '1px solid #ddd', borderRadius: '4px', overflow: 'hidden' }}>
+        <div style={{ border: '1px solid var(--border)', borderRadius: '8px', overflow: 'hidden' }}>
           {grouped.map((g: any) => (
-            <details key={g.key} style={{ borderBottom: '1px solid #ddd' }}>
+            <details key={g.key} style={{ borderBottom: '1px solid var(--border)' }}>
               <summary
                 style={{
                   padding: '0.75rem 1rem',
                   cursor: 'pointer',
-                  background: '#f3f5f8',
-                  fontWeight: 500,
+                  background: 'var(--background)',
+                  color: 'var(--text)',
+                  fontWeight: 600,
                 }}
               >
                 {g.key || '(none)'} — {g.count} entries, {g.total > 0 ? `$${(g.total / 100).toFixed(2)}` : 'no amounts'}
               </summary>
-              <div style={{ padding: '1rem' }}>
+              <div style={{ padding: '1rem', background: 'var(--card-bg, #ffffff)' }}>
                 <div className="scroll-x" style={{ height: 300 }}>
-                  <AgGridReact theme={theme} rowData={g.children} columnDefs={cols} onRowClicked={(e) => setSelected(e.data)} />
+                  <AgGridReact theme={gridTheme} rowData={g.children} columnDefs={cols} onRowClicked={(e) => setSelected(e.data)} />
                 </div>
               </div>
             </details>
@@ -169,15 +208,15 @@ export function Ledger() {
         </div>
       )}
       {selected && (
-        <div style={{ marginTop: '1rem', border: '1px solid #ddd', borderRadius: '4px', padding: '1rem', background: '#f9f9f9' }}>
-          <h3 style={{ marginTop: 0 }}>Row #{selected.seq} Details</h3>
-          <pre style={{ fontSize: '0.875rem', overflow: 'auto' }}>{JSON.stringify(selected, null, 2)}</pre>
-          <button className="btn secondary" onClick={() => setSelected(null)} style={{ marginTop: '0.5rem' }}>
+        <div style={{ marginTop: '1rem', border: '1px solid var(--border)', borderRadius: '8px', padding: '1rem', background: 'var(--background)' }}>
+          <h3 style={{ marginTop: 0, color: 'var(--text)' }}>Row #{selected.seq} Details</h3>
+          <pre style={{ fontSize: '0.875rem', overflow: 'auto', color: 'var(--text)' }}>{JSON.stringify(selected, null, 2)}</pre>
+          <button className="btn btn-secondary" onClick={() => setSelected(null)} style={{ marginTop: '0.5rem' }}>
             Close
           </button>
         </div>
       )}
       {!data && !err && <p className="muted">Loading ledger...</p>}
-    </>
+    </div>
   );
 }

@@ -68,13 +68,19 @@ export function Shop() {
 
   return (
     <div style={{ maxWidth: '1080px', margin: '0 auto' }}>
+      <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: 'rgba(0, 112, 186, 0.1)', color: 'var(--blue)', padding: '6px 14px', borderRadius: '999px', fontSize: '13px', fontWeight: 600, marginBottom: '16px', border: '1px solid rgba(0, 112, 186, 0.2)' }}>
+        <span>🛒 BUYER-SIDE AGENT</span>
+        <span>•</span>
+        <span>Channel3 Price Intelligence & Gate Caps</span>
+      </div>
+
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 'var(--space-md)', marginBottom: 'var(--space-lg)' }}>
         <div>
-          <h1 style={{ fontSize: 'var(--font-size-xl)', fontWeight: '600', margin: '0 0 var(--space-xs) 0', color: 'var(--text)' }}>
-            Buyer-Side Agent & Shop
+          <h1 style={{ fontSize: 'var(--font-size-xl)', fontWeight: '700', margin: '0 0 var(--space-xs) 0', color: 'var(--text)', letterSpacing: '-0.02em' }}>
+            Autonomous Shopping & Channel3
           </h1>
-          <p style={{ color: 'var(--muted)', margin: 0 }}>
+          <p style={{ color: 'var(--muted)', margin: 0, fontSize: '15px' }}>
             Autonomous shopping agent with Channel3 price intelligence and Rein gate-enforced spend limits.
           </p>
         </div>
@@ -184,7 +190,7 @@ export function Shop() {
 
       {/* Manual Purchase Result Card */}
       {lastPurchase && (
-        <div className="card" style={{ marginBottom: 'var(--space-xl)', background: '#E6F4EC', border: '1px solid var(--success)' }}>
+        <div className={`card ${lastPurchase.status === 'executed' ? 'card-protected' : lastPurchase.status === 'blocked' ? 'card-vulnerable' : ''}`} style={{ marginBottom: 'var(--space-xl)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-sm)' }}>
             <h4 style={{ margin: 0, fontSize: 'var(--font-size-lg)', fontWeight: '600', color: 'var(--text)' }}>
               Gate Purchase Decision
@@ -193,13 +199,13 @@ export function Shop() {
             {lastPurchase.status === 'blocked' && <Chip kind="block" />}
             {lastPurchase.status === 'pending_approval' && <Chip kind="escalate" />}
           </div>
-          <div style={{ fontSize: 'var(--font-size-sm)' }}>
-            <div><strong>Status:</strong> {lastPurchase.status} (Rule: {lastPurchase.ruleId})</div>
+          <div style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text)' }}>
+            <div><strong>Status:</strong> {lastPurchase.status} (Rule: <code>{lastPurchase.ruleId}</code>)</div>
             {lastPurchase.amountCents && <div className="numeric"><strong>Amount:</strong> {dollars(lastPurchase.amountCents)}</div>}
             {lastPurchase.orderId && <div><strong>Order ID:</strong> {lastPurchase.orderId}</div>}
             {lastPurchase.reason && <div><strong>Reason:</strong> {lastPurchase.reason}</div>}
             {lastPurchase.approvalUrl && (
-              <div style={{ marginTop: 'var(--space-sm)' }}>
+              <div style={{ marginTop: 'var(--space-md)' }}>
                 <a href={lastPurchase.approvalUrl} target="_blank" rel="noreferrer" className="btn btn-primary">
                   Open Approval Link →
                 </a>

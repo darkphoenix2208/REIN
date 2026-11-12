@@ -8,16 +8,16 @@ interface LayoutProps {
 }
 
 const navItems = [
-  { id: 'demo', label: 'Demo', path: '/' },
-  { id: 'shop', label: 'Shop', path: '/shop' },
-  { id: 'challenge', label: 'Challenge', path: '/challenge' },
-  { id: 'attack-lab', label: 'Attack Lab', path: '/attack-lab' },
-  { id: 'ledger', label: 'Ledger', path: '/ledger' },
-  { id: 'ops', label: 'Ops', path: '/ops' },
-  { id: 'verify', label: 'Verify', path: '/verify' },
-  { id: 'mandate', label: 'Mandate', path: '/mandate' },
-  { id: 'author', label: 'Author', path: '/author' },
-  { id: 'proof', label: 'Proof', path: '/proof' },
+  { id: 'demo', label: 'Demo', icon: '🎯', path: '/' },
+  { id: 'shop', label: 'Shop', icon: '🛒', path: '/shop' },
+  { id: 'challenge', label: 'Challenge', icon: '🎮', path: '/challenge' },
+  { id: 'attack-lab', label: 'Attack Lab', icon: '⚡', path: '/attack-lab' },
+  { id: 'ledger', label: 'Ledger', icon: '📊', path: '/ledger' },
+  { id: 'ops', label: 'Ops', icon: '📈', path: '/ops' },
+  { id: 'verify', label: 'Verify', icon: '✅', path: '/verify' },
+  { id: 'mandate', label: 'Mandate', icon: '📜', path: '/mandate' },
+  { id: 'author', label: 'Author', icon: '✍️', path: '/author' },
+  { id: 'proof', label: 'Proof', icon: '🔬', path: '/proof' },
 ];
 
 const BrandLogo = () => (
@@ -75,7 +75,8 @@ export function Layout({ children, mode = 'SIMULATED', currentPath }: LayoutProp
               className={`nav-link ${currentPath === item.path ? 'nav-link-active' : ''}`}
               aria-current={currentPath === item.path ? 'page' : undefined}
             >
-              {item.label}
+              <span style={{ fontSize: '15px', marginRight: '10px' }} aria-hidden="true">{item.icon}</span>
+              <span>{item.label}</span>
             </a>
           ))}
         </nav>
@@ -107,12 +108,13 @@ export function Layout({ children, mode = 'SIMULATED', currentPath }: LayoutProp
         </div>
       </main>
 
-      {/* Mobile bottom tabs: 4 primary pages + More, so every page is reachable on a phone */}
+      {/* Mobile bottom tabs: 4 primary pages + More */}
       {moreOpen && (
         <div className="more-sheet" role="menu" aria-label="More pages">
           {more.map((item) => (
             <a key={item.id} href={item.path} onClick={go(item.path)} role="menuitem" className={`more-link ${currentPath === item.path ? 'more-link-active' : ''}`} aria-current={currentPath === item.path ? 'page' : undefined}>
-              {item.label}
+              <span style={{ marginRight: '6px' }}>{item.icon}</span>
+              <span>{item.label}</span>
             </a>
           ))}
         </div>
@@ -126,10 +128,12 @@ export function Layout({ children, mode = 'SIMULATED', currentPath }: LayoutProp
             className={`tab-item ${currentPath === item.path ? 'tab-item-active' : ''}`}
             aria-current={currentPath === item.path ? 'page' : undefined}
           >
+            <span style={{ fontSize: '16px' }} aria-hidden="true">{item.icon}</span>
             <span className="tab-label">{item.label}</span>
           </a>
         ))}
         <button type="button" className={`tab-item tab-more ${moreActive || moreOpen ? 'tab-item-active' : ''}`} aria-expanded={moreOpen} aria-haspopup="menu" onClick={() => setMoreOpen((o) => !o)}>
+          <span style={{ fontSize: '16px' }} aria-hidden="true">⋯</span>
           <span className="tab-label">More</span>
         </button>
       </nav>
@@ -149,11 +153,12 @@ export function Layout({ children, mode = 'SIMULATED', currentPath }: LayoutProp
           top: 0;
           bottom: 0;
           width: 240px;
-          background: white;
+          background: var(--card-bg, #ffffff);
           border-right: 1px solid var(--border);
           display: none;
           flex-direction: column;
           z-index: 100;
+          box-shadow: 1px 0 3px rgba(0, 0, 0, 0.03);
         }
 
         .sidebar-header {
@@ -166,40 +171,49 @@ export function Layout({ children, mode = 'SIMULATED', currentPath }: LayoutProp
 
         .logo {
           font-size: var(--font-size-xl);
-          font-weight: 600;
-          color: var(--navy);
+          font-weight: 700;
+          color: var(--text);
+          letter-spacing: -0.02em;
           margin: 0;
         }
 
         .sidebar-nav {
           display: flex;
           flex-direction: column;
-          gap: var(--space-xs);
-          padding: var(--space-md);
+          gap: 4px;
+          padding: 12px;
           overflow-y: auto;
         }
 
         .nav-link {
-          display: block;
-          padding: var(--space-sm) var(--space-md);
-          border-radius: var(--radius-md);
-          color: var(--text);
-          text-decoration: none;
-          font-weight: 500;
-          font-size: var(--font-size-base);
-          transition: all var(--transition-fast);
-          min-height: 44px;
           display: flex;
           align-items: center;
+          padding: 10px 14px;
+          border-radius: var(--radius-md);
+          color: var(--muted);
+          text-decoration: none;
+          font-weight: 500;
+          font-size: var(--font-size-sm);
+          transition: all var(--transition-fast);
+          min-height: 40px;
         }
 
         .nav-link:hover {
           background: var(--background);
+          color: var(--text);
         }
 
         .nav-link-active {
-          background: var(--blue);
-          color: white;
+          background: linear-gradient(135deg, rgba(0, 112, 186, 0.12) 0%, rgba(0, 48, 135, 0.06) 100%);
+          color: var(--blue);
+          font-weight: 600;
+          border-left: 3px solid var(--blue);
+        }
+
+        [data-theme="dark"] .nav-link-active {
+          background: rgba(56, 189, 248, 0.12);
+          color: var(--blue);
+          border-left: 3px solid var(--blue);
         }
 
         .nav-link:focus-visible {
@@ -214,7 +228,7 @@ export function Layout({ children, mode = 'SIMULATED', currentPath }: LayoutProp
           left: 0;
           right: 0;
           height: 60px;
-          background: white;
+          background: var(--card-bg, #ffffff);
           border-bottom: 1px solid var(--border);
           display: flex;
           align-items: center;
@@ -237,8 +251,8 @@ export function Layout({ children, mode = 'SIMULATED', currentPath }: LayoutProp
           bottom: 0;
           left: 0;
           right: 0;
-          height: 60px;
-          background: white;
+          height: 62px;
+          background: var(--card-bg, #ffffff);
           border-top: 1px solid var(--border);
           display: flex;
           justify-content: space-around;
@@ -252,7 +266,7 @@ export function Layout({ children, mode = 'SIMULATED', currentPath }: LayoutProp
           flex-direction: column;
           align-items: center;
           justify-content: center;
-          gap: var(--space-xs);
+          gap: 2px;
           padding: var(--space-xs);
           color: var(--muted);
           text-decoration: none;
@@ -279,9 +293,9 @@ export function Layout({ children, mode = 'SIMULATED', currentPath }: LayoutProp
         .tab-more { background: none; border: 0; font: inherit; cursor: pointer; color: var(--muted); }
         .tab-more.tab-item-active { color: var(--blue); }
         .more-sheet {
-          position: fixed; left: 8px; right: 8px; bottom: 68px; z-index: 101;
-          background: white; border: 1px solid var(--border); border-radius: 16px;
-          box-shadow: var(--shadow-lg); padding: 8px; display: grid; grid-template-columns: 1fr 1fr; gap: 4px;
+          position: fixed; left: 8px; right: 8px; bottom: 70px; z-index: 101;
+          background: var(--card-bg, #ffffff); border: 1px solid var(--border); border-radius: 16px;
+          box-shadow: var(--shadow-lg); padding: 10px; display: grid; grid-template-columns: 1fr 1fr; gap: 6px;
         }
         .more-link { display: block; padding: 14px 12px; border-radius: 12px; color: var(--text); text-decoration: none; font-weight: 500; text-align: center; }
         .more-link:hover, .more-link:focus-visible { background: var(--background); outline: none; }
@@ -289,7 +303,7 @@ export function Layout({ children, mode = 'SIMULATED', currentPath }: LayoutProp
         .more-link-active { color: var(--blue); background: var(--background); }
         @media (min-width: 768px) { .more-sheet { display: none; } }
         .tab-label {
-          font-size: var(--font-size-sm);
+          font-size: 11px;
         }
 
         /* Desktop Layout */
@@ -310,14 +324,6 @@ export function Layout({ children, mode = 'SIMULATED', currentPath }: LayoutProp
 
           .bottom-tabs {
             display: none;
-          }
-        }
-
-        /* Reduced motion support */
-        @media (prefers-reduced-motion: reduce) {
-          .nav-link,
-          .tab-item {
-            transition: none;
           }
         }
       `}</style>

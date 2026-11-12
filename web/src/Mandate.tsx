@@ -2,18 +2,32 @@ import { useEffect, useMemo, useState } from 'react';
 import { AgGridReact } from 'ag-grid-react';
 import { AllCommunityModule, ModuleRegistry, themeQuartz, type ColDef } from 'ag-grid-community';
 import { api } from './ui';
+import { useTheme } from './ThemeToggle';
 
 ModuleRegistry.registerModules([AllCommunityModule]);
-const theme = themeQuartz.withParams({
+
+const lightTheme = themeQuartz.withParams({
   backgroundColor: '#FFFFFF',
   foregroundColor: '#0C1424',
-  borderColor: '#D3D9E3',
-  headerBackgroundColor: '#F3F5F8',
+  borderColor: '#D9DEE7',
+  headerBackgroundColor: '#F8FAFC',
   fontFamily: "'IBM Plex Mono', monospace",
   fontSize: 13,
-  borderRadius: 0,
-  wrapperBorderRadius: 0,
-  accentColor: '#003087',
+  borderRadius: 6,
+  wrapperBorderRadius: 6,
+  accentColor: '#0070BA',
+});
+
+const darkTheme = themeQuartz.withParams({
+  backgroundColor: '#141A28',
+  foregroundColor: '#F1F5F9',
+  borderColor: '#232D42',
+  headerBackgroundColor: '#0B0E17',
+  fontFamily: "'IBM Plex Mono', monospace",
+  fontSize: 13,
+  borderRadius: 6,
+  wrapperBorderRadius: 6,
+  accentColor: '#38BDF8',
 });
 
 interface MandateCaps {
@@ -57,6 +71,8 @@ interface BacktestSummary {
 }
 
 export function Mandate() {
+  const { theme: currentTheme } = useTheme();
+  const gridTheme = currentTheme === 'dark' ? darkTheme : lightTheme;
   const [activeMandate, setActiveMandate] = useState<MandateCaps | null>(null);
   const [lines, setLines] = useState<string[]>([]);
   const [candidate, setCandidate] = useState<MandateCaps>({
@@ -282,10 +298,18 @@ export function Mandate() {
 
   return (
     <div style={{ maxWidth: 1100, margin: '0 auto', paddingBottom: '4rem' }}>
-      <h1>Mandate & Backtest</h1>
-      <p className="muted">
-        Author candidate policies, re-evaluate past actions deterministically with pure zero-write simulation,
-        and safely deploy approved mandate versions.
+      <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: 'rgba(0, 112, 186, 0.1)', color: 'var(--blue)', padding: '6px 14px', borderRadius: '999px', fontSize: '13px', fontWeight: 600, marginBottom: '16px', border: '1px solid rgba(0, 112, 186, 0.2)' }}>
+        <span>📜 GOVERNANCE POLICY</span>
+        <span>•</span>
+        <span>Zero-Write Pure Function Replay Engine</span>
+      </div>
+
+      <h1 style={{ fontSize: 'var(--font-size-xl)', fontWeight: '700', margin: '0 0 var(--space-xs) 0', color: 'var(--text)', letterSpacing: '-0.02em' }}>
+        Mandate Configuration & Backtest
+      </h1>
+      <p style={{ color: 'var(--muted)', marginBottom: 'var(--space-lg)', fontSize: '15px' }}>
+        Author candidate policies, re-evaluate past transactions deterministically with pure zero-write simulation,
+        and cryptographically commit approved mandate versions to the ledger.
       </p>
 
       {error && (
@@ -298,11 +322,11 @@ export function Mandate() {
         <div
           className="banner"
           style={{
-            background: '#E6F4EA',
-            border: '1px solid #137333',
-            color: '#137333',
+            background: 'var(--allow-bg, rgba(16, 185, 129, 0.1))',
+            border: '1px solid var(--allow, #137333)',
+            color: 'var(--allow, #137333)',
             padding: 16,
-            borderRadius: 6,
+            borderRadius: 8,
             marginBottom: 20,
           }}
         >
@@ -316,7 +340,7 @@ export function Mandate() {
       {/* Grid: Current Mandate vs Candidate Editor */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, marginBottom: 32 }}>
         {/* Left: Active Mandate */}
-        <div style={{ border: '1px solid var(--line)', padding: 20, borderRadius: 6, background: 'var(--surface)' }}>
+        <div style={{ border: '1px solid var(--line)', padding: 20, borderRadius: 8, background: 'var(--surface)' }}>
           <div style={{ display: 'flex', alignItems: 'center', marginBottom: 12 }}>
             <h2 style={{ margin: 0, fontSize: 18 }}>Active Mandate (Live)</h2>
             <span className="chip allow" style={{ marginLeft: 'auto' }}>
@@ -351,7 +375,7 @@ export function Mandate() {
         </div>
 
         {/* Right: Candidate Mandate Editor */}
-        <div style={{ border: '1px solid var(--line)', padding: 20, borderRadius: 6, background: '#FAFBFC' }}>
+        <div style={{ border: '1px solid var(--line)', padding: 20, borderRadius: 8, background: 'var(--background)' }}>
           <div style={{ display: 'flex', alignItems: 'center', marginBottom: 12 }}>
             <h2 style={{ margin: 0, fontSize: 18 }}>Candidate Policy Editor</h2>
             <span className="chip" style={{ marginLeft: 'auto' }}>
@@ -428,9 +452,9 @@ export function Mandate() {
       {/* Mandate Copilot (Advisory) */}
       <div
         style={{
-          border: '1px solid #D3D9E3',
+          border: '1px solid var(--border)',
           padding: 20,
-          borderRadius: 6,
+          borderRadius: 8,
           background: 'var(--surface)',
           marginBottom: 32,
         }}
@@ -452,10 +476,10 @@ export function Mandate() {
             placeholder="e.g. Tighten refund limit to $20 and reduce daily spend during high fraud spike"
             value={copilotGoal}
             onChange={(e) => setCopilotGoal(e.target.value)}
-            style={{ flex: 1, padding: '8px 12px', fontSize: 13 }}
+            style={{ flex: 1, padding: '8px 12px', fontSize: 13, borderRadius: 6, border: '1px solid var(--border)', background: 'var(--background)', color: 'var(--text)' }}
             onKeyDown={(e) => e.key === 'Enter' && askCopilot()}
           />
-          <button className="btn secondary" onClick={askCopilot} disabled={copilotLoading || !copilotGoal.trim()}>
+          <button className="btn btn-secondary" onClick={askCopilot} disabled={copilotLoading || !copilotGoal.trim()}>
             {copilotLoading ? 'Thinking...' : 'Ask Copilot'}
           </button>
         </div>
@@ -464,9 +488,9 @@ export function Mandate() {
           <div
             style={{
               marginTop: 16,
-              background: '#F3F5F8',
+              background: 'var(--background)',
               padding: 16,
-              borderRadius: 4,
+              borderRadius: 6,
               border: '1px solid var(--line)',
             }}
           >
@@ -579,7 +603,7 @@ export function Mandate() {
           {/* AG Grid Table */}
           <div className="scroll-x" style={{ height: 420 }}>
             <AgGridReact
-              theme={theme}
+              theme={gridTheme}
               rowData={backtestResult.results}
               columnDefs={cols}
               pinnedBottomRowData={pinnedBottomRowData}
@@ -597,10 +621,10 @@ export function Mandate() {
           <div
             style={{
               marginTop: 32,
-              border: '1px solid #D3D9E3',
+              border: '1px solid var(--border)',
               padding: 24,
-              borderRadius: 6,
-              background: '#FAFBFC',
+              borderRadius: 8,
+              background: 'var(--background)',
             }}
           >
             <h3 style={{ marginTop: 0, fontSize: 17 }}>Activate as New Mandate Version</h3>

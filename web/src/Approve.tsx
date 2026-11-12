@@ -61,8 +61,14 @@ export function Approve({ actionId }: { actionId: string }) {
 
   return (
     <div style={{ maxWidth: '800px', margin: '0 auto' }}>
-      <h1 style={{ fontSize: 'var(--font-size-xl)', fontWeight: '600', marginBottom: 'var(--space-lg)', color: 'var(--text)' }}>
-        Approve a refund
+      <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: 'rgba(0, 112, 186, 0.1)', color: 'var(--blue)', padding: '6px 14px', borderRadius: '999px', fontSize: '13px', fontWeight: 600, marginBottom: '16px', border: '1px solid rgba(0, 112, 186, 0.2)' }}>
+        <span>⚖️ HUMAN-IN-THE-LOOP</span>
+        <span>•</span>
+        <span>Escalation & Policy Waiver Portal</span>
+      </div>
+
+      <h1 style={{ fontSize: 'var(--font-size-xl)', fontWeight: '700', marginBottom: 'var(--space-lg)', color: 'var(--text)', letterSpacing: '-0.02em' }}>
+        Review Escalated Refund Request
       </h1>
 
       <div className="card" style={{ marginBottom: 'var(--space-lg)' }}>
@@ -96,7 +102,7 @@ export function Approve({ actionId }: { actionId: string }) {
             </p>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 'var(--space-sm)' }}>
               {info.exchangeSuggestions.map((item: any) => (
-                <div key={item.id} className="card" style={{ background: 'white' }}>
+                <div key={item.id} className="card" style={{ background: 'var(--card-bg, #ffffff)' }}>
                   <strong style={{ display: 'block', marginBottom: 'var(--space-xs)', color: 'var(--text)' }}>{item.name}</strong>
                   <div className="numeric" style={{ color: 'var(--navy)', fontWeight: '600', marginBottom: 'var(--space-xs)' }}>
                     {dollars(item.priceCents)}
@@ -124,12 +130,12 @@ export function Approve({ actionId }: { actionId: string }) {
       </div>
 
       {done && (
-        <div className="card" style={{ background: '#E6F4EC', marginBottom: 'var(--space-lg)' }} role="status">
+        <div className="card" style={{ background: 'var(--allow-bg, rgba(16, 185, 129, 0.1))', border: '1px solid var(--success)', marginBottom: 'var(--space-lg)' }} role="status">
           <p style={{ margin: 0, color: 'var(--success)' }}>{done}</p>
         </div>
       )}
 
-      <div style={{ position: 'sticky', bottom: 0, background: 'white', padding: 'var(--space-lg)', borderTop: '1px solid var(--border)', display: 'flex', gap: 'var(--space-md)' }}>
+      <div style={{ position: 'sticky', bottom: 0, background: 'var(--card-bg, #ffffff)', padding: 'var(--space-lg)', borderTop: '1px solid var(--border)', display: 'flex', gap: 'var(--space-md)', borderRadius: '0 0 var(--radius-lg) var(--radius-lg)' }}>
         <button className="btn btn-primary" disabled={!open} onClick={() => decide('approve')}>
           Approve
         </button>
