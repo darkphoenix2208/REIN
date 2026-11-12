@@ -675,10 +675,10 @@ I open the Devpost entry and watch the video. It is clear, so I click the repo. 
 
 | Tool | Start to useful result | Time + evidence | DX choice | Source |
 |---|---|---|---|---|
-| RiderPay | clone, set sandbox creds, run Flask, curl `/api/pay` | unknown; creds required (README) | tests + setup steps present; no hosted demo, no UI beyond static page | github.com/ceedot-rock/riderpay |
-| PayPal Guardian | clone, creds, Groq key, FastAPI + Vite | unknown; two keys required (README) | clear README, no screenshots, no demo | github.com/SeyiBuilds/Paypal-Guardian |
-| PayRoute | clone, `docker`/Go run, curl | unknown; falls back to simulated mode with no PayPal key | README has curl examples and a demo script | github.com/zhoujie0420/payroute |
-| deflect-paypal | clone, `.env.local`, npm | unknown; sandbox creds required | generic SDK-data demo | github.com/ethan-yi-dev/deflect-paypal |
+| RiderPay | clone, set sandbox creds, run Flask, curl `/api/pay` | unknown; creds required (README) | tests + setup steps present; no hosted demo, no UI beyond static page | RiderPay (GitHub) |
+| PayPal Guardian | clone, creds, Groq key, FastAPI + Vite | unknown; two keys required (README) | clear README, no screenshots, no demo | PayPal Guardian (GitHub) |
+| PayRoute | clone, `docker`/Go run, curl | unknown; falls back to simulated mode with no PayPal key | README has curl examples and a demo script | PayRoute (GitHub) |
+| deflect-paypal | clone, `.env.local`, npm | unknown; sandbox creds required | generic SDK-data demo | deflect-paypal (GitHub) |
 | **Rein (plan)** | clone, `npm ci`, `npm run demo`, press Run | **estimate 3-8 min, 0 keys, 0 accounts** (npm install dominates and varies with antivirus; unmeasured) | no-keys default path; sim + replay; one command | docs/Product/PRODUCT_PLAN.md |
 
 Only PayRoute offers a keyless fallback among the four; none opens a browser to a ready contrast. Target (D-DX-2): **Competitive tier, 2-5 min, with Champion (<2 min) delivered by the zero-install paths** (video, optional hosted URL). Clock: starts at `git clone`, ends when the BLOCKED outcome is on screen; includes `npm ci`. Warm CI timers are not human TTHW and are labeled so.

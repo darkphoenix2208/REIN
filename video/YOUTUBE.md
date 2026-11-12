@@ -20,9 +20,9 @@ Chapters
 1:45 Results and how to run it
 
 Run it yourself (no keys needed):
-git clone https://github.com/Guten-Morgen1302/Rein
+git clone https://github.com/darkphoenix2208/REIN.git
 npm ci && npm run demo
 
-Code: https://github.com/Guten-Morgen1302/Rein (MIT)
+Code: https://github.com/darkphoenix2208/REIN (MIT)
 Benchmarks and their limits: docs/Product/IMPACT_AND_EVIDENCE.md · What Rein does not protect against: docs/Architecture/THREAT_MODEL.md
 Benchmarks are small and use tickets we wrote.
