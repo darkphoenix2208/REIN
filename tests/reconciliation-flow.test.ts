@@ -1,4 +1,4 @@
-// STAGE 1 TASK 3: Reconciler safety - only mark executed when refund is actually found at PayPal
+// Reconciler safety - only mark executed when refund is actually found at PayPal
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { tempDb } from './helpers.ts';

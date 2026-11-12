@@ -1,4 +1,4 @@
-// STAGE 1 TASK 7: Git hygiene - no secrets, keys, or databases committed
+// Git hygiene - no secrets, keys, or databases committed
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { execSync } from 'node:child_process';

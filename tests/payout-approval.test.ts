@@ -1,4 +1,4 @@
-// STAGE 1 TASK 1: Payout approval tests
+// Payout approval tests
 import { describe, test } from 'node:test';
 import * as assert from 'node:assert/strict';
 import { tempDb } from './helpers.ts';
@@ -18,7 +18,7 @@ const baseMandate: Mandate = {
   payoutEscalateNewPayee: true,
 };
 
-describe('STAGE 1 TASK 1: Payout approval', () => {
+describe('Payout approval', () => {
   test('approve then retry executes once', async () => {
     const { db } = await tempDb();
     const check1 = checkPayout(db, baseMandate, {

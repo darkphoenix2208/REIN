@@ -1,4 +1,4 @@
-// Stage 1 HTTP-level tests: all four routes called through the real Express app.
+// HTTP service integration tests: all four routes called through the real Express app.
 // A test FAILS if the route returns 500 or breaks the response shape.
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
@@ -70,7 +70,7 @@ function request(
 }
 
 for (const driver of ['better-sqlite3', 'node:sqlite'] as const) {
-  describe(`Stage 1 HTTP routes (${driver})`, () => {
+  describe(`HTTP service routes (${driver})`, () => {
 
     // ---- GET /v1/ledger/checkpoint ----
     test('GET /v1/ledger/checkpoint - works on a fresh install: with no key configured a key is generated once and persisted outside the repo', async () => {

@@ -1,4 +1,4 @@
-// STAGE 1 TASK 4: Beat the Gate sandbox isolation - separate DB, no PayPal, no notifications
+// Beat the Gate sandbox isolation - separate DB, no PayPal, no notifications
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { tempDb } from './helpers.ts';

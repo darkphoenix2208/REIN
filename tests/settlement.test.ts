@@ -1,4 +1,4 @@
-// STAGE 1 TASK 2: Non-refund actions persist as "reserved" and settle properly
+// Non-refund actions persist as "reserved" and settle properly
 import { describe, test } from 'node:test';
 import * as assert from 'node:assert/strict';
 import { tempDb } from './helpers.ts';
@@ -14,7 +14,7 @@ const baseMandate: Mandate = {
   expiresAt: NOW + 86400000,
 };
 
-describe('STAGE 1 TASK 2: Settle non-refund actions', () => {
+describe('Settle non-refund actions', () => {
   test('subscription cancel persists as reserved, settles to executed', async () => {
     const { db } = await tempDb();
     const cr = checkSubscription(db, baseMandate, {

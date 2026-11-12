@@ -1,4 +1,4 @@
-// Stage 2.A: Beat the Gate comprehensive test suite with injected Anthropic client
+// Beat the Gate comprehensive test suite with injected Anthropic client
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 import http from 'node:http';
@@ -50,7 +50,7 @@ function request(app: any, method: string, path: string, body?: object, headers:
 }
 
 for (const driver of ['better-sqlite3', 'node:sqlite'] as const) {
-  describe(`Stage 2.A: Beat the Gate with Injected Client (${driver})`, () => {
+  describe(`Beat the Gate with Injected Client (${driver})`, () => {
     // 1. Normal $18 refund (allowed)
     test('injected agent: normal $18 refund is allowed', async () => {
       const path = join(mkdtempSync(join(tmpdir(), 'rein-btg-')), 't.db');

@@ -1,4 +1,4 @@
-// Stage 1.2: Gate bypass tests for cancel_subscription and handle_dispute.
+// Gate bypass tests for cancel_subscription and handle_dispute.
 // These tests FAIL if either action auto-allows without going through the policy.
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
