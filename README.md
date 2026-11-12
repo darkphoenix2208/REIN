@@ -1,4 +1,6 @@
-# Rein 🛡️ — A Refund Budget for AI Agents
+<p align="center">
+  <img src="docs/assets/brand/rein-hero-banner.svg" alt="Rein — A Refund Budget for AI Agents" width="100%" />
+</p>
 
 <p align="center">
   <a href="https://github.com/darkphoenix2208/REIN/actions/workflows/ci.yml"><img src="https://img.shields.io/badge/CI-392%20Tests%20Passing-success?style=flat-square&logo=githubactions&logoColor=white" alt="CI Status" /></a>
@@ -72,6 +74,46 @@ Open `http://127.0.0.1:4317` in your browser:
 ## 🎬 Interactive Showcase & Key Capabilities
 
 Rein runs side-by-side with your agent. While an unconstrained agent follows attacker instructions to refund orders in full, Rein intervenes at the tool boundary.
+
+### Live System Screenshots (Render Production)
+
+<table align="center" width="100%">
+  <tr>
+    <td width="50%" align="center">
+      <b>1. Dual-Lane Live Demo (Unguarded vs. Rein Gate)</b><br/>
+      <img src="docs/assets/screenshots/rein-dual-lane-demo.png" alt="Dual-Lane Live Demo" width="100%"/>
+      <br/>
+      <i>Prompt injection ($200 demand) induces hallucination without Rein; Rein resolves items ($18) and blocks over-capture.</i>
+    </td>
+    <td width="50%" align="center">
+      <b>2. Cryptographic Audit Ledger (AG Grid)</b><br/>
+      <img src="docs/assets/screenshots/rein-audit-ledger.png" alt="Cryptographic Audit Ledger" width="100%"/>
+      <br/>
+      <i>Real-time tamper-evident journal with rolling SHA-256 hash chains, row grouping, and 1-click evidence pack exports.</i>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" align="center">
+      <b>3. Beat the Gate Red-Team Challenge</b><br/>
+      <img src="docs/assets/screenshots/rein-beat-the-gate.png" alt="Beat the Gate Challenge" width="100%"/>
+      <br/>
+      <i>Adversarial arena with rapid attack payloads, real-time verdicts, and $1,000 bounty ledger.</i>
+    </td>
+    <td width="50%" align="center">
+      <b>4. Real-Time Ops &amp; Exposure Telemetry</b><br/>
+      <img src="docs/assets/screenshots/rein-ops-telemetry.png" alt="Ops and Exposure Dashboard" width="100%"/>
+      <br/>
+      <i>Daily organization spend exposure gauges, cumulative loss prevented totals, and customer velocity monitors.</i>
+    </td>
+  </tr>
+</table>
+
+<p align="center">
+  <b>5. In-Browser Cryptographic Verifier &amp; Tamper Simulator</b><br/>
+  <img src="docs/assets/screenshots/rein-cryptographic-verifier.png" alt="Client-Side Cryptographic Verifier" width="94%"/>
+  <br/>
+  <i>WebCrypto Ed25519 digital signature &amp; SHA-256 chain recomputation with interactive memory tampering simulation.</i>
+</p>
 
 ### Key Capabilities
 
