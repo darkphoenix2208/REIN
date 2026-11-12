@@ -12,7 +12,7 @@ The documentation is organized by responsibility. Start with the seven implement
 | Database Decisions | [Database design](Database%20Decisions/DATABASE_DESIGN.md) |
 | Deployment | [Deployment guide](Deployment/DEPLOYMENT_GUIDE.md) |
 | Frontend | [Frontend guide](Frontend/FRONTEND_GUIDE.md) · [Design system](Frontend/DESIGN_SYSTEM.md) |
-| Operations | [Operations guide](Operations/OPERATIONS_GUIDE.md) · [Demo script](Operations/DEMO_SCRIPT.md) · [Video production runbook](Operations/VIDEO_PRODUCTION_RUNBOOK.md) |
+| Operations | [Operations guide](Operations/OPERATIONS_GUIDE.md) · [3-Minute Demo Script](DEMO-SCRIPT.md) |
 
 ## Product documentation
 

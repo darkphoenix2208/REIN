@@ -27,7 +27,7 @@
     "reseed": "node scripts/reseed.mjs",
     "checkpoint-publish": "node --experimental-strip-types scripts/checkpoint-publish.mjs",
     "benchmark": "node --experimental-strip-types --disable-warning=ExperimentalWarning scripts/benchmark.ts",
-    "screenshots": "node --experimental-strip-types scripts/screenshot-ui.ts",
+    "screenshots": "node scripts/capture-real-screenshots.mjs",
     "probe:live": "node --disable-warning=ExperimentalWarning scripts/probe-live.mjs"
   },
   "dependencies": {

@@ -71,6 +71,6 @@ The suite covers pure policy ordering, item resolution, concurrent caps, approva
 
 For an operational database, take a SQLite-consistent backup before changes. Preserve the database, WAL/SHM files, active mandate, externally published heads, and seal file during incident analysis. Never restore a database under a running Rein process.
 
-## Video and benchmark tooling
+## Benchmark tooling
 
-The `video/` project is a separate Remotion build with recording, cutting, voice-over, audio-mixing, and rendering scripts; follow [its README](../../video/README.md). `scripts/reinbench/` contains research harnesses and synthetic adversarial tickets. These are evidence and media tooling, not production runtime dependencies.
+`scripts/reinbench/` contains research harnesses and synthetic adversarial tickets. These are evidence tooling, not production runtime dependencies.

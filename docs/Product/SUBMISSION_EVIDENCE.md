@@ -50,7 +50,7 @@ Cross-reference every DEVPOST_SUBMISSION.md claim to working code or test.
 | **Documentation** | | |
 | OpenAPI 3.1 spec | ✅ 10 endpoints documented | `docs/api/openapi.yaml` |
 | Deployment guide | ✅ Render.com one-click | `docs/DEPLOY_RENDER.md` |
-| Video shot list | ✅ 3-5min structure | `video/SHOT_LIST.md` |
+| Video walkthrough script | ✅ 3-minute structure | `docs/DEMO-SCRIPT.md` |
 | Architecture docs | ✅ Flow diagrams, component descriptions | `docs/Backend/ARCHITECTURE.md` |
 | Honest limitations | ✅ No "tamper-proof", states limits | `README.md` "Limitations" section |
 | **Demo Scenarios** | | |

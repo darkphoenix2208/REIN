@@ -66,7 +66,7 @@ External I/O never happens inside the SQLite transaction. Live PayPal state is r
 | Persistence | Driver abstraction, schema, ledger hash chain, optional seal | `server/db.ts`, `schema.ts`, `ledger.ts`, `seal.ts` |
 | Integrations | PayPal sandbox client, MCP surface, Claude hooks, Gemini | `server/paypal.ts`, `proxy.ts`, `hooks/`, `llm.ts` |
 | Delivery | Express API, static SPA, simulated demo | `server/app.ts`, `index.ts`, `demo.ts`, `web/` |
-| Tooling | Seeding, reset, replay, doctor, benchmarks, video | `scripts/`, `video/` |
+| Tooling | Seeding, reset, replay, doctor, benchmarks | `scripts/` |
 
 ## Decision boundaries
 

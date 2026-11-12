@@ -38,16 +38,6 @@ paypal video transcript.txt
 /scripts/reinbench/results-*.json
 /scripts/reinbench/user-policies-results.json
 
-# raw demo-video screen recordings (large, not source)
-/recording/
-
-# demo video: build output, cut clips, python venv (sources stay in git)
-video/out/
-video/public/clips/
-video/.venv/
-video/*.mp4
-video/*.mov
-video/*.avi
 __pycache__/
 
 # UI check screenshots (can be regenerated)
