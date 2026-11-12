@@ -9,7 +9,7 @@ The documentation is organized by responsibility. Start with the seven implement
 | API | [API reference](API/API_REFERENCE.md) |
 | Architecture | [System architecture](Architecture/SYSTEM_ARCHITECTURE.md) · [Threat model](Architecture/THREAT_MODEL.md) |
 | Backend | [Backend guide](Backend/BACKEND_GUIDE.md) · [Policy reference](Backend/POLICY_REFERENCE.md) · [Claude Code integration](Backend/CLAUDE_CODE_INTEGRATION.md) |
-| Database Decisions | [Database design](Database%20Decisions/DATABASE_DESIGN.md) |
+| Database Decisions | [Database design](Database-Decisions/DATABASE_DESIGN.md) |
 | Deployment | [Deployment guide](Deployment/DEPLOYMENT_GUIDE.md) |
 | Frontend | [Frontend guide](Frontend/FRONTEND_GUIDE.md) · [Design system](Frontend/DESIGN_SYSTEM.md) |
 | Operations | [Operations guide](Operations/OPERATIONS_GUIDE.md) · [3-Minute Demo Script](DEMO-SCRIPT.md) |
