@@ -20,6 +20,25 @@ const navItems = [
   { id: 'proof', label: 'Proof', path: '/proof' },
 ];
 
+const BrandLogo = () => (
+  <svg width="22" height="22" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ flexShrink: 0 }}>
+    <rect width="32" height="32" rx="8" fill="url(#brandGrad)" />
+    <path d="M16 5C20.5 6.5 23.5 7 25 7.5C25.5 13.5 23.5 22 16 27.5C8.5 22 6.5 13.5 7 7.5C8.5 7 11.5 6.5 16 5Z" fill="url(#violetGrad)" />
+    <path d="M12.5 11H17.8C19.5 11 20.8 12 20.8 13.8C20.8 15 20 16 18.8 16.4L21.5 21.5H18.8L16.4 17H14.8V21.5H12.5V11ZM14.8 15H17.3C18.2 15 18.7 14.6 18.7 13.8C18.7 12.9 18.2 12.5 17.3 12.5H14.8V15Z" fill="#ffffff" />
+    <circle cx="21.5" cy="21.5" r="1.8" fill="#2DDF9B" />
+    <defs>
+      <linearGradient id="brandGrad" x1="0" y1="0" x2="32" y2="32" gradientUnits="userSpaceOnUse">
+        <stop stopColor="#0B0D1B" />
+        <stop offset="1" stopColor="#1E1B4B" />
+      </linearGradient>
+      <linearGradient id="violetGrad" x1="7" y1="5" x2="25" y2="27.5" gradientUnits="userSpaceOnUse">
+        <stop stopColor="#9B8CFF" />
+        <stop offset="1" stopColor="#6847EF" />
+      </linearGradient>
+    </defs>
+  </svg>
+);
+
 export function Layout({ children, mode = 'SIMULATED', currentPath }: LayoutProps) {
   const { theme, toggleTheme } = useTheme();
   const [moreOpen, setMoreOpen] = useState(false);
@@ -38,7 +57,10 @@ export function Layout({ children, mode = 'SIMULATED', currentPath }: LayoutProp
       {/* Desktop sidebar - hidden on mobile */}
       <aside className="sidebar">
         <div className="sidebar-header">
-          <div className="logo">Rein</div>
+          <div className="logo" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <BrandLogo />
+            <span>Rein</span>
+          </div>
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
             <ThemeToggle theme={theme} onToggle={toggleTheme} />
             <span className={`chip chip-${mode.toLowerCase()}`}>{mode}</span>
@@ -57,12 +79,25 @@ export function Layout({ children, mode = 'SIMULATED', currentPath }: LayoutProp
             </a>
           ))}
         </nav>
+        <div className="sidebar-footer" style={{ marginTop: 'auto', padding: 'var(--space-md)', borderTop: '1px solid var(--border)', fontSize: '11px', color: 'var(--muted)', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+          <div style={{ fontWeight: 600, color: 'var(--text)' }}>Rein v0.1.0</div>
+          <div>PayPal AI Hackathon 2026</div>
+          <a href="https://github.com/darkphoenix2208/REIN" target="_blank" rel="noreferrer" style={{ color: 'var(--primary)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '4px', marginTop: '2px' }}>
+            GitHub Repository ↗
+          </a>
+        </div>
       </aside>
 
       {/* Mobile header */}
       <header className="mobile-header">
-        <div className="logo">Rein</div>
-        <span className={`chip chip-${mode.toLowerCase()}`}>{mode}</span>
+        <div className="logo" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <BrandLogo />
+          <span>Rein</span>
+        </div>
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          <ThemeToggle theme={theme} onToggle={toggleTheme} />
+          <span className={`chip chip-${mode.toLowerCase()}`}>{mode}</span>
+        </div>
       </header>
 
       {/* Main content */}

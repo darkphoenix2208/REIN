@@ -1,4 +1,30 @@
-<svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <rect width="32" height="32" rx="6" fill="#0070BA"/>
-  <path d="M10 24V8h6.5c3.5 0 5.5 1.8 5.5 4.8 0 2.2-1.2 3.8-3 4.4l3.5 6.8h-3.8l-3-6.2h-2.7V24H10zm3-9h3c1.8 0 3-1 3-2.6 0-1.6-1.2-2.4-3-2.4h-3v5z" fill="white"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <defs>
+    <linearGradient id="reinBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0a0d1d"/>
+      <stop offset="100%" stop-color="#141938"/>
+    </linearGradient>
+    <linearGradient id="reinShield" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#9b8cff"/>
+      <stop offset="100%" stop-color="#6847ef"/>
+    </linearGradient>
+    <linearGradient id="reinNode" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#2ddf9b"/>
+      <stop offset="100%" stop-color="#00b4d8"/>
+    </linearGradient>
+    <filter id="reinGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#000000" flood-opacity="0.45"/>
+    </filter>
+  </defs>
+  <!-- Background Squircle -->
+  <rect width="64" height="64" rx="16" fill="url(#reinBg)"/>
+  <rect x="0.75" y="0.75" width="62.5" height="62.5" rx="15.25" fill="none" stroke="#2c3360" stroke-width="1.5"/>
+  <!-- Shield with Drop Shadow -->
+  <g filter="url(#reinGlow)">
+    <path d="M32 10C40.5 12.8 46 13.8 49 14.8C50 26.5 46 41.5 32 52C18 41.5 14 26.5 15 14.8C18 13.8 23.5 12.8 32 10Z" fill="url(#reinShield)"/>
+    <!-- Stylized Modern 'R' -->
+    <path d="M26 21H35C38.5 21 41 22.8 41 26C41 28.2 39.5 30 37.2 30.8L42.5 41H37L32.2 32H29.8V41H26V21ZM29.8 28.5H34.2C35.8 28.5 37 27.8 37 26C37 24.3 35.8 23.6 34.2 23.6H29.8V28.5Z" fill="#ffffff"/>
+    <!-- Consensus / Checkpoint Node -->
+    <circle cx="42.5" cy="41" r="3.2" fill="url(#reinNode)" stroke="#141938" stroke-width="1"/>
+  </g>
 </svg>
