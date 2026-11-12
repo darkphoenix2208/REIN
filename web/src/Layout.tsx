@@ -204,7 +204,7 @@ export function Layout({ children, mode = 'SIMULATED', currentPath }: LayoutProp
         }
 
         .nav-link-active {
-          background: linear-gradient(135deg, rgba(0, 112, 186, 0.12) 0%, rgba(0, 48, 135, 0.06) 100%);
+          background: rgba(0, 112, 186, 0.08);
           color: var(--blue);
           font-weight: 600;
           border-left: 3px solid var(--blue);

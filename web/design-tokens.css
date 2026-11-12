@@ -49,20 +49,20 @@
 }
 
 [data-theme="dark"] {
-  --navy: #38BDF8;
-  --blue: #38BDF8;
-  --blue-light: #7DD3FC;
-  --gold: #F59E0B;
+  --navy: #0070BA;
+  --blue: #0070BA;
+  --blue-light: #009CDE;
+  --gold: #FFC439;
   
-  --background: #0B0E17;
-  --card-bg: #141A28;
-  --border: #232D42;
-  --text: #F1F5F9;
-  --muted: #94A3B8;
+  --background: #1A1D1E;
+  --card-bg: #2C2E2F;
+  --border: #3C4043;
+  --text: #E8EAED;
+  --muted: #9AA0A6;
   
-  --success: #34D399;
-  --warning: #FBBF24;
-  --danger: #F87171;
+  --success: #34A87C;
+  --warning: #F9AB00;
+  --danger: #F28B82;
   
   --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
   --shadow-md: 0 4px 14px rgba(0, 0, 0, 0.5);
@@ -111,15 +111,13 @@ body {
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, #0070BA 0%, #003087 100%);
-  color: #FFFFFF;
-  box-shadow: 0 2px 8px rgba(0, 112, 186, 0.25);
+  background: var(--gold);
+  color: #0C1424;
 }
 
 .btn-primary:hover {
-  background: linear-gradient(135deg, #0079C1 0%, #00457C 100%);
+  background: #E6AF33;
   transform: translateY(-1px);
-  box-shadow: 0 4px 14px rgba(0, 112, 186, 0.35);
 }
 
 .btn-primary:active {
@@ -127,14 +125,12 @@ body {
 }
 
 [data-theme="dark"] .btn-primary {
-  background: linear-gradient(135deg, #38BDF8 0%, #0284C7 100%);
-  color: #0B0E17;
-  box-shadow: 0 2px 8px rgba(56, 189, 248, 0.25);
+  background: var(--gold);
+  color: #0C1424;
 }
 
 [data-theme="dark"] .btn-primary:hover {
-  background: linear-gradient(135deg, #7DD3FC 0%, #0369A1 100%);
-  box-shadow: 0 4px 14px rgba(56, 189, 248, 0.35);
+  background: #E6AF33;
 }
 
 .btn-secondary {
@@ -152,13 +148,13 @@ body {
 }
 
 .btn-danger {
-  background: linear-gradient(135deg, #EF4444 0%, #DC2626 100%);
+  background: var(--danger);
   color: white;
-  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.25);
+  box-shadow: var(--shadow-sm);
 }
 
 .btn-danger:hover {
-  background: linear-gradient(135deg, #F87171 0%, #B91C1C 100%);
+  background: #A01F18;
   transform: translateY(-1px);
 }
 
@@ -246,15 +242,11 @@ body {
 }
 
 .card-vulnerable {
-  border: 1.5px solid rgba(239, 68, 68, 0.4);
-  background: linear-gradient(180deg, var(--card-bg, #ffffff) 0%, rgba(239, 68, 68, 0.03) 100%);
-  box-shadow: 0 4px 20px -2px rgba(239, 68, 68, 0.1);
+  border-left: 4px solid var(--danger);
 }
 
 .card-protected {
-  border: 1.5px solid rgba(16, 185, 129, 0.4);
-  background: linear-gradient(180deg, var(--card-bg, #ffffff) 0%, rgba(16, 185, 129, 0.03) 100%);
-  box-shadow: 0 4px 20px -2px rgba(16, 185, 129, 0.1);
+  border-left: 4px solid var(--success);
 }
 
 /* Empty state */

@@ -40,60 +40,60 @@
   --navy: #003087;
 
   /* Neutral Palette */
-  --bg: #F8FAFC;
+  --bg: #F5F7FA;
   --surface: #FFFFFF;
-  --ink: #0F172A;
-  --ink-muted: #64748B;
-  --line: #E2E8F0;
+  --ink: #2C2E2F;
+  --ink-muted: #687173;
+  --line: #CBD2D6;
 
   /* Status Colors */
-  --allow: #059669;
-  --allow-bg: #ECFDF5;
-  --block: #DC2626;
-  --block-bg: #FEF2F2;
-  --escalate: #D97706;
-  --escalate-bg: #FFFBEB;
-  --success: #059669;
-  --success-bg: #ECFDF5;
-  --error: #DC2626;
-  --error-bg: #FEF2F2;
+  --allow: #028760;
+  --allow-bg: #E7F7EF;
+  --block: #D33F49;
+  --block-bg: #FCEBEB;
+  --escalate: #C97C00;
+  --escalate-bg: #FFF4E5;
+  --success: #028760;
+  --success-bg: #E7F7EF;
+  --error: #D33F49;
+  --error-bg: #FCEBEB;
 
   /* Interactive */
   --link-visited: #4B3F72;
   --focus: #0070BA;
   --blue: #0070BA;
-  --blue-light: #38BDF8;
+  --blue-light: #009CDE;
 }
 
 /* Dark Mode Palette */
 [data-theme="dark"] {
   /* PayPal Brand Colors - adjusted for dark */
-  --navy: #38BDF8;
+  --navy: #0070BA;
 
   /* Neutral Palette - inverted */
-  --bg: #0B0E17;
-  --surface: #141A28;
-  --ink: #F1F5F9;
-  --ink-muted: #94A3B8;
-  --line: #232D42;
+  --bg: #1A1D1E;
+  --surface: #2C2E2F;
+  --ink: #E8EAED;
+  --ink-muted: #9AA0A6;
+  --line: #3C4043;
 
   /* Status Colors - adjusted for dark backgrounds */
-  --allow: #34D399;
-  --allow-bg: rgba(52, 211, 153, 0.12);
-  --block: #F87171;
-  --block-bg: rgba(248, 113, 113, 0.12);
-  --escalate: #FBBF24;
-  --escalate-bg: rgba(251, 191, 36, 0.12);
-  --success: #34D399;
-  --success-bg: rgba(52, 211, 153, 0.12);
-  --error: #F87171;
-  --error-bg: rgba(248, 113, 113, 0.12);
+  --allow: #34A87C;
+  --allow-bg: #1A3A2E;
+  --block: #F28B82;
+  --block-bg: #3A2626;
+  --escalate: #F9AB00;
+  --escalate-bg: #3A3226;
+  --success: #34A87C;
+  --success-bg: #1A3A2E;
+  --error: #F28B82;
+  --error-bg: #3A2626;
 
   /* Interactive */
-  --link-visited: #C084FC;
-  --focus: #38BDF8;
-  --blue: #38BDF8;
-  --blue-light: #7DD3FC;
+  --link-visited: #C58AF9;
+  --focus: #8AB4F8;
+  --blue: #0070BA;
+  --blue-light: #009CDE;
 }
 
 /* Smooth theme transitions */
@@ -425,15 +425,11 @@ main {
 }
 
 .card-vulnerable {
-  border: 1.5px solid rgba(239, 68, 68, 0.4) !important;
-  background: linear-gradient(180deg, var(--surface) 0%, rgba(239, 68, 68, 0.04) 100%) !important;
-  box-shadow: 0 4px 20px -2px rgba(239, 68, 68, 0.12) !important;
+  border-left: 4px solid var(--block) !important;
 }
 
 .card-protected {
-  border: 1.5px solid rgba(16, 185, 129, 0.4) !important;
-  background: linear-gradient(180deg, var(--surface) 0%, rgba(16, 185, 129, 0.04) 100%) !important;
-  box-shadow: 0 4px 20px -2px rgba(16, 185, 129, 0.12) !important;
+  border-left: 4px solid var(--allow) !important;
 }
 
 .banner {

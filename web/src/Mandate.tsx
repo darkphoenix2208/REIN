@@ -19,15 +19,15 @@ const lightTheme = themeQuartz.withParams({
 });
 
 const darkTheme = themeQuartz.withParams({
-  backgroundColor: '#141A28',
-  foregroundColor: '#F1F5F9',
-  borderColor: '#232D42',
-  headerBackgroundColor: '#0B0E17',
+  backgroundColor: '#2C2E2F',
+  foregroundColor: '#E8EAED',
+  borderColor: '#3C4043',
+  headerBackgroundColor: '#1A1D1E',
   fontFamily: "'IBM Plex Mono', monospace",
   fontSize: 13,
   borderRadius: 6,
   wrapperBorderRadius: 6,
-  accentColor: '#38BDF8',
+  accentColor: '#0070BA',
 });
 
 interface MandateCaps {

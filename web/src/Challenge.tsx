@@ -138,7 +138,7 @@ export function Challenge() {
         <div style={{ background: 'var(--background)', height: '10px', borderRadius: 'var(--radius-pill)', overflow: 'hidden' }}>
           <div
             style={{
-              background: percentUsed > 80 ? 'linear-gradient(90deg, #F59E0B, #EF4444)' : 'linear-gradient(90deg, #10B981, #0070BA)',
+              background: percentUsed > 80 ? 'var(--danger)' : 'var(--success)',
               height: '100%',
               width: `${Math.min(percentUsed, 100)}%`,
               borderRadius: 'var(--radius-pill)',
