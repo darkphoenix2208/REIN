@@ -1,5 +1,3 @@
-<!-- TODO AUTHORSHIP: owner must confirm. LICENSE says "Harsh Patil", other files say "darkphoenix2208". These must be reconciled by the repository owner before publication. -->
-
 # Credits
 
 ## Author

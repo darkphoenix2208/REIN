@@ -2,7 +2,7 @@
 import { writeFileSync, readFileSync, existsSync, mkdirSync } from 'node:fs';
 import { spawn } from 'node:child_process';
 const HERE = import.meta.dirname.replace(/\\/g, '/');
-const CLAUDE = 'C:/Users/harsh/AppData/Roaming/npm/node_modules/@anthropic-ai/claude-code/bin/claude.exe';
+const CLAUDE = process.env.CLAUDE_BIN ?? 'claude';
 mkdirSync(`${HERE}/bench`, { recursive: true });
 
 const T = [

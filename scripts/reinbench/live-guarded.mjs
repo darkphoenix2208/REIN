@@ -3,7 +3,7 @@
 import { readFileSync, writeFileSync, mkdirSync, mkdtempSync } from 'node:fs'; import { tmpdir } from 'node:os'; import { join } from 'node:path'; import { spawn } from 'node:child_process';
 import { openDb, applySchema } from './db.mjs';
 const HERE = import.meta.dirname.replace(/\\/g, '/'); const REPO = 'C:/Hackathons/PayPal AI Hackathon';
-const SP = HERE.replace(/\/verify$/, ''); const CLAUDE = 'C:/Users/harsh/AppData/Roaming/npm/node_modules/@anthropic-ai/claude-code/bin/claude.exe';
+const SP = HERE.replace(/\/verify$/, ''); const CLAUDE = process.env.CLAUDE_BIN ?? 'claude';
 const MODE = process.env.MODE ?? 'guarded', REP = Number(process.env.REP ?? 1);
 const env = Object.fromEntries(readFileSync(`${REPO}/.env`, 'utf8').split(/\r?\n/).filter((l) => l && !l.startsWith('#') && l.includes('=')).map((l) => { const i = l.indexOf('='); return [l.slice(0, i), l.slice(i + 1).trim()]; }));
 const tr = await fetch(`${env.PAYPAL_BASE_URL}/v1/oauth2/token`, { method: 'POST', headers: { Authorization: 'Basic ' + Buffer.from(`${env.PAYPAL_CLIENT_ID}:${env.PAYPAL_CLIENT_SECRET}`).toString('base64'), 'Content-Type': 'application/x-www-form-urlencoded' }, body: 'grant_type=client_credentials' });

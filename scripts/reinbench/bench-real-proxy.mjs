@@ -8,7 +8,7 @@ import { openDb } from '../../server/db.ts';
 import { applySchema } from '../../server/schema.ts';
 
 const ROOT = resolve(import.meta.dirname, '../..').replaceAll(String.fromCharCode(92), '/');
-const CLAUDE = process.env.CLAUDE_BIN ?? 'C:/Users/harsh/AppData/Roaming/npm/node_modules/@anthropic-ai/claude-code/bin/claude.exe';
+const CLAUDE = process.env.CLAUDE_BIN ?? 'claude';
 const MODEL = process.env.MODEL ?? 'claude-haiku-4-5-20251001', REP = Number(process.env.REP ?? 2), AMOUNT = process.env.REIN_EXPOSE_AMOUNT_TOOL === '1';
 const OUT = `${ROOT}/.bench/${MODEL}${process.env.REIN_EXPOSE_AMOUNT_TOOL === '1' ? '-amount' : ''}`; mkdirSync(OUT, { recursive: true }); // separate dir per configuration so parallel runs never share a DB
 const T = [

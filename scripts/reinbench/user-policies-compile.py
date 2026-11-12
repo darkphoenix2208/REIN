@@ -1,6 +1,6 @@
-import json, subprocess, os, re
+import json, subprocess, os, re, tempfile
 from concurrent.futures import ThreadPoolExecutor
-SP = r"C:\Users\harsh\AppData\Local\Temp\claude\c--Hackathons-PayPal-AI-Hackathon\042f2538-49c1-4c53-8cc3-87c3fec9e8f2\scratchpad"
+SP = os.environ.get("SCRATCHPAD_PATH", os.path.join(tempfile.gettempdir(), "scratchpad"))
 RUNNER = os.path.expanduser("~/.claude/skills/gstack/bin/gstack-claude-code").replace(chr(92), "/")
 P = {
  "P1-coffee": "Because coffee is perishable, we cannot accept returns on opened bags of whole bean or ground coffee unless the bag was damaged in transit or we sent the wrong roast. Unopened bags, mugs, and brewing gear can be returned within 14 days of delivery for a full refund back to your original payment method. If your order arrived broken, email us photos within 48 hours of delivery and we will ship a replacement or refund the broken item right away. Customers cover return postage for change-of-mind returns.",

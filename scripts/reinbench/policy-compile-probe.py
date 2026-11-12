@@ -1,5 +1,5 @@
-import json, subprocess, os, re
-SP = r"C:\Users\harsh\AppData\Local\Temp\claude\c--Hackathons-PayPal-AI-Hackathon\042f2538-49c1-4c53-8cc3-87c3fec9e8f2\scratchpad"
+import json, subprocess, os, re, tempfile
+SP = os.environ.get("SCRATCHPAD_PATH", os.path.join(tempfile.gettempdir(), "scratchpad"))
 RUNNER = os.path.expanduser("~/.claude/skills/gstack/bin/gstack-claude-code")
 SCHEMA = """Output ONLY a JSON object with exactly these keys (integers are cents or days; booleans true/false):
 perActionCapCents (largest refund the agent may issue alone), hardMaxCents (largest refund ever allowed even with human approval), dailyCapCents (agent-alone refunds per 24h before a human must approve), hardDailyCapCents (absolute refunds per 24h, never exceeded), returnWindowDays (refund only within N days of purchase), blockIfOpenDispute (refuse refunds on payments with an open dispute), escalateFullOrder (a refund of every item of an order needs a human)."""

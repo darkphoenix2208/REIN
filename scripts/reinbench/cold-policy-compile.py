@@ -1,5 +1,5 @@
-import json, subprocess, os, re, sys
-SP = r"C:\Users\harsh\AppData\Local\Temp\claude\c--Hackathons-PayPal-AI-Hackathon\042f2538-49c1-4c53-8cc3-87c3fec9e8f2\scratchpad"
+import json, subprocess, os, re, sys, tempfile
+SP = os.environ.get("SCRATCHPAD_PATH", os.path.join(tempfile.gettempdir(), "scratchpad"))
 RUNNER = os.path.expanduser("~/.claude/skills/gstack/bin/gstack-claude-code").replace(chr(92), "/")
 FIELDS = ["perActionCapCents", "hardMaxCents", "dailyCapCents", "hardDailyCapCents", "returnWindowDays", "blockIfOpenDispute", "escalateFullOrder"]
 def ask(prompt, name, timeout=240000):
